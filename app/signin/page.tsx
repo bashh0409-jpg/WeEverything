@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import {
+  getAuthRedirectUrl,
+  isSupabaseConfigured,
+  supabase,
+} from "@/lib/supabase/client";
 
 const SignInPage = () => {
   const [user, setUser] = useState<any>(null);
@@ -54,10 +58,7 @@ const SignInPage = () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo:
-          typeof window !== "undefined"
-            ? `${window.location.origin}/submit`
-            : undefined,
+        redirectTo: getAuthRedirectUrl(),
       },
     });
 

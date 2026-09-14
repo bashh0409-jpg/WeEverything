@@ -15,3 +15,11 @@ export const supabase =
     : null;
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+
+export const getAuthRedirectUrl = (path = "/submit") => {
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}${path}`;
+  }
+
+  return `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}${path}`;
+};
