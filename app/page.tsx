@@ -1,69 +1,195 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import Navbar from "./components/Navbar";
+import PersonCard from "./components/PersonCard";
+
+const roles = [
+  "All",
+  "Designers",
+  "Developers",
+  "Illustrators",
+  "Photographers",
+] as const;
+
+type RoleFilter = (typeof roles)[number];
+
+const projects = Array.from({ length: 5 }, (_, index) => ({
+  id: index + 1,
+  title: `Project ${index + 1}`,
+}));
+
+const useProfiles = [
+  {
+    id: 1,
+    handle: "casacuruba.interiors",
+    bio: "The founder of Daily Dialogue, a Munich-based creative consultancy working across design, development, and cultural production. Alongside his studio practice, he also co-founded the record label Squama.",
+    image: "",
+    role: "Designers",
+  },
+  {
+    id: 2,
+    handle: "mila.studio",
+    bio: "Independent visual designer crafting brand systems, art direction, and tactile digital experiences for culture-led businesses.",
+    image: "",
+    role: "Designers",
+  },
+  {
+    id: 3,
+    handle: "orion.codes",
+    bio: "Product developer focused on elegant interfaces, thoughtful systems, and high-performance front-end experiences for ambitious teams.",
+    image: "",
+    role: "Developers",
+  },
+  {
+    id: 4,
+    handle: "sol.illustrates",
+    bio: "Illustrator and visual storyteller creating atmospheric compositions, editorial artwork, and character-led imagery for brands and publications.",
+    image: "",
+    role: "Illustrators",
+  },
+  {
+    id: 5,
+    handle: "luna.frames",
+    bio: "Photographer documenting spaces, movement, and emotion with a cinematic eye for editorial and campaign work.",
+    image: "",
+    role: "Photographers",
+  },
+  {
+    id: 6,
+    handle: "niko.builds",
+    bio: "Frontend engineer building sharp, scalable web products with a focus on clarity, speed, and polished interaction design.",
+    image: "",
+    role: "Developers",
+  },
+];
+
+const Page = () => {
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("All");
+
+  const filteredProfiles =
+    roleFilter === "All"
+      ? useProfiles
+      : useProfiles.filter((profile) => profile.role === roleFilter);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div>
+      <Navbar />
+
+      <main className="flex min-h-screen flex-col items-center justify-center px-6 py-2">
+        <section className="mt-50 text-lg leading-tight flex max-w-xl flex-col items-center justify-center text-center uppercase">
+          Find the best developers, photographers, illustrators, stylists and
+          designers for your project.
+        </section>
+
+        <section className="w-full">
+          <div className="mt-8 w-full max-w-lg">
+            <button
+              onClick={() => {
+                setRoleFilter("All");
+              }}
+              className={
+                roleFilter === "All"
+                  ? "flex cursor-pointer geist items-center gap-1 text-2xl font-bold tracking-tighter text-black transition-colors duration-500"
+                  : "flex cursor-pointer geist items-center gap-1 text-2xl font-bold tracking-tighter text-[#999] transition-colors duration-500 hover:text-black"
+              }
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+              <span aria-hidden="true">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  height="18px"
+                  viewBox="0 -960 960 960"
+                  width="18px"
+                  fill="currentColor"
+                >
+                  <path d="m560-120-57-57 144-143H200v-480h80v400h367L503-544l56-57 241 241-240 240Z" />
+                </svg>
+              </span>
+              All Profiles ({projects.length})
+            </button>
+
+            <div className="mt-8 flex flex-wrap  flex-col  justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs  font-semibold uppercase tracking-tighter text-[#999]">
+                  View
+                </span>
+                <button
+                  type="button"
+                  aria-label="Grid view"
+                  aria-pressed={viewMode === "grid"}
+                  onClick={() => {
+                    setViewMode("grid");
+                  }}
+                  className={`cursor-pointer rounded px-1 transition-all duration-400 ${viewMode === "grid" ? "text-black" : "text-[#999] hover:text-black"}`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="14px"
+                    viewBox="0 -960 960 960"
+                    width="14px"
+                    fill="currentColor"
+                  >
+                    <path d="M120-120v-720h720v720H120Zm640-80v-240H520v240h240Zm0-560H520v240h240v-240Zm-560 0v240h240v-240H200Zm0 560h240v-240H200v240Z" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  aria-label="List view"
+                  aria-pressed={viewMode === "list"}
+                  onClick={() => {
+                    setViewMode("list");
+                  }}
+                  className={`cursor-pointer rounded px-1 transition-all duration-400 ${viewMode === "list" ? "text-black" : "text-[#999] hover:text-black"}`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="14px"
+                    viewBox="0 -960 960 960"
+                    width="14px"
+                    fill="currentColor"
+                  >
+                    <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-4 overflow-y-auto text-xs font-semibold uppercase tracking-tight text-[#999]">
+                {roles.slice(1).map((role) => (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => {
+                      setRoleFilter(role);
+                    }}
+                    className={
+                      roleFilter === role
+                        ? "cursor-pointer text-black transition-all duration-500"
+                        : "cursor-pointer transition-all duration-400 hover:text-black"
+                    }
+                  >
+                    {role}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>{" "}
+        </section>
+
+        <section className="mt-10 grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {filteredProfiles.map((profile) => (
+            <PersonCard
+              key={profile.id}
+              handle={profile.handle}
+              bio={profile.bio}
+              image={profile.image}
+              role={profile.role}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          ))}
+        </section>
       </main>
     </div>
   );
-}
+};
+
+export default Page;
