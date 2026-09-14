@@ -16,7 +16,7 @@ export const supabase =
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
-export const getAuthRedirectUrl = (path = "/submit") => {
+export const getAuthRedirectUrl = (path = "/wandile-profile") => {
   if (typeof window !== "undefined") {
     return `${window.location.origin}${path}`;
   }
