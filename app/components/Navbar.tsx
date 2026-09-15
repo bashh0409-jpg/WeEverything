@@ -281,9 +281,9 @@ const Navbar = forwardRef<
           ))}
         </div>
 
-        <div className="flex gap-4 items-start leading-none">
-          <div className="flex flex-col mr-4 items-star leading-none">
-            <span className=" mb-4 text-sm font-semibold mt-1 opacity-100">
+        <div className="gap-4 hidden md:flex items-start leading-none">
+          <div className="flex flex-col mr-4  items-star leading-none">
+            <span className=" mb-4 text-sm  font-semibold mt-1 opacity-100">
               Top Developers
             </span>
             {topDevs.map((designer) => (

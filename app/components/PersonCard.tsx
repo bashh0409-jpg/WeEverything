@@ -102,7 +102,7 @@ const PersonCard = ({
             ))}
 
           {sponsored ? (
-            <div className="absolute left-2 top-2 rounded-full text-[10px] font-bold uppercase tracking-tight text-white backdrop-blur-sm mix-blend-difference mono">
+            <div className="absolute left-2 top-2 text-[10px] font-bold uppercase tracking-tight text-white mix-blend-difference mono">
               Sponsored
             </div>
           ) : null}
