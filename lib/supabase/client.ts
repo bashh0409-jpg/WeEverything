@@ -1,11 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const supabase =
   supabaseUrl && supabaseAnonKey
-    ? createClient(supabaseUrl, supabaseAnonKey, {
+    ? createBrowserClient(supabaseUrl, supabaseAnonKey, {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
@@ -16,10 +16,22 @@ export const supabase =
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
-export const getAuthRedirectUrl = (path = "/wandile-profile") => {
+export const getAuthRedirectUrl = (path = "/profile") => {
+  let base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
   if (typeof window !== "undefined") {
-    return `${window.location.origin}${path}`;
+    const isLocalHost =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+
+    if (isLocalHost) {
+      base = `http://${window.location.hostname}${
+        window.location.port ? `:${window.location.port}` : ""
+      }`;
+    } else {
+      base = window.location.origin;
+    }
   }
 
-  return `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}${path}`;
+  return `${base}/auth/callback?next=${encodeURIComponent(path)}`;
 };

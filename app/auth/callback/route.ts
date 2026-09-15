@@ -3,9 +3,13 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/wandile-profile";
+  const requestedNext = searchParams.get("next");
+  const next =
+    requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
+      ? requestedNext
+      : "/profile";
 
   if (code) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -13,6 +17,7 @@ export async function GET(request: Request) {
 
     if (supabaseUrl && supabaseAnonKey) {
       const cookieStore = await cookies();
+      const response = NextResponse.redirect(new URL(next, request.url));
 
       const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
         cookies: {
@@ -20,24 +25,49 @@ export async function GET(request: Request) {
             return cookieStore.getAll();
           },
           setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options),
-              );
-            } catch {
-              // Cookies can only be set in a Server Action or Route Handler context.
-            }
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options),
+            );
           },
         },
       });
 
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.exchangeCodeForSession(code);
 
-      if (!error) {
-        return NextResponse.redirect(`${origin}${next}`);
+      if (!error && user) {
+        const fullName = user.user_metadata.full_name ?? user.user_metadata.name;
+        const name =
+          typeof fullName === "string" && fullName.trim()
+            ? fullName.trim()
+            : user.email?.split("@")[0] ?? "New member";
+        const avatarUrl = user.user_metadata.avatar_url;
+
+        const { error: profileError } = await supabase.from("profiles").upsert(
+          {
+            id: user.id,
+            name,
+            role: "Designer",
+            ...(typeof avatarUrl === "string" ? { avatar_url: avatarUrl } : {}),
+          },
+          {
+            onConflict: "id",
+            ignoreDuplicates: true,
+          },
+        );
+
+        if (profileError) {
+          console.error("Could not create profile for authenticated user", profileError);
+        }
+
+        return response;
       }
     }
   }
 
-  return NextResponse.redirect(`${origin}/signin`);
+  return NextResponse.redirect(
+    new URL("/signin?error=invalid_code", request.url),
+  );
 }

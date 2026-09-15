@@ -9,6 +9,8 @@ import {
   useRef,
   useState,
 } from "react";
+import type { User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase/client";
 import SignInModal from "./SignInModal";
 
 const links = [
@@ -40,6 +42,8 @@ const Navbar = forwardRef<
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [localTime, setLocalTime] = useState("");
   const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   const asideRef = useRef<HTMLDivElement>(null);
   const linksContainerRef = useRef<HTMLDivElement>(null);
@@ -95,6 +99,51 @@ const Navbar = forwardRef<
 
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const client = supabase;
+
+    if (!client) {
+      setUser(null);
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadSession = async () => {
+      const {
+        data: { session },
+      } = await client.auth.getSession();
+
+      if (isMounted) {
+        setUser(session?.user ?? null);
+      }
+    };
+
+    loadSession();
+
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((_event, session) => {
+      if (isMounted) {
+        setUser(session?.user ?? null);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const isAuthenticated = Boolean(user);
+  const avatarUrl =
+    typeof user?.user_metadata.avatar_url === "string"
+      ? user.user_metadata.avatar_url
+      : typeof user?.user_metadata.picture === "string"
+        ? user.user_metadata.picture
+        : null;
+  const avatarInitial = user?.email?.trim().charAt(0).toUpperCase() || "U";
 
   useLayoutEffect(() => {
     const panel = asideRef.current;
@@ -216,7 +265,7 @@ const Navbar = forwardRef<
 
         <div
           ref={desktopLinksRef}
-          className="hidden flex-1 items-start mt-1 justify-center gap-2 text-white sm:flex"
+          className="hidden  items-start mt-1 justify-center gap-2 text-white sm:flex"
         >
           {links.map((link) => (
             <Link
@@ -230,10 +279,10 @@ const Navbar = forwardRef<
           ))}
         </div>
 
-        <div className="hidden items-start gap-4 text-white sm:flex">
-          <div className="flex flex-col items-start leading-none">
+        <div className="flex gap-4 items-start leading-none">
+          <div className="flex flex-col mr-4 items-star leading-none">
             <span className=" mb-4 text-sm font-semibold mt-1 opacity-100">
-              Top Devs
+              Top Developers
             </span>
             {topDevs.map((designer) => (
               <a
@@ -247,8 +296,8 @@ const Navbar = forwardRef<
               </a>
             ))}
           </div>
-          <div className="flex flex-col items-start leading-none">
-            <span className=" mb-4 text-sm font-semibold mt-1 opacity-100">
+          <div className="flex flex-col items-star leading-none">
+            <span className=" mb-4 text- text-sm mr-4 font-semibold mt-1 opacity-100">
               Top Designers
             </span>
             {topDesigners.map((designer) => (
@@ -263,21 +312,50 @@ const Navbar = forwardRef<
               </a>
             ))}
           </div>
+        </div>
 
-          <div className="flex items-center gap-1 text-sm font-semibold">
-            <Link
-              href="/submit"
-              className="hover:bg-[#dfbf00] hover:text-black cursor-pointer rounded-full px-3 py-1"
-            >
-              Submit
-            </Link>
-            <button
-              type="button"
-              onClick={() => setIsSignInOpen(true)}
-              className="hover:bg-[#dfbf00] hover:text-black cursor-pointer rounded-full px-3 py-1"
-            >
-              Sign in
-            </button>
+        <div className="hidden items-start gap-4 text-white sm:flex">
+          <div className="flex items-center text-sm font-semibold">
+            {!isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => setIsSignInOpen(true)}
+                className="bg-black ml-1 hover:text-[#1c40f2] transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
+              >
+                Sign in
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsLogoutConfirmOpen(true)}
+                  className="bg-black ml-1 hover:text-[#1c40f2] transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
+                >
+                  Log out
+                </button>
+
+                <Link
+                  href="/profile"
+                  aria-label={`View profile for ${user?.email ?? "your account"}`}
+                  title={user?.email ?? "Your profile"}
+                  className="hover:bg-[#1c40f2] transition-colors duration-300 cursor-pointer rounded-full p-0.5 "
+                >
+                  <span className="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[#dfbf00] text-xs font-bold uppercase text-black">
+                    <span aria-hidden>{avatarInitial}</span>
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt=""
+                        onError={(event) => {
+                          event.currentTarget.style.display = "none";
+                        }}
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : null}
+                  </span>
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
@@ -350,19 +428,68 @@ const Navbar = forwardRef<
           </Link>
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
               closeSidebar();
+
+              if (isAuthenticated) {
+                setIsLogoutConfirmOpen(true);
+                return;
+              }
+
               setIsSignInOpen(true);
             }}
             className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white"
           >
-            Sign in
+            {isAuthenticated ? "Log out" : "Sign in"}
           </button>
         </div>
       </aside>
 
       {isSignInOpen ? (
         <SignInModal onClose={() => setIsSignInOpen(false)} />
+      ) : null}
+
+      {isLogoutConfirmOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-md">
+          <div className="relative w-full max-w-md rounded-2xl border border-black/10 bg-white p-4 shadow-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#999]">
+              Confirm logout
+            </p>
+
+            <h2 className="mt-3 text-3xl font-bold tracking-tighter text-black">
+              Are you sure you want to log out?
+            </h2>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  const client = supabase;
+
+                  if (!client) {
+                    setIsLogoutConfirmOpen(false);
+                    return;
+                  }
+
+                  await client.auth.signOut();
+                  setUser(null);
+                  setIsLogoutConfirmOpen(false);
+                }}
+                className="cursor-pointer rounded-full bg-black px-3 py-1 text-sm font-semibold text-white transition hover:bg-[#1c40f2]"
+              >
+                Yes, log out
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsLogoutConfirmOpen(false)}
+                className="cursor-pointer rounded-full border border-black/20 px-3 py-1 text-sm font-semibold text-black transition hover:border-black"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </>
   );

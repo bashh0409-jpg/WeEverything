@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import {
   getAuthRedirectUrl,
   isSupabaseConfigured,
@@ -13,18 +14,18 @@ type SignInModalProps = {
 };
 
 const SignInModal = ({ onClose }: SignInModalProps) => {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(() => Boolean(supabase));
+  const [message, setMessage] = useState(() =>
+    supabase
+      ? ""
+      : "Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to enable Google sign-in.",
+  );
 
   useEffect(() => {
     const client = supabase;
 
     if (!client) {
-      setLoading(false);
-      setMessage(
-        "Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to enable Google sign-in.",
-      );
       return;
     }
 
@@ -61,7 +62,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: getAuthRedirectUrl(),
+        redirectTo: getAuthRedirectUrl("/profile"),
       },
     });
 
@@ -104,11 +105,11 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
         </button>
 
         <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#999]">
-          Sign In To WeEverything
+          Welcome to WeEverything
         </p>
 
         <h2 className="mt-3 text-3xl  font-bold tracking-tighter text-black">
-          {user ? "You are signed in" : "Sign in to submit your profile"}
+          {user ? "You are signed in" : "Sign in or create your profile"}
         </h2>
 
         {message ? (
@@ -151,8 +152,8 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
         ) : (
           <div className="mt-6 space-y-4">
             <p className="text-xs mono tracking-tight font-medium uppercase text-[#999]">
-              Use your Google account to sign in and submit or update your
-              profile.
+              Continue with Google to sign in, or create your profile if this
+              is your first visit.
             </p>
 
             <button

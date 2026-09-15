@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Navbar from "./components/Navbar";
 import PersonCard from "./components/PersonCard";
+import BottomButton from "./components/BottomButton";
 
 const roles = [
   "All",
@@ -76,6 +77,19 @@ const Page = () => {
   return (
     <div>
       <Navbar />
+      <BottomButton />
+
+      <button className="bg-black/30 fixed cursor-pointer bottom-4 right-4 h-15 w-15 flex items-center justify-center rounded-full duration-300 transition hover:bg-black">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          height="54px"
+          viewBox="0 -960 960 960"
+          width="54px"
+          fill="#fff"
+        >
+          <path d="M160-300v-80h640v50H160Zm0-200v-80h640v50H160Z" />
+        </svg>
+      </button>
 
       <main className="flex min-h-screen flex-col items-center justify-center px-6 py-2">
         <section className="mt-50 text-lg leading-tight flex max-w-xl flex-col items-center justify-center text-center uppercase">
