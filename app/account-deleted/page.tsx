@@ -13,7 +13,7 @@ const AccountDeletedPage = () => {
   return (
     <div>
       <Navbar />
-      <BottomButton />
+     
       <main className="flex min-h-screen items-center justify-center px-6 py-24 text-black">
         <section className="w-full max-w-xl border-t border-black pt-5">
           <p className="mono text-xs font-semibold uppercase tracking-[0.1em] text-[#1c40f2]">

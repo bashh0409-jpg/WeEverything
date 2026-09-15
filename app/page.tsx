@@ -16,6 +16,8 @@ const roles = [
   "Photographers",
 ] as const;
 
+const endOfProfilesEmojis = ["🙈", "👀","🥶","🤦🏻‍♂️"];
+
 type RoleFilter = (typeof roles)[number];
 
 type Profile = {
@@ -24,6 +26,7 @@ type Profile = {
   bio: string | null;
   avatar_url: string | null;
   role: string;
+  is_sponsored: boolean;
   uploaded_image: string | null;
   hover_media: {
     type: "image" | "video";
@@ -48,6 +51,9 @@ const normalizeRole = (role: string): RoleFilter => {
 const Page = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("All");
+  const [endOfProfilesEmoji, setEndOfProfilesEmoji] = useState(
+    endOfProfilesEmojis[0],
+  );
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(() => Boolean(supabase));
   const [error, setError] = useState(() =>
@@ -65,7 +71,7 @@ const Page = () => {
       const [profilesResult, mediaResult] = await Promise.all([
         client
           .from("profiles")
-          .select("id, name, bio, avatar_url, role")
+          .select("id, name, bio, avatar_url, role, is_sponsored")
           .eq("is_published", true)
           .order("created_at", { ascending: false }),
         client
@@ -139,29 +145,31 @@ const Page = () => {
     };
   }, []);
 
-  const filteredProfiles =
-    roleFilter === "All"
-      ? profiles
-      : profiles.filter(
-          (profile) => normalizeRole(profile.role) === roleFilter,
-        );
+  useEffect(() => {
+    let emojiIndex = 0;
+    const interval = window.setInterval(() => {
+      emojiIndex = (emojiIndex + 1) % endOfProfilesEmojis.length;
+      setEndOfProfilesEmoji(endOfProfilesEmojis[emojiIndex]);
+    }, 1_500);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const filteredProfiles = [...profiles]
+    .filter(
+      (profile) =>
+        roleFilter === "All" || normalizeRole(profile.role) === roleFilter,
+    )
+    .sort(
+      (firstProfile, secondProfile) =>
+        Number(secondProfile.is_sponsored) - Number(firstProfile.is_sponsored),
+    );
 
   return (
     <div>
       <Navbar />
-      <BottomButton />
+    
 
-      <button className="bg-black/30 fixed cursor-pointer bottom-4 right-4 h-15 w-15 flex items-center justify-center rounded-full duration-300 transition hover:bg-black">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          height="54px"
-          viewBox="0 -960 960 960"
-          width="54px"
-          fill="#fff"
-        >
-          <path d="M160-300v-80h640v50H160Zm0-200v-80h640v50H160Z" />
-        </svg>
-      </button>
 
       <main className="flex min-h-screen flex-col items-center justify-center px-6 py-2">
         <section className="mt-50 text-lg leading-tight flex max-w-xl flex-col items-center justify-center text-center uppercase">
@@ -279,15 +287,23 @@ const Page = () => {
             filteredProfiles.map((profile) => (
               <PersonCard
                 key={profile.id}
+                id={profile.id}
                 handle={profile.name}
                 bio={profile.bio ?? ""}
                 image={profile.uploaded_image ?? profile.avatar_url ?? ""}
                 hoverMedia={profile.hover_media}
+                sponsored={profile.is_sponsored}
                 role={normalizeRole(profile.role)}
               />
             ))
           )}
+          
         </section>
+        <span>End of profiles </span>{" "}
+        <span aria-label="Rotating profile ending" role="img">
+          {endOfProfilesEmoji}
+        </span>
+        
       </main>
       <Footer />
     </div>

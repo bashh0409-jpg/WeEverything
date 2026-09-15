@@ -1,9 +1,40 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
 
 const BottomButton = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const client = supabase;
+
+    if (!client) return;
+
+    let isMounted = true;
+
+    void client.auth.getSession().then(({ data: { session } }) => {
+      if (isMounted) {
+        setIsAuthenticated(Boolean(session));
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((_event, session) => {
+      if (isMounted) {
+        setIsAuthenticated(Boolean(session));
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  if (!isAuthenticated) return null;
 
   return (
     <button
@@ -11,8 +42,8 @@ const BottomButton = () => {
       aria-label={isOpen ? "Close menu" : "Open menu"}
       aria-expanded={isOpen}
       onClick={() => setIsOpen((prev) => !prev)}
-      className={`fixed bottom-4 right-4 z-50 flex h-15 w-15 cursor-pointer items-center justify-center rounded-full transition-colors duration-300 ${
-        isOpen ? "bg-black" : "bg-black/30 hover:bg-black"
+      className={`fixed bottom-4 right-4 z-50 flex h-10 w-10 p-1 cursor-pointer items-center justify-center rounded-full transition-colors duration-300 ${
+        isOpen ? "bg-black" : "bg-[#999] hover:bg-black"
       }`}
     >
       {isOpen ? (
@@ -29,13 +60,12 @@ const BottomButton = () => {
       ) : (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          height="54"
+          height="40px"
           viewBox="0 -960 960 960"
-          width="54"
+          width="40px"
           fill="#fff"
-          aria-hidden="true"
         >
-          <path d="M160-300v-80h640v70H130Zm0-200v-80h640v70H160Z" />
+          <path d="M130.67-220 80-270.67l300-300L540-410l293.33-330L880-694 540-310 380-469.33 130.67-220Z" />
         </svg>
       )}
     </button>

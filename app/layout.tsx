@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 import SmoothScroll from "@/components/SmoothScroll";
 import OpenToWorkTicker from "@/app/components/OpenToWorkTicker";
 import "./globals.css";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 
 const localSans = localFont({
   src: "../public/font/K2FzfZNHj_FHBmRbFvHDJaqlLSj6ZQ.woff2",
@@ -49,7 +51,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${localSans.variable} ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <Analytics />
         <SmoothScroll />
+        <SpeedInsights />
         <OpenToWorkTicker />
         {children}
       </body>

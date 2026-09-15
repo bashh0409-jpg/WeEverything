@@ -11,7 +11,7 @@ const SignInPage = () => {
   return (
     <>
       <Navbar />
-      <BottomButton />
+   
       <SignInModal onClose={() => router.push("/")} />
     </>
   );

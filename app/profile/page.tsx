@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import {
   FaBehance,
   FaDiscord,
@@ -38,6 +44,10 @@ type ProfileMedia = {
   storage_path: string;
   media_type: "image" | "video";
   position: number;
+};
+
+type SponsorshipPayment = {
+  status: string;
 };
 
 type SocialType =
@@ -83,6 +93,9 @@ const acceptedMediaTypes = [
 ];
 
 const roles = ["Designer", "Developer", "Illustrator", "Photographer"];
+
+const countWords = (value: string) =>
+  value.trim().split(/\s+/).filter(Boolean).length;
 
 const socialOptions: { type: SocialType; label: string }[] = [
   { type: "portfolio", label: "Portfolio" },
@@ -175,6 +188,84 @@ const getMediaUrl = (storagePath: string) =>
   supabase?.storage.from(MEDIA_BUCKET).getPublicUrl(storagePath).data
     .publicUrl ?? "";
 
+const ProfileVideo = ({
+  src,
+  profileName,
+}: {
+  src: string;
+  profileName: string;
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const togglePlayback = () => {
+    const video = videoRef.current;
+
+    if (!video) return;
+
+    if (video.paused) {
+      void video.play();
+    } else {
+      video.pause();
+    }
+  };
+
+  return (
+    <div
+      className="group relative aspect-[4/5] overflow-hidden bg-black"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <video
+        ref={videoRef}
+        src={src}
+        controls={false}
+        preload="metadata"
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => setIsPlaying(false)}
+        className="h-full w-full object-cover"
+      />
+      {(!isPlaying || isHovered) && (
+        <button
+          type="button"
+          aria-label={
+            isPlaying
+              ? `Pause media for ${profileName}`
+              : `Play media for ${profileName}`
+          }
+          onClick={togglePlayback}
+          className="absolute left-1/2 top-1/2 flex h-7 p-1 w-7  -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-white text-black transition hover:bg-[#1c40f2] hover:text-white"
+        >
+          {isPlaying ? (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="h-6  w-6"
+              aria-hidden="true"
+            >
+              <path d="M7 5h3v14H7V5Zm7 0h3v14h-3V5Z" />{" "}
+            </svg>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="h-6 -ml-0.5 w-6"
+              aria-hidden="true"
+            >
+              {" "}
+              <path d="M8 5.14v13.72a1 1 0 0 0 1.52.86l10.46-6.86a1 1 0 0 0 0-1.72L9.52 4.28A1 1 0 0 0 8 5.14Z" />
+            </svg>
+          )}
+        </button>
+      )}
+    </div>
+  );
+};
+
 const ProfilePage = () => {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -183,6 +274,8 @@ const ProfilePage = () => {
   const [media, setMedia] = useState<ProfileMedia[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [socials, setSocials] = useState<SocialForm>(emptySocials);
+  const [sponsored, setSponsored] = useState(false);
+  const [profileViews, setProfileViews] = useState(0);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isSponsorModalOpen, setIsSponsorModalOpen] = useState(false);
@@ -215,6 +308,8 @@ const ProfilePage = () => {
         setMedia([]);
         setSocialLinks([]);
         setSocials(emptySocials());
+        setSponsored(false);
+        setProfileViews(0);
         setLoading(false);
         return;
       }
@@ -222,7 +317,13 @@ const ProfilePage = () => {
       setLoading(true);
       setUser(currentUser);
 
-      const [profileResult, mediaResult, linksResult] = await Promise.all([
+      const [
+        profileResult,
+        mediaResult,
+        linksResult,
+        paymentResult,
+        viewsResult,
+      ] = await Promise.all([
         client
           .from("profiles")
           .select("id, name, role, bio, location, avatar_url, is_published")
@@ -241,6 +342,18 @@ const ProfilePage = () => {
             "type",
             socialOptions.map(({ type }) => type),
           ),
+        client
+          .from("sponsorship_payments")
+          .select("status")
+          .eq("user_id", currentUser.id)
+          .eq("status", "paid")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        client
+          .from("profile_views")
+          .select("id", { count: "exact", head: true })
+          .eq("profile_id", currentUser.id),
       ]);
 
       if (!isMounted) return;
@@ -249,6 +362,8 @@ const ProfilePage = () => {
         profileResult.error,
         mediaResult.error,
         linksResult.error,
+        paymentResult.error,
+        viewsResult.error,
       ].filter(Boolean);
 
       setMessage(errors[0]?.message ?? "");
@@ -261,6 +376,10 @@ const ProfilePage = () => {
       setMedia(loadedMedia);
       setSocialLinks(loadedLinks);
       setSocials(toSocialForm(loadedLinks));
+      setSponsored(
+        (paymentResult.data as SponsorshipPayment | null)?.status === "paid",
+      );
+      setProfileViews(viewsResult.count ?? 0);
       setLoading(false);
     };
 
@@ -338,6 +457,15 @@ const ProfilePage = () => {
     event.preventDefault();
 
     if (!supabase || !user || !form) return;
+
+    const bioWordCount = countWords(form.bio);
+
+    if (bioWordCount < 20) {
+      setMessage(
+        `Your bio is required and must contain at least 20 words. It currently has ${bioWordCount}.`,
+      );
+      return;
+    }
 
     const hasPrimaryImage = media.some(
       (item) => item.position === 0 && item.media_type === "image",
@@ -576,7 +704,7 @@ const ProfilePage = () => {
     return (
       <div>
         <Navbar />
-        <BottomButton />
+       
         <main className="flex min-h-screen items-center justify-center px-6 py-20">
           <p className="mono text-sm font-medium uppercase tracking-tight text-[#999]">
             <svg
@@ -599,7 +727,7 @@ const ProfilePage = () => {
     return (
       <div>
         <Navbar />
-        <BottomButton />
+        
         <main className="flex min-h-screen items-center justify-center px-6 py-20">
           <section className="w-full max-w-xl border-t border-black pt-5">
             <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
@@ -635,7 +763,7 @@ const ProfilePage = () => {
   return (
     <div>
       <Navbar />
-      <BottomButton />
+     
 
       <main className="min-h-screen px-6 pb-28 pt-32 text-black sm:px-10">
         <section className="mx-auto w-full max-w-6xl border- mt-10 border-black pt-5">
@@ -762,12 +890,10 @@ const ProfilePage = () => {
                       const mediaUrl = getMediaUrl(item.storage_path);
 
                       return item.media_type === "video" ? (
-                        <video
+                        <ProfileVideo
                           key={item.id}
                           src={mediaUrl}
-                          controls
-                          preload="metadata"
-                          className="aspect-[4/5] w-full bg-black object-cover"
+                          profileName={profileName}
                         />
                       ) : (
                         <img
@@ -791,6 +917,14 @@ const ProfilePage = () => {
                 {profile?.is_published
                   ? "Visible to everyone"
                   : "Only visible to you"}
+              </p>
+              {sponsored ? (
+                <span className="mt-3 inline-flex rounded-full bg-[#1c40f2] px-3 py-1 text-xs font-semibold uppercase tracking-tight text-white">
+                  Sponsored profile
+                </span>
+              ) : null}
+              <p className="mt-4 text-sm font-semibold text-[#666]">
+                {profileViews.toLocaleString()} profile views
               </p>
               <p className="mt-2 text-sm leading-relaxed text-[#666]">
                 {profile?.is_published
@@ -889,13 +1023,18 @@ const ProfilePage = () => {
               <label className="mt-8 block text-sm font-semibold">
                 Bio
                 <textarea
+                  required
                   name="bio"
                   value={activeForm.bio}
                   onChange={handleChange}
                   rows={4}
-                  placeholder="Tell people what you do."
+                  minLength={20}
+                  placeholder="Tell people what you do in at least 20 words."
                   className="mt-2 w-full resize-y border border-black/15 bg-transparent p-3 outline-none transition placeholder:text-[#aaa] focus:border-black"
                 />
+                <p className="mt-2 text-xs font-medium text-[#999]">
+                  {countWords(activeForm.bio)} / 20 words minimum
+                </p>
               </label>
 
               <section className="mt-10 border-t border-black/10 pt-5">

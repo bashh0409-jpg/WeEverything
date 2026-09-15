@@ -1,11 +1,14 @@
 "use client";
 
 import React from "react";
-import { useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 type PersonCardProps = {
+  id: string;
   handle: string;
   bio: string;
+  sponsored: boolean;
   image?: string;
   hoverMedia?: {
     type: "image" | "video";
@@ -14,16 +17,19 @@ type PersonCardProps = {
   role: string;
 };
 
-const PersonCard = ({ handle, bio, image, hoverMedia }: PersonCardProps) => {
+const PersonCard = ({
+  id,
+  handle,
+  bio,
+  sponsored,
+  image,
+  hoverMedia,
+}: PersonCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
-
-    if (hoverMedia?.type === "video") {
-      void videoRef.current?.play();
-    }
   };
 
   const handleMouseLeave = () => {
@@ -35,10 +41,27 @@ const PersonCard = ({ handle, bio, image, hoverMedia }: PersonCardProps) => {
     }
   };
 
+  useEffect(() => {
+    const video = videoRef.current;
+
+    if (!video || hoverMedia?.type !== "video") return;
+
+    if (isHovered) {
+      void video.play();
+    } else {
+      video.pause();
+      video.currentTime = 0;
+    }
+  }, [hoverMedia, isHovered]);
+
   return (
-    <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+    <Link href={`/user/${id}`} className="block">
       <div className="">
-        <div className="relative flex aspect-[4/5] items-center justify-center bg-black/5">
+        <div
+          className="relative flex aspect-[4/5] items-center justify-center bg-black/5"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
           <div className="h-15 absolute  bottom-0 bg-[linear-gradient(to_top,_rgba(28,64,242,0.3)_0%,_rgba(28,64,242,0.15)_50%,_transparent_100%)] w-full "></div>
           {image ? (
             <img
@@ -77,6 +100,12 @@ const PersonCard = ({ handle, bio, image, hoverMedia }: PersonCardProps) => {
                 className="absolute inset-0 h-full w-full object-cover"
               />
             ))}
+
+          {sponsored ? (
+            <div className="absolute left-2 top-2 rounded-full text-[10px] font-bold uppercase tracking-tight text-white backdrop-blur-sm mix-blend-difference mono">
+              Sponsored
+            </div>
+          ) : null}
         </div>
         <div>
           <h1 className="cursor-pointer text-sm font-semibold capitalize tracking-tight hover:text-[#1c40f2] hover:underline">
@@ -94,7 +123,7 @@ const PersonCard = ({ handle, bio, image, hoverMedia }: PersonCardProps) => {
           </button>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 

@@ -74,7 +74,7 @@ export async function POST(request: Request) {
   });
   let paymentQuery = admin
     .from("sponsorship_payments")
-    .select("id")
+    .select("id, profile_id")
     .order("created_at", { ascending: false })
     .limit(1);
 
@@ -128,6 +128,15 @@ export async function POST(request: Request) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const { error: profileError } = await admin
+    .from("profiles")
+    .update({ is_sponsored: paymentStatus === "paid" })
+    .eq("id", payment.profile_id);
+
+  if (profileError) {
+    return NextResponse.json({ error: profileError.message }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });
