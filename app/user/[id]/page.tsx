@@ -1,4 +1,4 @@
-import React from 'react'
+import React from "react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -7,9 +7,7 @@ export const metadata: Metadata = {
 };
 
 const page = () => {
-  return (
-    <div>page</div>
-  )
-}
+  return <div>page</div>;
+};
 
-export default page
+export default page;

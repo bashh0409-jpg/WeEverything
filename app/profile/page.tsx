@@ -185,6 +185,9 @@ const ProfilePage = () => {
   const [socials, setSocials] = useState<SocialForm>(emptySocials);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isSponsorModalOpen, setIsSponsorModalOpen] = useState(false);
+  const [sponsorshipAmount, setSponsorshipAmount] = useState(1500);
+  const [startingCheckout, setStartingCheckout] = useState(false);
   const [loading, setLoading] = useState(() => Boolean(supabase));
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -305,9 +308,30 @@ const ProfilePage = () => {
   };
 
   const handleSponsorProfile = () => {
-    setMessage(
-      "Sponsor profile flow is ready to connect to a payment or contact link.",
-    );
+    setIsSponsorModalOpen(true);
+    setMessage("");
+  };
+
+  const handleSponsorCheckout = async () => {
+    if (startingCheckout) return;
+
+    setStartingCheckout(true);
+    setMessage("");
+
+    const response = await fetch("/api/sponsor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: sponsorshipAmount }),
+    });
+    const result = (await response.json()) as { error?: string; url?: string };
+
+    if (!response.ok || !result.url) {
+      setStartingCheckout(false);
+      setMessage(result.error ?? "Could not start sponsorship checkout.");
+      return;
+    }
+
+    window.location.assign(result.url);
   };
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
@@ -993,6 +1017,66 @@ const ProfilePage = () => {
           ) : null}
         </section>
       </main>
+
+      {isSponsorModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="sponsor-profile-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-5 shadow-2xl">
+            <p className="mono text-xs font-semibold uppercase tracking-[0.1em] text-[#1c40f2]">
+              Sponsor profile
+            </p>
+            <h2
+              id="sponsor-profile-title"
+              className="mt-3 text-3xl font-bold tracking-tighter text-black"
+            >
+              Put your work in front.
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-[#666]">
+              Choose a one-time sponsorship amount to support the directory.
+              Payments are securely handled by Polar.
+            </p>
+            <div className="mt-6 grid grid-cols-3 gap-2">
+              {[500, 1500, 3000].map((amount) => (
+                <button
+                  key={amount}
+                  type="button"
+                  onClick={() => setSponsorshipAmount(amount)}
+                  className={`rounded-full border px-3 py-2 text-sm font-semibold transition ${
+                    sponsorshipAmount === amount
+                      ? "border-[#1c40f2] bg-[#1c40f2] text-white"
+                      : "border-black/20 text-black hover:border-black"
+                  }`}
+                >
+                  ${(amount / 100).toFixed(0)}
+                </button>
+              ))}
+            </div>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsSponsorModalOpen(false)}
+                className="rounded-full border border-black/20 px-4 py-2 text-sm font-semibold text-black transition hover:border-black"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSponsorCheckout()}
+                disabled={startingCheckout}
+                className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1c40f2] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {startingCheckout
+                  ? "Opening checkout..."
+                  : "Continue to payment"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {isDeleteModalOpen ? (
         <div

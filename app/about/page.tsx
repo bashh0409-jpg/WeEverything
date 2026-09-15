@@ -1,11 +1,12 @@
-import React from 'react'
+import React from "react";
 import type { Metadata } from "next";
-import Navbar from '../components/Navbar'
-import BottomButton from '../components/BottomButton';
+import Navbar from "../components/Navbar";
+import BottomButton from "../components/BottomButton";
 
 export const metadata: Metadata = {
   title: "About",
-  description: "Learn about WeEverything and the people behind the creative directory.",
+  description:
+    "Learn about WeEverything and the people behind the creative directory.",
 };
 
 const page = () => {
@@ -15,6 +16,6 @@ const page = () => {
       <BottomButton />
     </div>
   );
-}
+};
 
-export default page
+export default page;
