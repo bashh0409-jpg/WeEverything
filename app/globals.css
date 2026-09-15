@@ -65,3 +65,21 @@ body::-webkit-scrollbar {
 .mono {
   font-family: var(--font-geist-mono), monospace;
 }
+
+.ticker-track {
+  animation: ticker-scroll 25s linear infinite;
+}
+
+.ticker-track span {
+  margin-right: 80px;
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(-50%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}

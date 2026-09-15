@@ -1,7 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  FaBehance,
+  FaDiscord,
+  FaDribbble,
+  FaFacebookF,
+  FaGithub,
+  FaGlobe,
+  FaInstagram,
+  FaLinkedinIn,
+  FaThreads,
+  FaTiktok,
+  FaXTwitter,
+  FaYoutube,
+} from "react-icons/fa6";
 import type { User } from "@supabase/supabase-js";
 import BottomButton from "../components/BottomButton";
 import Navbar from "../components/Navbar";
@@ -84,6 +99,37 @@ const socialOptions: { type: SocialType; label: string }[] = [
   { type: "threads", label: "Threads" },
 ];
 
+const getSocialIcon = (type: SocialType) => {
+  switch (type) {
+    case "portfolio":
+      return <FaGlobe className="text-base" />;
+    case "github":
+      return <FaGithub className="text-base" />;
+    case "linkedin":
+      return <FaLinkedinIn className="text-base" />;
+    case "instagram":
+      return <FaInstagram className="text-base" />;
+    case "dribbble":
+      return <FaDribbble className="text-base" />;
+    case "behance":
+      return <FaBehance className="text-base" />;
+    case "discord":
+      return <FaDiscord className="text-base" />;
+    case "facebook":
+      return <FaFacebookF className="text-base" />;
+    case "youtube":
+      return <FaYoutube className="text-base" />;
+    case "tiktok":
+      return <FaTiktok className="text-base" />;
+    case "x":
+      return <FaXTwitter className="text-base" />;
+    case "threads":
+      return <FaThreads className="text-base" />;
+    default:
+      return null;
+  }
+};
+
 const getHandle = (user: User) =>
   user.email?.split("@")[0]?.toLowerCase() ?? "member";
 
@@ -130,12 +176,15 @@ const getMediaUrl = (storagePath: string) =>
     .publicUrl ?? "";
 
 const ProfilePage = () => {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<ProfileRecord | null>(null);
   const [form, setForm] = useState<ProfileForm | null>(null);
   const [media, setMedia] = useState<ProfileMedia[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [socials, setSocials] = useState<SocialForm>(emptySocials);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [loading, setLoading] = useState(() => Boolean(supabase));
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -265,6 +314,17 @@ const ProfilePage = () => {
     event.preventDefault();
 
     if (!supabase || !user || !form) return;
+
+    const hasPrimaryImage = media.some(
+      (item) => item.position === 0 && item.media_type === "image",
+    );
+
+    if (form.is_published && !hasPrimaryImage) {
+      setMessage(
+        "Upload an image in container 1 before publishing your profile.",
+      );
+      return;
+    }
 
     setSaving(true);
     setMessage("");
@@ -462,6 +522,32 @@ const ProfilePage = () => {
     setUploadingSlot(null);
   };
 
+  const openDeleteAccountModal = () => {
+    if (!deletingAccount) {
+      setIsDeleteModalOpen(true);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!supabase || deletingAccount) return;
+
+    setDeletingAccount(true);
+    setIsDeleteModalOpen(false);
+    setMessage("");
+
+    const response = await fetch("/api/account", { method: "DELETE" });
+    const result = (await response.json()) as { error?: string };
+
+    if (!response.ok) {
+      setDeletingAccount(false);
+      setMessage(result.error ?? "Could not delete your account.");
+      return;
+    }
+
+    await supabase.auth.signOut();
+    router.push("/account-deleted");
+  };
+
   if (loading) {
     return (
       <div>
@@ -469,7 +555,6 @@ const ProfilePage = () => {
         <BottomButton />
         <main className="flex min-h-screen items-center justify-center px-6 py-20">
           <p className="mono text-sm font-medium uppercase tracking-tight text-[#999]">
-           
             <svg
               xmlns="http://www.w3.org/2000/svg"
               height="24px"
@@ -606,9 +691,10 @@ const ProfilePage = () => {
 
               <div className="mt-14 max-w-2xl border-t border-black/10 pt-5">
                 <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                  Bio
+                  About me
                 </p>
-                <p className="mt-4 text-sm leading-snug tracking-tighter text-[#444] sm:text-lg">
+
+                <p className="mt-4 text-sm  leading-4 tracking-tighter text-[#444] sm:text-sm">
                   {profile?.bio ||
                     "Add a short introduction so the community knows what you make and how you work."}
                 </p>
@@ -618,7 +704,7 @@ const ProfilePage = () => {
                   <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
                     Find me online
                   </p>
-                  <div className="mt-4 flex flex-wrap gap-x-5 gap-y-3">
+                  <div className="mt-4 flex flex-wrap gap-x-1 gap-y-3">
                     {visibleSocials.map((link) => {
                       const option = socialOptions.find(
                         (entry) => entry.type === link.type,
@@ -630,9 +716,11 @@ const ProfilePage = () => {
                           href={link.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-sm font-semibold underline decoration-black/20 underline-offset-4 transition hover:text-[#1c40f2]"
+                          title={option?.label ?? link.type}
+                          aria-label={option?.label ?? link.type}
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-black/1 bg-black/[0.03] text-black transition hover:border-black hover:bg-black hover:text-white"
                         >
-                          {option?.label ?? link.type}
+                          {getSocialIcon(link.type)}
                         </a>
                       );
                     })}
@@ -697,6 +785,20 @@ const ProfilePage = () => {
                 <p className="mt-2 break-all moo uppercase tracking-tight   text-xs font-medium text-[#1c40f2]">
                   Email: {user.email}
                 </p>
+              </div>
+
+              <div className="mt-8 border-t border-red-200 pt-5">
+                <p className="mono text-xs font-medium uppercase tracking-tight text-red-500">
+                  Danger zone
+                </p>
+                <button
+                  type="button"
+                  onClick={openDeleteAccountModal}
+                  disabled={deletingAccount}
+                  className="mt-3 rounded-full cursor-pointer border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {deletingAccount ? "Deleting account..." : "Delete account"}
+                </button>
               </div>
             </aside>
           </div>
@@ -876,6 +978,13 @@ const ProfilePage = () => {
                   name="is_published"
                   checked={activeForm.is_published}
                   onChange={handleChange}
+                  disabled={
+                    !activeForm.is_published &&
+                    !media.some(
+                      (item) =>
+                        item.position === 0 && item.media_type === "image",
+                    )
+                  }
                   className="h-4 w-4 accent-[#1c40f2]"
                 />
                 Make my profile visible in the directory
@@ -884,6 +993,48 @@ const ProfilePage = () => {
           ) : null}
         </section>
       </main>
+
+      {isDeleteModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-account-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-5 shadow-2xl">
+            <p className=" text-xs font-semibold uppercase tracking-[0.1em] text-red-500">
+              Delete account
+            </p>
+            <h2
+              id="delete-account-title"
+              className="mt-3 text-3xl font-bold tracking-tighter text-black"
+            >
+              Are you sure?
+            </h2>
+            <p className="mt-3 text-sm mono leading-tight text-[#666]">
+              This permanently deletes your profile, uploaded media, links, and
+              account. This action cannot be undone.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="rounded-full border border-black/20 px-4 py-2 text-sm font-semibold text-black transition hover:border-black"
+              >
+                Keep account
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDeleteAccount()}
+                className="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={deletingAccount}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import { FaGithub, FaGoogle } from "react-icons/fa6";
 import {
   getAuthRedirectUrl,
   isSupabaseConfigured,
@@ -19,7 +20,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
   const [message, setMessage] = useState(() =>
     supabase
       ? ""
-      : "Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to enable Google sign-in.",
+      : "Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to enable sign-in.",
   );
 
   useEffect(() => {
@@ -61,6 +62,28 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
+      options: {
+        redirectTo: getAuthRedirectUrl("/profile"),
+      },
+    });
+
+    if (error) {
+      setMessage(error.message);
+    }
+  };
+
+  const handleGithubSignIn = async () => {
+    if (!supabase) {
+      setMessage(
+        "Supabase is not configured yet. Add your public environment variables first.",
+      );
+      return;
+    }
+
+    setMessage("");
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
       options: {
         redirectTo: getAuthRedirectUrl("/profile"),
       },
@@ -152,18 +175,31 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
         ) : (
           <div className="mt-6 space-y-4">
             <p className="text-xs mono tracking-tight font-medium uppercase text-[#999]">
-              Continue with Google to sign in, or create your profile if this
-              is your first visit.
+              Continue with Google or GitHub to sign in, or create your profile
+              if this is your first visit.
             </p>
 
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={!isSupabaseConfigured}
-              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1c40f2] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1636d4] disabled:cursor-not-allowed disabled:bg-[#c2ccff]"
-            >
-              Continue with Google
-            </button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={!isSupabaseConfigured}
+                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1c40f2] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1636d4] disabled:cursor-not-allowed disabled:bg-[#c2ccff]"
+              >
+                <FaGoogle aria-hidden="true" className="text-base" />
+                Google
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGithubSignIn}
+                disabled={!isSupabaseConfigured}
+                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#aaa]"
+              >
+                <FaGithub aria-hidden="true" className="text-base" />
+                GitHub
+              </button>
+            </div>
 
             {!isSupabaseConfigured ? (
               <p className="text-sm text-[#666]">

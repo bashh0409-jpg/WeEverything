@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { gsap } from "gsap";
 import {
   forwardRef,
@@ -39,6 +40,7 @@ const Navbar = forwardRef<
   HTMLElement,
   { className?: string; currentTime?: string }
 >(({ className = "", currentTime }, ref) => {
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [localTime, setLocalTime] = useState("");
   const [isSignInOpen, setIsSignInOpen] = useState(false);
@@ -329,7 +331,7 @@ const Navbar = forwardRef<
                 <button
                   type="button"
                   onClick={() => setIsLogoutConfirmOpen(true)}
-                  className="bg-black ml-1 hover:text-[#1c40f2] transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
+                  className="bg-black mr-1 hover:text-[#1c40f2] transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
                 >
                   Log out
                 </button>
@@ -474,6 +476,7 @@ const Navbar = forwardRef<
                   await client.auth.signOut();
                   setUser(null);
                   setIsLogoutConfirmOpen(false);
+                  router.push("/");
                 }}
                 className="cursor-pointer rounded-full bg-black px-3 py-1 text-sm font-semibold text-white transition hover:bg-[#1c40f2]"
               >

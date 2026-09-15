@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Geist, Geist_Mono } from "next/font/google";
 import SmoothScroll from "@/components/SmoothScroll";
+import OpenToWorkTicker from "@/app/components/OpenToWorkTicker";
 import "./globals.css";
 
 const localSans = localFont({
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <SmoothScroll />
+        <OpenToWorkTicker />
         {children}
       </body>
     </html>
