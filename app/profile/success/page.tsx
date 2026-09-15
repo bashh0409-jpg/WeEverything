@@ -1,5 +1,11 @@
 
-import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Payment successful",
+  description: "Your WeEverything subscription has been activated.",
+  robots: { index: false, follow: false },
+};
 
 
 export default async function BillingSuccess() {

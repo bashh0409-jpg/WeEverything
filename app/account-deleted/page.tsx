@@ -1,6 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import BottomButton from "../components/BottomButton";
 import Navbar from "../components/Navbar";
+
+export const metadata: Metadata = {
+  title: "Account deletion scheduled",
+  description: "Your WeEverything account deletion has been scheduled.",
+  robots: { index: false, follow: false },
+};
 
 const AccountDeletedPage = () => {
   return (
