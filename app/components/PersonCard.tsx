@@ -47,7 +47,7 @@ const PersonCard = ({
     if (!video || hoverMedia?.type !== "video") return;
 
     if (isHovered) {
-      void video.play();
+      void video.play().catch(() => undefined);
     } else {
       video.pause();
       video.currentTime = 0;

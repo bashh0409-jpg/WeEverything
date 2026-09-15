@@ -704,7 +704,7 @@ const ProfilePage = () => {
     return (
       <div>
         <Navbar />
-       
+
         <main className="flex min-h-screen items-center justify-center px-6 py-20">
           <p className="mono text-sm font-medium uppercase tracking-tight text-[#999]">
             <svg
@@ -727,7 +727,7 @@ const ProfilePage = () => {
     return (
       <div>
         <Navbar />
-        
+
         <main className="flex min-h-screen items-center justify-center px-6 py-20">
           <section className="w-full max-w-xl border-t border-black pt-5">
             <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
@@ -763,7 +763,6 @@ const ProfilePage = () => {
   return (
     <div>
       <Navbar />
-     
 
       <main className="min-h-screen px-6 pb-28 pt-32 text-black sm:px-10">
         <section className="mx-auto w-full max-w-6xl border- mt-10 border-black pt-5">
