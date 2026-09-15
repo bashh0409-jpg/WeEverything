@@ -27,12 +27,27 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json()) as { amount?: unknown };
+  const body = (await request.json()) as {
+    amount?: unknown;
+    idempotencyKey?: unknown;
+  };
   const amount = body.amount;
+  const idempotencyKey = body.idempotencyKey;
 
   if (typeof amount !== "number" || !allowedAmounts.has(amount)) {
     return NextResponse.json(
       { error: "Choose a valid sponsorship amount." },
+      { status: 400 },
+    );
+  }
+
+  if (
+    typeof idempotencyKey !== "string" ||
+    idempotencyKey.length === 0 ||
+    idempotencyKey.length > 100
+  ) {
+    return NextResponse.json(
+      { error: "A valid checkout request key is required." },
       { status: 400 },
     );
   }
@@ -56,6 +71,29 @@ export async function POST(request: Request) {
   }
 
   try {
+    const { data: existingPayment } = await supabase
+      .from("sponsorship_payments")
+      .select("polar_checkout_id, amount, status, metadata")
+      .eq("user_id", user.id)
+      .eq("idempotency_key", idempotencyKey)
+      .maybeSingle();
+
+    if (existingPayment) {
+      if (existingPayment.amount !== amount) {
+        return NextResponse.json(
+          { error: "This checkout request was already used for another amount." },
+          { status: 409 },
+        );
+      }
+
+      const existingCheckout = await new Polar({
+        accessToken: polarAccessToken,
+        server: polarEnvironment,
+      }).checkouts.get({ id: existingPayment.polar_checkout_id });
+
+      return NextResponse.json({ url: existingCheckout.url });
+    }
+
     const polar = new Polar({
       accessToken: polarAccessToken,
       server: polarEnvironment,
@@ -77,7 +115,7 @@ export async function POST(request: Request) {
       metadata: { user_id: user.id, sponsorship_amount: amount },
       successUrl: `${siteUrl}/profile/success?checkout_id={CHECKOUT_ID}`,
       returnUrl: `${siteUrl}/profile`,
-    });
+    }, { headers: { "Idempotency-Key": idempotencyKey } });
 
     const { error: paymentError } = await supabase
       .from("sponsorship_payments")
@@ -85,6 +123,7 @@ export async function POST(request: Request) {
         user_id: user.id,
         profile_id: user.id,
         polar_checkout_id: checkout.id,
+        idempotency_key: idempotencyKey,
         polar_product_id: checkout.productId ?? polarProductId,
         amount: checkout.amount,
         currency: checkout.currency,
@@ -96,6 +135,22 @@ export async function POST(request: Request) {
       });
 
     if (paymentError) {
+      if (paymentError.code === "23505") {
+        const { data: duplicatePayment } = await supabase
+          .from("sponsorship_payments")
+          .select("polar_checkout_id")
+          .eq("user_id", user.id)
+          .eq("idempotency_key", idempotencyKey)
+          .maybeSingle();
+
+        if (duplicatePayment) {
+          const duplicateCheckout = await polar.checkouts.get({
+            id: duplicatePayment.polar_checkout_id,
+          });
+          return NextResponse.json({ url: duplicateCheckout.url });
+        }
+      }
+
       return NextResponse.json(
         { error: "Checkout created, but the payment could not be recorded." },
         { status: 500 },

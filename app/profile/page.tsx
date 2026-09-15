@@ -280,6 +280,9 @@ const ProfilePage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isSponsorModalOpen, setIsSponsorModalOpen] = useState(false);
   const [sponsorshipAmount, setSponsorshipAmount] = useState(1500);
+  const [sponsorshipIdempotencyKey, setSponsorshipIdempotencyKey] = useState<
+    string | null
+  >(null);
   const [startingCheckout, setStartingCheckout] = useState(false);
   const [loading, setLoading] = useState(() => Boolean(supabase));
   const [isEditing, setIsEditing] = useState(false);
@@ -428,6 +431,7 @@ const ProfilePage = () => {
 
   const handleSponsorProfile = () => {
     setIsSponsorModalOpen(true);
+    setSponsorshipIdempotencyKey(crypto.randomUUID());
     setMessage("");
   };
 
@@ -440,7 +444,10 @@ const ProfilePage = () => {
     const response = await fetch("/api/sponsor", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: sponsorshipAmount }),
+      body: JSON.stringify({
+        amount: sponsorshipAmount,
+        idempotencyKey: sponsorshipIdempotencyKey,
+      }),
     });
     const result = (await response.json()) as { error?: string; url?: string };
 
