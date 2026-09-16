@@ -50,6 +50,18 @@ type SponsorshipPayment = {
   status: string;
 };
 
+type ProfileInquiry = {
+  id: string;
+  sender_name: string;
+  sender_email: string;
+  sender_phone: string | null;
+  project_brief: string;
+  budget: string | null;
+  timeline: string | null;
+  created_at: string;
+  archived_at: string | null;
+};
+
 type SocialType =
   | "portfolio"
   | "github"
@@ -305,6 +317,15 @@ const ProfilePage = () => {
   const [form, setForm] = useState<ProfileForm | null>(null);
   const [media, setMedia] = useState<ProfileMedia[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
+  const [inquiries, setInquiries] = useState<ProfileInquiry[]>([]);
+  const [readInquiryIds, setReadInquiryIds] = useState<string[]>([]);
+  const [deletingInquiryId, setDeletingInquiryId] = useState<string | null>(
+    null,
+  );
+  const [inquiryPendingDeletion, setInquiryPendingDeletion] =
+    useState<ProfileInquiry | null>(null);
+  const [showArchivedInquiries, setShowArchivedInquiries] = useState(false);
+  const [isInquiryDrawerOpen, setIsInquiryDrawerOpen] = useState(false);
   const [socials, setSocials] = useState<SocialForm>(emptySocials);
   const [sponsored, setSponsored] = useState(false);
   const [profileViews, setProfileViews] = useState(0);
@@ -343,6 +364,8 @@ const ProfilePage = () => {
         setForm(null);
         setMedia([]);
         setSocialLinks([]);
+        setInquiries([]);
+        setReadInquiryIds([]);
         setSocials(emptySocials());
         setSponsored(false);
         setProfileViews(0);
@@ -359,6 +382,7 @@ const ProfilePage = () => {
         linksResult,
         paymentResult,
         viewsResult,
+        inquiriesResult,
       ] = await Promise.all([
         client
           .from("profiles")
@@ -390,6 +414,13 @@ const ProfilePage = () => {
           .from("profile_views")
           .select("id", { count: "exact", head: true })
           .eq("profile_id", currentUser.id),
+        client
+          .from("profile_inquiries")
+          .select(
+            "id, sender_name, sender_email, sender_phone, project_brief, budget, timeline, created_at, archived_at",
+          )
+          .eq("profile_id", currentUser.id)
+          .order("created_at", { ascending: false }),
       ]);
 
       if (!isMounted) return;
@@ -400,6 +431,7 @@ const ProfilePage = () => {
         linksResult.error,
         paymentResult.error,
         viewsResult.error,
+        inquiriesResult.error,
       ].filter(Boolean);
 
       setMessage(errors[0]?.message ?? "");
@@ -416,6 +448,14 @@ const ProfilePage = () => {
         (paymentResult.data as SponsorshipPayment | null)?.status === "paid",
       );
       setProfileViews(viewsResult.count ?? 0);
+      const loadedInquiries = (inquiriesResult.data ?? []) as ProfileInquiry[];
+      setInquiries(loadedInquiries);
+      const storedReadIds = window.localStorage.getItem(
+        `read-inquiries:${currentUser.id}`,
+      );
+      setReadInquiryIds(
+        storedReadIds ? (JSON.parse(storedReadIds) as string[]) : [],
+      );
       setLoading(false);
     };
 
@@ -861,6 +901,78 @@ const ProfilePage = () => {
   const initial = profileName.charAt(0).toUpperCase() || "U";
   const visibleSocials = socialLinks.filter((link) => link.url);
   const mediaByPosition = new Map(media.map((item) => [item.position, item]));
+  const unreadInquiryCount = inquiries.filter(
+    (inquiry) => !inquiry.archived_at && !readInquiryIds.includes(inquiry.id),
+  ).length;
+  const visibleInquiries = inquiries.filter((inquiry) =>
+    showArchivedInquiries ? true : !inquiry.archived_at,
+  );
+
+  const markAllInquiriesAsRead = () => {
+    const inquiryIds = inquiries.map((inquiry) => inquiry.id);
+    setReadInquiryIds(inquiryIds);
+    if (user) {
+      window.localStorage.setItem(
+        `read-inquiries:${user.id}`,
+        JSON.stringify(inquiryIds),
+      );
+    }
+  };
+
+  const handleDeleteInquiry = async (inquiryId: string) => {
+    if (!supabase || !user || deletingInquiryId) return;
+
+    setDeletingInquiryId(inquiryId);
+    const { error } = await supabase
+      .from("profile_inquiries")
+      .delete()
+      .eq("id", inquiryId)
+      .eq("profile_id", user.id);
+
+    if (error) {
+      setDeletingInquiryId(null);
+      setMessage(error.message);
+      return;
+    }
+
+    setInquiries((current) =>
+      current.filter((inquiry) => inquiry.id !== inquiryId),
+    );
+    setReadInquiryIds((current) => {
+      const nextIds = current.filter((id) => id !== inquiryId);
+      window.localStorage.setItem(
+        `read-inquiries:${user.id}`,
+        JSON.stringify(nextIds),
+      );
+      return nextIds;
+    });
+    setDeletingInquiryId(null);
+    setInquiryPendingDeletion(null);
+  };
+
+  const handleArchiveInquiry = async (inquiry: ProfileInquiry) => {
+    if (!supabase || !user) return;
+
+    const archivedAt = inquiry.archived_at ? null : new Date().toISOString();
+    const { error } = await supabase
+      .from("profile_inquiries")
+      .update({ archived_at: archivedAt })
+      .eq("id", inquiry.id)
+      .eq("profile_id", user.id);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setInquiries((current) =>
+      current.map((currentInquiry) =>
+        currentInquiry.id === inquiry.id
+          ? { ...currentInquiry, archived_at: archivedAt }
+          : currentInquiry,
+      ),
+    );
+  };
 
   return (
     <div>
@@ -878,19 +990,11 @@ const ProfilePage = () => {
             <div className="flex flex-wrap items-center gap-1">
               <button
                 type="button"
-                onClick={() => void handleShareProfile()}
-                className="rounded-full cursor-pointer border border-black px-3 py-1 text-xs font-semibold transition hover:bg-black hover:text-white"
-              >
-                {shareLabel}
-              </button>
-              <button
-                type="button"
                 onClick={handleSponsorProfile}
                 className="rounded-full  cursor-pointer bg-[#1c40f2] px-3 py-1 text-xs  font-semibold text-white transition hover:bg-black"
               >
                 Promote
               </button>
-
               <button
                 type="button"
                 onClick={() => {
@@ -902,6 +1006,37 @@ const ProfilePage = () => {
                 className="rounded-full cursor-pointer border border-black px-3 py-1 text-xs  font-semibold transition hover:bg-black hover:text-white"
               >
                 {isEditing ? "Close editor" : "Update"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleShareProfile()}
+                className="rounded-full cursor-pointer border border-black px-3 py-1 text-xs font-semibold transition hover:bg-black hover:text-white"
+              >
+                {shareLabel}
+              </button>
+
+              <button
+                type="button"
+                aria-label="Open project inquiries"
+                title="Project inquiries"
+                onClick={() => setIsInquiryDrawerOpen(true)}
+                className="relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-black transition hover:bg-black hover:text-white"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 -960 960 960"
+                  width="18"
+                  height="18"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M160-200v-80h640v80H160Zm0-200v-80h640v80H160Zm0-200v-80h640v80H160Z" />
+                </svg>
+                {unreadInquiryCount ? (
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#1c40f2] px-1 text-[9px] font-bold text-white">
+                    {unreadInquiryCount > 9 ? "9+" : unreadInquiryCount}
+                  </span>
+                ) : null}
               </button>
             </div>
           </div>
@@ -1388,6 +1523,202 @@ const ProfilePage = () => {
               >
                 Delete
               </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isInquiryDrawerOpen ? (
+        <>
+          <button
+            type="button"
+            aria-label="Close project inquiries"
+            onClick={() => setIsInquiryDrawerOpen(false)}
+            className="fixed inset-0 z-40 cursor-default bg-black/45 backdrop-blur-sm"
+          />
+          <aside
+            aria-labelledby="inquiries-drawer-title"
+            className="profile-inquiry-drawer fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col overflow-y-auto bg-white px-6 pb-8 pt-8 text-black shadow-2xl sm:px-8"
+          >
+            <div className="flex items-start justify-between gap-4 ">
+              <div>
+                <p className="mono  font-me uppercase tracking-tight text-[#1c40f2]">
+                  Inbox
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close project inquiries"
+                onClick={() => setIsInquiryDrawerOpen(false)}
+                className="flex h-8 w-8 items-center cursor-pointer justify-center rounded-full text-xl text-[#666] transition hover:bg-black hover:text-white"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  height="24px"
+                  viewBox="0 -960 960 960"
+                  width="24px"
+                  fill="#999"
+                >
+                  <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
+                </svg>
+              </button>
+            </div>
+
+            <div className='flex w-full justify-between'>
+              {unreadInquiryCount ? (
+                <button
+                  type="button"
+                  onClick={markAllInquiriesAsRead}
+                  className="mt-4 w-fit cursor-pointer text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:text-black"
+                >
+                  Mark all as read
+                </button>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={() => setShowArchivedInquiries((current) => !current)}
+                className="mt-4 w-fit cursor-pointer text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:text-black"
+              >
+                {showArchivedInquiries ? "Hide archived" : "Show archived"}
+              </button>
+            </div>
+
+            {visibleInquiries.length ? (
+              <div className="mt-5 flex flex-col gap-3">
+                {visibleInquiries.map((inquiry) => (
+                  <article
+                    key={inquiry.id}
+                    className="bg-[#1c40f2]/20 rounded-md p-2 px-4"
+                  >
+                    <div className="flex flex-wrap justify-between gap-2 text-xs text-[#666]">
+                      <span className="text-[#999] mono uppercase  text-sm font-medium tracking-tighter ">
+                        {inquiry.sender_name}
+                      </span>
+
+                      <span className="text-[#999] geist  text-xs mb-2 font-medium tracking-tight ">
+                        <time dateTime={inquiry.created_at}>
+                          {new Date(inquiry.created_at).toLocaleDateString()}
+                        </time>
+                      </span>
+                    </div>
+                    {inquiry.sender_phone ? (
+                      <a
+                        href={`tel:${inquiry.sender_phone}`}
+                        className="text-[#999] mb-2 mono uppercase text-sm font-medium tracking-tighter hover:text-black"
+                      >
+                        {inquiry.sender_phone}
+                      </a>
+                    ) : null}
+                    <a
+                      href={`mailto:${inquiry.sender_email}`}
+                      className="mono  text-sm mb-2 tracking-tight font-medium mt-1 block text-xs text-[#1c40f2] hover:underline"
+                    >
+                      {inquiry.sender_email}
+                    </a>
+                    <p className="mt-3 whitespace-pre-wrap  text-xs font-medium leading-tight geist tracking-tight">
+                      {inquiry.project_brief}
+                    </p>
+                    <div className=" -mt-2 flex w-full justify-between items-center gap-2">
+                      <div className="flex w-full items-center gap-2 ">
+                        {inquiry.budget ? (
+                          <p className="mt-3 geist uppercase tracking-tight capitalize text-xs font-medium text-[#999]">
+                            ${[inquiry.budget].filter(Boolean).join(" · ")}
+                          </p>
+                        ) : null}
+                        {inquiry.timeline ? (
+                          <p className="mt-3 mono uppercase tracking-tight capitalize text-xs font-medium text-[#999]">
+                            {[inquiry.timeline].filter(Boolean).join(" · ")}
+                          </p>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        aria-label={`${inquiry.archived_at ? "Unarchive" : "Archive"} inquiry from ${inquiry.sender_name}`}
+                        title={
+                          inquiry.archived_at
+                            ? "Unarchive inquiry"
+                            : "Archive inquiry"
+                        }
+                        onClick={() => void handleArchiveInquiry(inquiry)}
+                        className="mt-4 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-[#666] transition hover:bg-black hover:text-white"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 -960 960 960"
+                          width="16"
+                          height="16"
+                          fill="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path d="M160-160v-640h240v80H240v480h480v-480H560v-80h240v640H160Zm160-200v-80h320v80H320Zm0-160v-80h320v80H320Zm0-160v-80h320v80H320Z" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete inquiry from ${inquiry.sender_name}`}
+                        title="Delete inquiry"
+                        onClick={() => setInquiryPendingDeletion(inquiry)}
+                        disabled={deletingInquiryId === inquiry.id}
+                        className="mt-4 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full  text-[#666] transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 -960 960 960"
+                          width="16"
+                          height="16"
+                          fill="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-6 text-sm leading-relaxed text-[#666]">
+                No project inquiries yet.
+              </p>
+            )}
+          </aside>
+        </>
+      ) : null}
+
+      {inquiryPendingDeletion ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 px-6 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 backdrop-blur-md">
+            <div className="relative w-full max-w-md rounded-2xl border border-black/10 bg-white p-4 shadow-2xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#999]">
+                Confirm delete
+              </p>
+
+              <h2 className="mt-3 text-3xl font-bold tracking-tighter text-black">
+                Are you sure you want to delete this inquiry?
+              </h2>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    void handleDeleteInquiry(inquiryPendingDeletion.id)
+                  }
+                  disabled={Boolean(deletingInquiryId)}
+                  className="cursor-pointer rounded-full bg-black px-3 py-1 text-sm font-semibold text-white transition hover:bg-[#1c40f2]"
+                >
+                  {deletingInquiryId ? "Deleting..." : "Yes, delete"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setInquiryPendingDeletion(null)}
+                  disabled={Boolean(deletingInquiryId)}
+                  className="cursor-pointer rounded-full border border-black/20 px-3 py-1 text-sm font-semibold text-black transition hover:border-black"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>

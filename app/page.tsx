@@ -207,12 +207,12 @@ const Page = () => {
       <Navbar />
 
       <main className="flex min-h-screen flex-col items-center justify-center px-6 py-2">
-        <section className="mt-50 text-lg leading-tight flex max-w-xl flex-col items-center justify-center text-center uppercase">
+        <section className="mt-60 text-lg leading-tight flex max-w-xl flex-col items-center justify-center text-center uppercase">
           Find the best developers, photographers, illustrators, stylists and
           designers for your project.
         </section>
         <section className="w-full">
-          <div className="mt-8 w-full max-w-lg">
+          <div className="mt-20 w-full max-w-lg">
             <button
               onClick={() => {
                 setRoleFilter("All");
