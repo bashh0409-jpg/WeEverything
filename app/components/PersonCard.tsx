@@ -122,12 +122,12 @@ const PersonCard = ({
             <span className="mono">@</span>
             {handle}
           </h1>
-          <p className="mono line-clamp-3 mt-2 overflow-hidden text-[11px] font-medium uppercase leading-3 tracking-tight text-[#999]">
+          <p className="mono line-clamp-3 mt-1 overflow-hidden text-[11px] font-medium uppercase leading-3 tracking-tight text-[#999]">
             {bio}
           </p>
           <button
             type="button"
-            className=" text-[10px] cursor-pointer font-semibold uppercase tracking-tight text-[#1c40f2] hover:underline"
+            className=" text-[10px] cursor-pointer geist font-semibold uppercase tracking-tight text-[#1c40f2] hover:underline"
           >
             See more
           </button>

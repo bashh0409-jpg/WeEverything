@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const PROFILE_CACHE_KEY = "published-profiles:v2";
+const PROFILE_CACHE_KEY = "published-profiles:v3";
 const PROFILE_PAGE_SIZE = 40;
 const DEFAULT_PROFILE_CACHE_TTL = 60 * 60;
 

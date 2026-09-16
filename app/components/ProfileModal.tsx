@@ -51,6 +51,10 @@ const ProfileModal = ({
           `${whitespace}${firstCharacter.toUpperCase()}`,
       )
     : "No bio available.";
+  const profileRoles = role
+    .split(/[|,]/)
+    .map((value) => value.trim())
+    .filter(Boolean);
 
   const [isClosing, setIsClosing] = useState(false);
   const isClosingRef = useRef(false);
@@ -176,8 +180,19 @@ const ProfileModal = ({
               {name}
             </h1>
 
+            <span className=" flex flex-col gap-1 text-sm font-medium capitalize tracking-tight">
+              <span className="flex flex-wrap gap-1">
+                {(profileRoles.length ? profileRoles : ["Designer"]).map(
+                  (profileRole, index, rolesToDisplay) => (
+                    <span key={profileRole} className="w-fit rounded-full">
+                      {profileRole}
+                      {index < rolesToDisplay.length - 1 ? "," : ""}
+                    </span>
+                  ),
+                )}
+              </span>
+            </span>
             <span className="mb-4 flex flex-col gap-1 text-sm font-medium capitalize tracking-tight">
-              {role}
               <span className="w-fit rounded-full bg-black/10 px-2 py-1">
                 {location || "Unknown location"}
               </span>

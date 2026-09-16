@@ -47,7 +47,9 @@ const BottomButton = ({ isOpen, onToggle }: BottomButtonProps) => {
         aria-label={isOpen ? "Close account menu" : "Open account menu"}
         aria-expanded={isOpen}
         onClick={onToggle}
-        className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-[#999] p-1 transition-colors duration-300 hover:bg-black"
+        className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-full p-1 transition-colors duration-300 hover:bg-black ${
+          isOpen ? "bg-black" : "bg-[#999]"
+        }`}
       >
         {isOpen ? (
           <svg

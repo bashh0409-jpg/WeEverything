@@ -18,7 +18,7 @@ export type CachedProfile = {
   }[];
 };
 
-const PROFILE_CACHE_KEY = "weeverything:published-profiles:v2";
+const PROFILE_CACHE_KEY = "weeverything:published-profiles:v3";
 const PROFILE_CACHE_MAX_AGE = 5 * 60 * 1000;
 
 type ProfileCache = {

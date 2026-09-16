@@ -92,7 +92,39 @@ const acceptedMediaTypes = [
   "video/webm",
 ];
 
-const roles = ["Designer", "Developer", "Illustrator", "Photographer"];
+const roles = [
+  "Designer",
+  "Developer",
+  "Illustrator",
+  "Photographer",
+  "Animator",
+  "Art Director",
+  "Copywriter",
+  "Filmmaker",
+  "Musician",
+  "Stylist",
+  "Writer",
+  "Other",
+] as const;
+
+const ROLE_SEPARATOR = " | ";
+const standardRoles = new Set<string>(roles.filter((role) => role !== "Other"));
+
+const parseRoles = (value: string) =>
+  value
+    .split("|")
+    .map((role) => role.trim())
+    .filter(Boolean);
+
+const formatRoles = (values: string[]) =>
+  Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).join(
+    ROLE_SEPARATOR,
+  );
+
+const getCustomRole = (value: string) =>
+  parseRoles(value).find(
+    (role) => role !== "Other" && !standardRoles.has(role),
+  ) ?? "";
 
 const countWords = (value: string) =>
   value.trim().split(/\s+/).filter(Boolean).length;
@@ -420,6 +452,52 @@ const ProfilePage = () => {
           }
         : current,
     );
+  };
+
+  const handleRoleToggle = (role: string) => {
+    setForm((current) => {
+      if (!current) return current;
+
+      const selectedRoles = parseRoles(current.role);
+      if (role === "Other") {
+        const hasOther =
+          selectedRoles.includes("Other") ||
+          Boolean(getCustomRole(current.role));
+
+        return {
+          ...current,
+          role: hasOther
+            ? formatRoles(
+                selectedRoles.filter((selectedRole) =>
+                  standardRoles.has(selectedRole),
+                ),
+              )
+            : formatRoles([...selectedRoles, "Other"]),
+        };
+      }
+
+      const isSelected = selectedRoles.includes(role);
+      const nextRoles = isSelected
+        ? selectedRoles.filter((selectedRole) => selectedRole !== role)
+        : [...selectedRoles, role];
+
+      return { ...current, role: formatRoles(nextRoles) };
+    });
+  };
+
+  const handleCustomRoleChange = (value: string) => {
+    setForm((current) => {
+      if (!current) return current;
+
+      const standardSelections = parseRoles(current.role).filter((role) =>
+        standardRoles.has(role),
+      );
+
+      return {
+        ...current,
+        role: formatRoles([...standardSelections, value]),
+      };
+    });
   };
 
   const handleSocialChange = (
@@ -1001,19 +1079,45 @@ const ProfilePage = () => {
                     className="mt-2 w-full border-b border-black/20 bg-transparent px-0 py-3 outline-none transition focus:border-black"
                   />
                 </label>
-                <label className="text-sm font-semibold">
-                  Discipline
-                  <select
-                    name="role"
-                    value={activeForm.role}
-                    onChange={handleChange}
-                    className="mt-2 w-full border-b border-black/20 bg-transparent px-0 py-3 outline-none transition focus:border-black"
-                  >
-                    {roles.map((role) => (
-                      <option key={role}>{role}</option>
-                    ))}
-                  </select>
-                </label>
+                <fieldset className="text-sm font-semibold">
+                  <legend>Disciplines</legend>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {roles.map((role) => {
+                      const selectedRoles = parseRoles(activeForm.role);
+                      const checked =
+                        role === "Other"
+                          ? Boolean(getCustomRole(activeForm.role)) ||
+                            selectedRoles.includes("Other")
+                          : selectedRoles.includes(role);
+
+                      return (
+                        <label
+                          key={role}
+                          className="flex cursor-pointer items-center gap-2 font-normal "
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => handleRoleToggle(role)}
+                            className="h-4 w-4 accent-[#1c40f2]"
+                          />
+                          {role}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {Boolean(getCustomRole(activeForm.role)) ||
+                  parseRoles(activeForm.role).includes("Other") ? (
+                    <input
+                      value={getCustomRole(activeForm.role)}
+                      onChange={(event) =>
+                        handleCustomRoleChange(event.target.value)
+                      }
+                      placeholder="Type your discipline"
+                      className="mt-3 w-full border-b border-black/20 bg-transparent px-0 py-3 font-normal outline-none transition placeholder:text-[#aaa] focus:border-black"
+                    />
+                  ) : null}
+                </fieldset>
                 <label className="text-sm font-semibold">
                   Location
                   <input

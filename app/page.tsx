@@ -19,6 +19,14 @@ const roles = [
   "Developers",
   "Illustrators",
   "Photographers",
+  "Animators",
+  "Art Directors",
+  "Copywriters",
+  "Filmmakers",
+  "Musicians",
+  "Stylists",
+  "Writers",
+  "Other",
 ] as const;
 
 const endOfProfilesEmojis = ["🙈", "👀", "🥶", "🤦🏻‍♂️"];
@@ -29,10 +37,26 @@ type Profile = CachedProfile;
 const PROFILE_PAGE_SIZE = 40;
 
 const normalizeRole = (role: string): RoleFilter => {
-  const roleName = `${role.charAt(0).toUpperCase()}${role.slice(1).toLowerCase()}`;
-  return roles.includes(`${roleName}s` as RoleFilter)
-    ? (`${roleName}s` as RoleFilter)
-    : "All";
+  const roleLabels: Record<string, RoleFilter> = {
+    designer: "Designers",
+    developer: "Developers",
+    illustrator: "Illustrators",
+    photographer: "Photographers",
+    animator: "Animators",
+    "art director": "Art Directors",
+    copywriter: "Copywriters",
+    filmmaker: "Filmmakers",
+    musician: "Musicians",
+    stylist: "Stylists",
+    writer: "Writers",
+  };
+
+  const matchedRole = role
+    .split("|")
+    .map((value) => roleLabels[value.trim().toLowerCase()])
+    .find(Boolean);
+
+  return matchedRole ?? "Other";
 };
 
 const Page = () => {
@@ -274,7 +298,7 @@ const Page = () => {
             ))
           )}
         </section>
-        <span>End of profiles </span>{" "}
+
         <span aria-label="Rotating profile ending" role="img">
           {endOfProfilesEmoji}
         </span>

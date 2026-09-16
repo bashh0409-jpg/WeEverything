@@ -49,7 +49,7 @@ const OpenToWorkTicker = () => {
     <div className="pointer-events-none fixed inset-x-0 bottom-2 z-30 overflow-hidden whitespace-nowrap">
       <div
         ref={trackRef}
-        className="ticker-track mono inline-flex w-max items-center font-normal text-[#1c40f2]"
+        className="ticker-track mono text-sm inline-flex w-max items-center font-normal text-[#1c40f2]"
       >
         <div
           ref={groupRef}
