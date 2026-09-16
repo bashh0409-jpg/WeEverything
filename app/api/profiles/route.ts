@@ -5,7 +5,15 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 const PROFILE_CACHE_KEY = "published-profiles:v1";
-const PROFILE_CACHE_TTL = 60;
+const DEFAULT_PROFILE_CACHE_TTL = 60 * 60;
+
+const getProfileCacheTtl = () => {
+  const configuredTtl = Number(process.env.PROFILE_CACHE_TTL_SECONDS);
+
+  return Number.isFinite(configuredTtl) && configuredTtl > 0
+    ? Math.floor(configuredTtl)
+    : DEFAULT_PROFILE_CACHE_TTL;
+};
 
 type Profile = {
   id: string;
@@ -20,6 +28,13 @@ type Profile = {
     type: "image" | "video";
     url: string;
   } | null;
+  socialLinks: SocialLink[];
+};
+
+type SocialLink = {
+  id: string;
+  type: string;
+  url: string;
 };
 
 type ProfileMedia = {
@@ -30,7 +45,10 @@ type ProfileMedia = {
 };
 
 const getRedis = () => {
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+  if (
+    !process.env.UPSTASH_REDIS_REST_URL ||
+    !process.env.UPSTASH_REDIS_REST_TOKEN
+  ) {
     return null;
   }
 
@@ -49,14 +67,13 @@ export async function GET() {
           { profiles: cachedProfiles },
           {
             headers: {
-              "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+              "Cache-Control": `public, s-maxage=${getProfileCacheTtl()}, stale-while-revalidate=300`,
               "X-Profile-Cache": "HIT",
             },
           },
         );
       }
-    } catch {
-    }
+    } catch {}
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -70,7 +87,7 @@ export async function GET() {
   }
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  const [profilesResult, mediaResult] = await Promise.all([
+  const [profilesResult, mediaResult, linksResult] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, name, bio, avatar_url, role, location, is_sponsored")
@@ -81,14 +98,16 @@ export async function GET() {
       .select("profile_id, storage_path, media_type, position")
       .in("position", [0, 1])
       .order("position"),
+    supabase.from("links").select("id, profile_id, type, url"),
   ]);
 
-  if (profilesResult.error || mediaResult.error) {
+  if (profilesResult.error || mediaResult.error || linksResult.error) {
     return NextResponse.json(
       {
         error:
           profilesResult.error?.message ??
           mediaResult.error?.message ??
+          linksResult.error?.message ??
           "Could not load profiles.",
       },
       { status: 502 },
@@ -96,6 +115,7 @@ export async function GET() {
   }
 
   const mediaByProfile = new Map<string, ProfileMedia[]>();
+  const linksByProfile = new Map<string, SocialLink[]>();
 
   (mediaResult.data as ProfileMedia[]).forEach((media) => {
     const profileMedia = mediaByProfile.get(media.profile_id) ?? [];
@@ -103,10 +123,17 @@ export async function GET() {
     mediaByProfile.set(media.profile_id, profileMedia);
   });
 
-  const profiles = (profilesResult.data as Omit<
-    Profile,
-    "uploaded_image" | "hover_media"
-  >[]).map((profile) => {
+  (linksResult.data as (SocialLink & { profile_id: string })[]).forEach(
+    (link) => {
+      const profileLinks = linksByProfile.get(link.profile_id) ?? [];
+      profileLinks.push({ id: link.id, type: link.type, url: link.url });
+      linksByProfile.set(link.profile_id, profileLinks);
+    },
+  );
+
+  const profiles = (
+    profilesResult.data as Omit<Profile, "uploaded_image" | "hover_media">[]
+  ).map((profile) => {
     const profileMedia = mediaByProfile.get(profile.id) ?? [];
     const primaryMedia = profileMedia.find(
       (media) => media.position === 0 && media.media_type === "image",
@@ -128,21 +155,23 @@ export async function GET() {
               .getPublicUrl(secondaryMedia.storage_path).data.publicUrl,
           }
         : null,
+      socialLinks: linksByProfile.get(profile.id) ?? [],
     };
   });
 
   if (redis) {
     try {
-      await redis.set(PROFILE_CACHE_KEY, profiles, { ex: PROFILE_CACHE_TTL });
-    } catch {
-    }
+      await redis.set(PROFILE_CACHE_KEY, profiles, {
+        ex: getProfileCacheTtl(),
+      });
+    } catch {}
   }
 
   return NextResponse.json(
     { profiles },
     {
       headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        "Cache-Control": `public, s-maxage=${getProfileCacheTtl()}, stale-while-revalidate=300`,
         "X-Profile-Cache": "MISS",
       },
     },

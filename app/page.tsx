@@ -21,7 +21,7 @@ const roles = [
   "Photographers",
 ] as const;
 
-const endOfProfilesEmojis = ["🙈", "👀","🥶","🤦🏻‍♂️"];
+const endOfProfilesEmojis = ["🙈", "👀", "🥶", "🤦🏻‍♂️"];
 
 type RoleFilter = (typeof roles)[number];
 
@@ -107,15 +107,12 @@ const Page = () => {
   return (
     <div>
       <Navbar />
-    
-
 
       <main className="flex min-h-screen flex-col items-center justify-center px-6 py-2">
         <section className="mt-50 text-lg leading-tight flex max-w-xl flex-col items-center justify-center text-center uppercase">
           Find the best developers, photographers, illustrators, stylists and
           designers for your project.
         </section>
-
         <section className="w-full">
           <div className="mt-8 w-full max-w-lg">
             <button
@@ -208,7 +205,6 @@ const Page = () => {
             </div>
           </div>{" "}
         </section>
-
         <section className="mt-10 grid w-full grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {loading ? (
             <p className="text-xs font-semibold uppercase text-[#999]">
@@ -236,13 +232,11 @@ const Page = () => {
               />
             ))
           )}
-          
         </section>
         <span>End of profiles </span>{" "}
         <span aria-label="Rotating profile ending" role="img">
           {endOfProfilesEmoji}
         </span>
-        
       </main>
       <Footer />
       {selectedProfile ? (
@@ -251,6 +245,9 @@ const Page = () => {
           role={selectedProfile.role}
           bio={selectedProfile.bio}
           location={selectedProfile.location}
+          image={selectedProfile.uploaded_image ?? selectedProfile.avatar_url}
+          hoverMedia={selectedProfile.hover_media}
+          socialLinks={selectedProfile.socialLinks}
           onClose={() => setSelectedProfile(null)}
         />
       ) : null}

@@ -11,9 +11,14 @@ export type CachedProfile = {
     type: "image" | "video";
     url: string;
   } | null;
+  socialLinks: {
+    id: string;
+    type: string;
+    url: string;
+  }[];
 };
 
-const PROFILE_CACHE_KEY = "weeverything:published-profiles:v1";
+const PROFILE_CACHE_KEY = "weeverything:published-profiles:v2";
 const PROFILE_CACHE_MAX_AGE = 5 * 60 * 1000;
 
 type ProfileCache = {
@@ -52,6 +57,5 @@ export const writeProfileCache = (profiles: CachedProfile[]) => {
       PROFILE_CACHE_KEY,
       JSON.stringify({ cachedAt: Date.now(), profiles }),
     );
-  } catch {
-  }
+  } catch {}
 };
