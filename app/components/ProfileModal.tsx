@@ -47,6 +47,7 @@ type ProfileModalProps = {
   role: string;
   bio: string | null;
   location?: string | null;
+  awards?: string | null;
   image?: string | null;
   hoverMedia?: {
     type: "image" | "video";
@@ -57,6 +58,8 @@ type ProfileModalProps = {
     type: string;
     url: string;
   }[];
+  isSaved: boolean;
+  onToggleSave: (profileId: string) => void;
   onClose: () => void;
 };
 
@@ -66,9 +69,12 @@ const ProfileModal = ({
   role,
   bio,
   location,
+  awards,
   image,
   hoverMedia,
   socialLinks,
+  isSaved,
+  onToggleSave,
   onClose,
 }: ProfileModalProps) => {
   const formattedBio = bio
@@ -303,7 +309,7 @@ const ProfileModal = ({
           <div className="flex flex-col gap-2">
             <h1
               id="profile-modal-title"
-              className="mb-2 max-w-full text-3xl font-semibold leading-tight tracking-tighter sm:text-4xl md:max-w-[60%] md:text-6xl md:leading-12"
+              className="mb-1 max-w-full text-3xl font-semibold leading-tight tracking-tighter sm:text-4xl md:max-w-[60%] md:text-6xl md:leading-12"
             >
               {name}
             </h1>
@@ -320,14 +326,14 @@ const ProfileModal = ({
                 )}
               </span>
             </span>
-            <span className="mb-4 flex flex-col gap-1 text-sm font-medium capitalize tracking-tight">
-              <span className="w-fit rounded-full bg-black/10 px-2 py-1">
+            <span className="mb-6 -mt-2 flex flex-col gap-1 text-sm font-medium capitalize tracking-tight">
+              <span className="w-fit rounded-full  mono  uppercase text-[#999] ">
                 {location || "Unknown location"}
               </span>
             </span>
             <span className="flex gap-2 -mt-4">
               {socialLinks.length ? (
-                <div className="flex flex-wrap">
+                <div className="flex flex-wrap gap-2">
                   {socialLinks.map((link) => (
                     <a
                       key={link.id}
@@ -336,7 +342,7 @@ const ProfileModal = ({
                       rel="noopener noreferrer"
                       aria-label={socialLabels[link.type] ?? link.type}
                       title={socialLabels[link.type] ?? link.type}
-                      className="flex w-7 h-7 items-center justify-center rounded-full text-base transition "
+                      className="flex w- h-7 items-center justify-center rounded-full text-base transition "
                     >
                       {socialIcons[link.type] ?? (
                         <span className="text-lg font-semibold uppercase">
@@ -363,6 +369,16 @@ const ProfileModal = ({
               {formattedBio}
             </span>
           </div>
+          {awards ? (
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium tracking-tight text-[#999]">
+                Awards & Recognitions
+              </span>
+              <span className="whitespace-pre-line text-sm font-medium leading-4 tracking-tight">
+                {awards}
+              </span>
+            </div>
+          ) : null}
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium tracking-tight text-[#999]">
               Profile
@@ -423,24 +439,49 @@ const ProfileModal = ({
               </span>
             )}
           </div>
-          <div className="flex gap-1">
+          <div className="flex w-80 justify-between">
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => void handleShare()}
+                className="w-fit cursor-pointer text-xs mono text-white   font-semibold uppercase tracking-tight  bg-black p-1 rounded-full px-2 transition hover:bg-black/50 "
+              >
+                {shareLabel === "Share profile" ? "Share" : shareLabel}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsContactOpen(true);
+                  setInquiryStatus("idle");
+                  setInquiryMessage("");
+                }}
+                className="w-fit cursor-pointer rounded-full bg-[#1c40f2] p-1 px-2 mono text-xs font-semibold uppercase tracking-tight text-white transition hover:bg-[#1c40f2]/50"
+              >
+                Contact
+              </button>
+            </div>{" "}
             <button
               type="button"
-              onClick={() => void handleShare()}
-              className="w-fit cursor-pointer text-xs mono text-white   font-semibold uppercase tracking-tight  bg-black p-1 rounded-full px-2 transition hover:bg-black/50 "
+              aria-label={
+                isSaved
+                  ? `Remove ${name} from saved profiles`
+                  : `Save ${name} profile`
+              }
+              aria-pressed={isSaved}
+              title={isSaved ? "Remove from saved profiles" : "Save profile"}
+              onClick={() => onToggleSave(profileId)}
+              className={`flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border transition ${isSaved ? "border-black bg-black text-white" : "border-black/20 text-black hover:border-black"}`}
             >
-              {shareLabel === "Share profile" ? "Share" : shareLabel}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIsContactOpen(true);
-                setInquiryStatus("idle");
-                setInquiryMessage("");
-              }}
-              className="w-fit cursor-pointer rounded-full bg-[#1c40f2] p-1 px-2 mono text-xs font-semibold uppercase tracking-tight text-white transition hover:bg-[#1c40f2]/50"
-            >
-              Contact
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 -960 960 960"
+                width="17"
+                height="17"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M200-120v-640h560v640L480-240 200-120Zm80-122 200-86 200 86v-438H280v438Z" />
+              </svg>
             </button>
           </div>
         </div>

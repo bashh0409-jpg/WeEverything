@@ -34,6 +34,7 @@ type ProfileRecord = {
   role: string | null;
   bio: string | null;
   location: string | null;
+  awards: string | null;
   avatar_url: string | null;
   is_published: boolean | null;
 };
@@ -87,6 +88,7 @@ type ProfileForm = {
   role: string;
   bio: string;
   location: string;
+  awards: string;
   avatar_url: string;
   is_published: boolean;
 };
@@ -140,6 +142,12 @@ const getCustomRole = (value: string) =>
 
 const countWords = (value: string) =>
   value.trim().split(/\s+/).filter(Boolean).length;
+
+const parseAwards = (value: string) =>
+  value
+    .split("\n")
+    .map((award) => award.trim())
+    .filter(Boolean);
 
 const socialOptions: { type: SocialType; label: string }[] = [
   { type: "portfolio", label: "Portfolio" },
@@ -203,6 +211,7 @@ const toForm = (user: User, profile: ProfileRecord | null): ProfileForm => ({
   role: profile?.role ?? "Designer",
   bio: profile?.bio ?? "",
   location: profile?.location ?? "",
+  awards: profile?.awards ?? "",
   avatar_url:
     profile?.avatar_url ??
     (typeof user.user_metadata.avatar_url === "string"
@@ -328,6 +337,7 @@ const ProfilePage = () => {
   const [isWelcomeOverlayOpen, setIsWelcomeOverlayOpen] = useState(false);
   const [isInquiryDrawerOpen, setIsInquiryDrawerOpen] = useState(false);
   const [socials, setSocials] = useState<SocialForm>(emptySocials);
+  const [newAward, setNewAward] = useState("");
   const [sponsored, setSponsored] = useState(false);
   const [profileViews, setProfileViews] = useState(0);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -343,6 +353,7 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
   const [shareLabel, setShareLabel] = useState("Share profile");
+  const bioInputRef = useRef<HTMLTextAreaElement>(null);
   const [message, setMessage] = useState(() =>
     supabase
       ? ""
@@ -387,7 +398,9 @@ const ProfilePage = () => {
       ] = await Promise.all([
         client
           .from("profiles")
-          .select("id, name, role, bio, location, avatar_url, is_published")
+          .select(
+            "id, name, role, bio, location, awards, avatar_url, is_published",
+          )
           .eq("id", currentUser.id)
           .maybeSingle(),
         client
@@ -481,9 +494,11 @@ const ProfilePage = () => {
 
     if (url.searchParams.get("welcome") !== "1") return;
 
-    setIsWelcomeOverlayOpen(true);
+    const timeoutId = window.setTimeout(() => setIsWelcomeOverlayOpen(true), 0);
     url.searchParams.delete("welcome");
     window.history.replaceState({}, "", url.toString());
+
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   const handleChange = (
@@ -557,6 +572,34 @@ const ProfilePage = () => {
     event: ChangeEvent<HTMLInputElement>,
   ) => {
     setSocials((current) => ({ ...current, [type]: event.target.value }));
+  };
+
+  const addAward = () => {
+    const award = newAward.trim();
+    if (!award) return;
+
+    setForm((current) =>
+      current
+        ? {
+            ...current,
+            awards: [...parseAwards(current.awards), award].join("\n"),
+          }
+        : current,
+    );
+    setNewAward("");
+  };
+
+  const removeAward = (awardIndex: number) => {
+    setForm((current) =>
+      current
+        ? {
+            ...current,
+            awards: parseAwards(current.awards)
+              .filter((_, index) => index !== awardIndex)
+              .join("\n"),
+          }
+        : current,
+    );
   };
 
   const handleSponsorProfile = () => {
@@ -643,12 +686,13 @@ const ProfilePage = () => {
           role: form.role,
           bio: form.bio.trim() || null,
           location: form.location.trim() || null,
+          awards: form.awards.trim() || null,
           avatar_url: form.avatar_url.trim() || null,
           is_published: form.is_published,
         },
         { onConflict: "id" },
       )
-      .select("id, name, role, bio, location, avatar_url, is_published")
+      .select("id, name, role, bio, location, awards, avatar_url, is_published")
       .single();
 
     if (error) {
@@ -988,6 +1032,17 @@ const ProfilePage = () => {
     );
   };
 
+  const openBioEditor = () => {
+    if (!user) return;
+
+    setMessage("");
+    setForm(toForm(user, profile));
+    setSocials(toSocialForm(socialLinks));
+    setNewAward("");
+    setIsEditing(true);
+    window.setTimeout(() => bioInputRef.current?.focus(), 0);
+  };
+
   return (
     <div>
       <Navbar />
@@ -1015,6 +1070,7 @@ const ProfilePage = () => {
                   setMessage("");
                   setForm(toForm(user, profile));
                   setSocials(toSocialForm(socialLinks));
+                  setNewAward("");
                   setIsEditing((current) => !current);
                 }}
                 className="rounded-full cursor-pointer border border-black px-3 py-1 text-xs  font-semibold transition hover:bg-black hover:text-white"
@@ -1099,15 +1155,50 @@ const ProfilePage = () => {
               </div>
 
               <div className="mt-14 max-w-2xl border-t border-black/10 pt-5">
-                <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                  About me
-                </p>
+                <div className="flex items-center justify-between gap-4">
+                  <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
+                    About me
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openBioEditor}
+                    aria-label="Edit bio"
+                    title="Edit bio"
+                    className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-black/15 text-black transition hover:bg-black hover:text-white"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      width="14"
+                      height="14"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                    </svg>
+                  </button>
+                </div>
 
                 <p className="mt-4 text-sm  leading-4 tracking-tighter text-[#444] sm:text-sm">
-                  {profile?.bio ||
+                  {activeForm.bio ||
                     "Add a short introduction so the community knows what you make and how you work."}
                 </p>
               </div>
+              {profile?.awards ? (
+                <section className="mt-14 max-w-2xl border-t border-black/10 pt-5">
+                  <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
+                    Awards
+                  </p>
+                  <p className="mt-4 whitespace-pre-line text-sm leading-relaxed tracking-tight text-[#444]">
+                    {profile.awards}
+                  </p>
+                </section>
+              ) : null}
               {visibleSocials.length ? (
                 <section className="mt-14 border-t border-black/10 pt-5">
                   <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
@@ -1235,7 +1326,7 @@ const ProfilePage = () => {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-full bg-[#1c40f2] px-3 py-1 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-[#9caeff]"
+                  className="rounded-full bg-[#1c40f2] cursor-pointer px-3 py-1 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-[#9caeff]"
                 >
                   {saving ? "Saving..." : "Save changes"}
                 </button>
@@ -1306,6 +1397,7 @@ const ProfilePage = () => {
               <label className="mt-8 block text-sm font-semibold">
                 Bio
                 <textarea
+                  ref={bioInputRef}
                   required
                   name="bio"
                   value={activeForm.bio}
@@ -1317,6 +1409,53 @@ const ProfilePage = () => {
                 />
                 <p className="mt-2 text-xs font-medium text-[#999]">
                   {countWords(activeForm.bio)} / 20 words minimum
+                </p>
+              </label>
+
+              <label className="mt-8 block text-sm font-semibold">
+                Awards
+                <div className="mt-2 flex gap-2">
+                  <input
+                    value={newAward}
+                    onChange={(event) => setNewAward(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        addAward();
+                      }
+                    }}
+                    placeholder="Award or recognition"
+                    className="min-w-0 flex-1 border-b border-black/20 bg-transparent px-0 py-1 outline-none transition placeholder:text-[#aaa] focus:border-black"
+                  />
+                  <button
+                    type="button"
+                    onClick={addAward}
+                    className="shrink-0 rounded-full border border-black px-3 py-1 text-xs font-semibold transition hover:bg-black hover:text-white"
+                  >
+                    Add award
+                  </button>
+                </div>
+                {parseAwards(activeForm.awards).length ? (
+                  <ul className="mt-4 flex  gap-2">
+                    {parseAwards(activeForm.awards).map((award, index) => (
+                      <li
+                        key={`${award}-${index}`}
+                        className="flex items-center justify-between gap-3 border-b border-black/10 py-2 text-sm font-normal"
+                      >
+                        <span>{award}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeAward(index)}
+                          className="shrink-0 text-xs font-semibold text-[#777] cursor-pointer bg-black/10 px-2 py-1 rounded-full transition hover:text-black"
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <p className="mt-2 text-xs font-medium text-[#999]">
+                  Optional. Add as many awards as you like.
                 </p>
               </label>
 
@@ -1722,7 +1861,7 @@ const ProfilePage = () => {
               <p className="mt-6 text-xs mono uppercase leading-relaxed text-[#666]">
                 {showArchivedInquiries
                   ? "No archived inquiries yet."
-                  : "No  inquiries yet."}
+                  : "No project inquiries yet."}
               </p>
             )}
           </aside>

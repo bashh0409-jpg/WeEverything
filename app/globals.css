@@ -47,6 +47,14 @@ body {
   scrollbar-width: none;
 }
 
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 body::-webkit-scrollbar {
   display: none;
 }

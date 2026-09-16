@@ -4,7 +4,7 @@ import React from "react";
 import { useEffect, useRef, useState } from "react";
 
 type PersonCardProps = {
-  handle: string;
+  name: string;
   bio: string;
   sponsored: boolean;
   image?: string;
@@ -17,7 +17,7 @@ type PersonCardProps = {
 };
 
 const PersonCard = ({
-  handle,
+  name,
   bio,
   sponsored,
   image,
@@ -76,7 +76,7 @@ const PersonCard = ({
           {image ? (
             <img
               src={image}
-              alt={handle}
+              alt={name}
               className="h-full w-full cursor-pointer object-cover"
             />
           ) : (
@@ -100,13 +100,13 @@ const PersonCard = ({
                 muted
                 loop
                 playsInline
-                aria-label={`${handle} preview`}
+                aria-label={`${name} preview`}
                 className="absolute inset-0 cursor-pointer h-full w-full object-cover"
               />
             ) : (
               <img
                 src={hoverMedia.url}
-                alt={`${handle} second view`}
+                alt={`${name} second view`}
                 className="absolute inset-0 h-full w-full object-cover"
               />
             ))}
@@ -119,8 +119,7 @@ const PersonCard = ({
         </div>
         <div>
           <h1 className="cursor-pointer text-sm font-semibold capitalize tracking-tight hover:text-[#1c40f2] hover:underline">
-            <span className="mono">@</span>
-            {handle}
+            {name}
           </h1>
           <p className="mono line-clamp-3 mt-1 overflow-hidden text-[11px] font-medium uppercase leading-3 tracking-tight text-[#999]">
             {bio}

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const PROFILE_CACHE_KEY = "published-profiles:v3";
+const PROFILE_CACHE_KEY = "published-profiles:v4";
 const PROFILE_PAGE_SIZE = 40;
 const DEFAULT_PROFILE_CACHE_TTL = 60 * 60;
 
@@ -23,6 +23,7 @@ type Profile = {
   avatar_url: string | null;
   role: string;
   location: string | null;
+  awards: string | null;
   is_sponsored: boolean;
   uploaded_image: string | null;
   hover_media: {
@@ -69,7 +70,7 @@ export async function GET(request: Request) {
     : `${PROFILE_CACHE_KEY}:${offset}`;
   const redis = getRedis();
 
-  if (redis) {
+  if (redis && !profileId) {
     try {
       const cachedProfiles = await redis.get<Profile[]>(cacheKey);
 
@@ -103,7 +104,7 @@ export async function GET(request: Request) {
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
   let profilesQuery = supabase
     .from("profiles")
-    .select("id, name, bio, avatar_url, role, location, is_sponsored")
+    .select("id, name, bio, avatar_url, role, location, awards, is_sponsored")
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 

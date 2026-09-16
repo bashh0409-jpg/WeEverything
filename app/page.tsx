@@ -28,6 +28,7 @@ type RoleFilter = (typeof roles)[number];
 
 type Profile = CachedProfile;
 const PROFILE_PAGE_SIZE = 40;
+const SAVED_PROFILES_KEY = "weeverything:saved-profiles";
 
 const normalizeRole = (role: string): RoleFilter => {
   const roleLabels: Record<string, RoleFilter> = {
@@ -55,6 +56,19 @@ const Page = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [savedProfileIds, setSavedProfileIds] = useState<string[]>([]);
+  const [showSavedProfiles, setShowSavedProfiles] = useState(false);
+
+  const toggleSavedProfile = (profileId: string) => {
+    setSavedProfileIds((currentIds) => {
+      const nextIds = currentIds.includes(profileId)
+        ? currentIds.filter((id) => id !== profileId)
+        : [...currentIds, profileId];
+
+      window.localStorage.setItem(SAVED_PROFILES_KEY, JSON.stringify(nextIds));
+      return nextIds;
+    });
+  };
 
   const openProfile = (profile: Profile) => {
     setSelectedProfile(profile);
@@ -63,6 +77,20 @@ const Page = () => {
       "",
       `/?profile=${encodeURIComponent(profile.id)}`,
     );
+
+    void fetch(`/api/profiles?profile=${encodeURIComponent(profile.id)}`, {
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        const result = (await response.json()) as {
+          profiles?: Profile[];
+        };
+
+        if (response.ok && result.profiles?.[0]) {
+          setSelectedProfile(result.profiles[0]);
+        }
+      })
+      .catch(() => undefined);
   };
 
   const closeProfile = () => {
@@ -71,16 +99,32 @@ const Page = () => {
   };
 
   useEffect(() => {
+    let timeoutId: number | undefined;
+
+    try {
+      const storedIds = window.localStorage.getItem(SAVED_PROFILES_KEY);
+      const parsedIds = storedIds ? JSON.parse(storedIds) : [];
+
+      if (Array.isArray(parsedIds)) {
+        const savedIds = parsedIds.filter(
+          (id): id is string => typeof id === "string",
+        );
+        timeoutId = window.setTimeout(() => setSavedProfileIds(savedIds), 0);
+      }
+    } catch {
+      window.localStorage.removeItem(SAVED_PROFILES_KEY);
+    }
+
+    return () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  useEffect(() => {
     const profileId = new URLSearchParams(window.location.search).get(
       "profile",
     );
     if (!profileId || selectedProfile) return;
-
-    const sharedProfile = profiles.find((profile) => profile.id === profileId);
-    if (sharedProfile) {
-      setSelectedProfile(sharedProfile);
-      return;
-    }
 
     let isMounted = true;
 
@@ -195,7 +239,8 @@ const Page = () => {
   const filteredProfiles = [...profiles]
     .filter(
       (profile) =>
-        roleFilter === "All" || normalizeRole(profile.role) === roleFilter,
+        (roleFilter === "All" || normalizeRole(profile.role) === roleFilter) &&
+        (!showSavedProfiles || savedProfileIds.includes(profile.id)),
     )
     .sort(
       (firstProfile, secondProfile) =>
@@ -283,6 +328,17 @@ const Page = () => {
               </div>
 
               <div className="flex flex-wrap gap-4 overflow-y-auto text-xs font-semibold uppercase tracking-tight text-[#999]">
+                <button
+                  type="button"
+                  onClick={() => setShowSavedProfiles((current) => !current)}
+                  className={
+                    showSavedProfiles
+                      ? "cursor-pointer text-black transition-all duration-500"
+                      : "cursor-pointer transition-all duration-400 hover:text-black"
+                  }
+                >
+                  Saved ({savedProfileIds.length})
+                </button>
                 {roles.slice(1, 6).map((role) => (
                   <button
                     key={role}
@@ -314,13 +370,15 @@ const Page = () => {
             </p>
           ) : filteredProfiles.length === 0 ? (
             <p className="text-xs font-semibold uppercase text-[#999]">
-              No published profiles yet.
+              {showSavedProfiles
+                ? "No saved profiles yet."
+                : "No published profiles yet."}
             </p>
           ) : (
             filteredProfiles.map((profile) => (
               <PersonCard
                 key={profile.id}
-                handle={profile.name}
+                name={profile.name}
                 bio={profile.bio ?? ""}
                 image={profile.uploaded_image ?? profile.avatar_url ?? ""}
                 hoverMedia={profile.hover_media}
@@ -344,9 +402,12 @@ const Page = () => {
           role={selectedProfile.role}
           bio={selectedProfile.bio}
           location={selectedProfile.location}
+          awards={selectedProfile.awards}
           image={selectedProfile.uploaded_image ?? selectedProfile.avatar_url}
           hoverMedia={selectedProfile.hover_media}
           socialLinks={selectedProfile.socialLinks}
+          isSaved={savedProfileIds.includes(selectedProfile.id)}
+          onToggleSave={toggleSavedProfile}
           onClose={closeProfile}
         />
       ) : null}
