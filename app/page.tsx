@@ -4,8 +4,13 @@ import { useState } from "react";
 import { useEffect } from "react";
 import Navbar from "./components/Navbar";
 import PersonCard from "./components/PersonCard";
+import ProfileModal from "./components/ProfileModal";
 import BottomButton from "./components/BottomButton";
-import { supabase } from "@/lib/supabase/client";
+import {
+  readProfileCache,
+  writeProfileCache,
+  type CachedProfile,
+} from "@/lib/profile-cache";
 import Footer from "./components/Footer";
 
 const roles = [
@@ -20,26 +25,7 @@ const endOfProfilesEmojis = ["🙈", "👀","🥶","🤦🏻‍♂️"];
 
 type RoleFilter = (typeof roles)[number];
 
-type Profile = {
-  id: string;
-  name: string;
-  bio: string | null;
-  avatar_url: string | null;
-  role: string;
-  is_sponsored: boolean;
-  uploaded_image: string | null;
-  hover_media: {
-    type: "image" | "video";
-    url: string;
-  } | null;
-};
-
-type ProfileMedia = {
-  profile_id: string;
-  storage_path: string;
-  media_type: "image" | "video";
-  position: number;
-};
+type Profile = CachedProfile;
 
 const normalizeRole = (role: string): RoleFilter => {
   const roleName = `${role.charAt(0).toUpperCase()}${role.slice(1).toLowerCase()}`;
@@ -55,87 +41,40 @@ const Page = () => {
     endOfProfilesEmojis[0],
   );
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(() => Boolean(supabase));
-  const [error, setError] = useState(() =>
-    supabase ? "" : "Supabase is not configured yet.",
-  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    const client = supabase;
-
-    if (!client) return;
-
     let isMounted = true;
+    const cachedProfiles = readProfileCache();
 
     const loadProfiles = async () => {
-      const [profilesResult, mediaResult] = await Promise.all([
-        client
-          .from("profiles")
-          .select("id, name, bio, avatar_url, role, is_sponsored")
-          .eq("is_published", true)
-          .order("created_at", { ascending: false }),
-        client
-          .from("profile_media")
-          .select("profile_id, storage_path, media_type, position")
-          .in("position", [0, 1])
-          .order("position"),
-      ]);
+      if (cachedProfiles) {
+        setProfiles(cachedProfiles);
+        setLoading(false);
+      }
+
+      const response = await fetch("/api/profiles", { cache: "no-store" });
+      const result = (await response.json()) as {
+        profiles?: Profile[];
+        error?: string;
+      };
 
       if (!isMounted) return;
 
-      if (profilesResult.error || mediaResult.error) {
-        setError(
-          profilesResult.error?.message ??
-            mediaResult.error?.message ??
-            "Could not load profiles.",
-        );
-        setProfiles([]);
+      if (!response.ok || !result.profiles) {
+        if (!cachedProfiles) {
+          setError(result.error ?? "Could not load profiles.");
+          setProfiles([]);
+        }
       } else {
         setError("");
-        const mediaByProfile = new Map<string, ProfileMedia[]>();
-
-        ((mediaResult.data ?? []) as ProfileMedia[]).forEach((media) => {
-          const profileMedia = mediaByProfile.get(media.profile_id) ?? [];
-          profileMedia.push(media);
-          mediaByProfile.set(media.profile_id, profileMedia);
-        });
-
-        setProfiles(
-          (
-            (profilesResult.data ?? []) as Omit<
-              Profile,
-              "uploaded_image" | "hover_media"
-            >[]
-          ).map((profile) => {
-            const profileMedia = mediaByProfile.get(profile.id) ?? [];
-            const primaryMedia = profileMedia.find(
-              (media) => media.position === 0 && media.media_type === "image",
-            );
-            const secondaryMedia = profileMedia.find(
-              (media) => media.position === 1,
-            );
-
-            return {
-              ...profile,
-              uploaded_image: primaryMedia
-                ? client.storage
-                    .from("profile-media")
-                    .getPublicUrl(primaryMedia.storage_path).data.publicUrl
-                : null,
-              hover_media: secondaryMedia
-                ? {
-                    type: secondaryMedia.media_type,
-                    url: client.storage
-                      .from("profile-media")
-                      .getPublicUrl(secondaryMedia.storage_path).data.publicUrl,
-                  }
-                : null,
-            };
-          }),
-        );
+        setProfiles(result.profiles);
+        writeProfileCache(result.profiles);
       }
 
-      setLoading(false);
+      if (!cachedProfiles) setLoading(false);
     };
 
     void loadProfiles();
@@ -287,13 +226,13 @@ const Page = () => {
             filteredProfiles.map((profile) => (
               <PersonCard
                 key={profile.id}
-                id={profile.id}
                 handle={profile.name}
                 bio={profile.bio ?? ""}
                 image={profile.uploaded_image ?? profile.avatar_url ?? ""}
                 hoverMedia={profile.hover_media}
                 sponsored={profile.is_sponsored}
                 role={normalizeRole(profile.role)}
+                onOpen={() => setSelectedProfile(profile)}
               />
             ))
           )}
@@ -306,6 +245,15 @@ const Page = () => {
         
       </main>
       <Footer />
+      {selectedProfile ? (
+        <ProfileModal
+          name={selectedProfile.name}
+          role={selectedProfile.role}
+          bio={selectedProfile.bio}
+          location={selectedProfile.location}
+          onClose={() => setSelectedProfile(null)}
+        />
+      ) : null}
     </div>
   );
 };

@@ -3,8 +3,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 
-const BottomButton = () => {
-  const [isOpen, setIsOpen] = useState(false);
+interface BottomButtonProps {
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+const BottomButton = ({ isOpen, onToggle }: BottomButtonProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
@@ -34,17 +38,15 @@ const BottomButton = () => {
     };
   }, []);
 
-  const client = supabase;
-
-  if (!isAuthenticated || !client) return null;
+  if (!isAuthenticated || !supabase) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="z-50">
       <button
         type="button"
         aria-label={isOpen ? "Close account menu" : "Open account menu"}
         aria-expanded={isOpen}
-        onClick={() => setIsOpen((previous) => !previous)}
+        onClick={onToggle}
         className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-[#999] p-1 transition-colors duration-300 hover:bg-black"
       >
         {isOpen ? (

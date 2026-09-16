@@ -8,6 +8,7 @@ import BottomButton from "@/app/components/BottomButton";
 import "./globals.css";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
+import BottomStrip from "./components/BottomStrip";
 
 const localSans = localFont({
   src: "../public/font/K2FzfZNHj_FHBmRbFvHDJaqlLSj6ZQ.woff2",
@@ -56,7 +57,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <SmoothScroll />
         <SpeedInsights />
         <OpenToWorkTicker />
-        <BottomButton />
+       <BottomStrip />
         {children}
       </body>
     </html>

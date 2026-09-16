@@ -1,11 +1,9 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 type PersonCardProps = {
-  id: string;
   handle: string;
   bio: string;
   sponsored: boolean;
@@ -15,15 +13,16 @@ type PersonCardProps = {
     url: string;
   } | null;
   role: string;
+  onOpen: () => void;
 };
 
 const PersonCard = ({
-  id,
   handle,
   bio,
   sponsored,
   image,
   hoverMedia,
+  onOpen,
 }: PersonCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -55,7 +54,18 @@ const PersonCard = ({
   }, [hoverMedia, isHovered]);
 
   return (
-    <Link href={`/user/${id}`} className="block">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen();
+        }
+      }}
+      className="block cursor-pointer"
+    >
       <div className="">
         <div
           className="relative flex aspect-[4/5] items-center justify-center bg-black/5"
@@ -123,7 +133,7 @@ const PersonCard = ({
           </button>
         </div>
       </div>
-    </Link>
+    </div>
   );
 };
 
