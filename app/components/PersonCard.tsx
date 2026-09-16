@@ -127,7 +127,7 @@ const PersonCard = ({
           </p>
           <button
             type="button"
-            className=" text-[10px] cursor-pointer geist font-semibold uppercase tracking-tight text-[#1c40f2] hover:underline"
+            className=" text-[10px] hidden cursor-pointer geist font-semibold uppercase tracking-tight text-[#1c40f2] hover:underline"
           >
             See more
           </button>
