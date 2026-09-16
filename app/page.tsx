@@ -26,6 +26,7 @@ const endOfProfilesEmojis = ["🙈", "👀", "🥶", "🤦🏻‍♂️"];
 type RoleFilter = (typeof roles)[number];
 
 type Profile = CachedProfile;
+const PROFILE_PAGE_SIZE = 40;
 
 const normalizeRole = (role: string): RoleFilter => {
   const roleName = `${role.charAt(0).toUpperCase()}${role.slice(1).toLowerCase()}`;
@@ -48,6 +49,22 @@ const Page = () => {
   useEffect(() => {
     let isMounted = true;
     const cachedProfiles = readProfileCache();
+    const fetchProfilePage = async (offset: number) => {
+      const response = await fetch(`/api/profiles?offset=${offset}`, {
+        cache: "no-store",
+      });
+      const result = (await response.json()) as {
+        profiles?: Profile[];
+        hasMore?: boolean;
+        error?: string;
+      };
+
+      if (!response.ok || !result.profiles) {
+        throw new Error(result.error ?? "Could not load profiles.");
+      }
+
+      return { profiles: result.profiles, hasMore: result.hasMore ?? false };
+    };
 
     const loadProfiles = async () => {
       if (cachedProfiles) {
@@ -55,26 +72,50 @@ const Page = () => {
         setLoading(false);
       }
 
-      const response = await fetch("/api/profiles", { cache: "no-store" });
-      const result = (await response.json()) as {
-        profiles?: Profile[];
-        error?: string;
-      };
+      try {
+        const firstPage = await fetchProfilePage(0);
+        if (!isMounted) return;
 
-      if (!isMounted) return;
+        const profilesById = new Map(
+          (cachedProfiles ?? []).map((profile) => [profile.id, profile]),
+        );
+        firstPage.profiles.forEach((profile) => {
+          profilesById.set(profile.id, profile);
+        });
 
-      if (!response.ok || !result.profiles) {
-        if (!cachedProfiles) {
-          setError(result.error ?? "Could not load profiles.");
-          setProfiles([]);
-        }
-      } else {
+        let loadedProfiles = Array.from(profilesById.values());
         setError("");
-        setProfiles(result.profiles);
-        writeProfileCache(result.profiles);
-      }
+        setProfiles(loadedProfiles);
+        writeProfileCache(loadedProfiles);
+        setLoading(false);
 
-      if (!cachedProfiles) setLoading(false);
+        let offset = PROFILE_PAGE_SIZE;
+        let hasMore = firstPage.hasMore;
+
+        while (hasMore && isMounted) {
+          const nextPage = await fetchProfilePage(offset);
+          if (!isMounted) return;
+
+          nextPage.profiles.forEach((profile) => {
+            profilesById.set(profile.id, profile);
+          });
+          loadedProfiles = Array.from(profilesById.values());
+          setProfiles(loadedProfiles);
+          writeProfileCache(loadedProfiles);
+          hasMore = nextPage.hasMore;
+          offset += PROFILE_PAGE_SIZE;
+        }
+      } catch (loadError) {
+        if (!isMounted || cachedProfiles) return;
+
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Could not load profiles.",
+        );
+        setProfiles([]);
+        setLoading(false);
+      }
     };
 
     void loadProfiles();

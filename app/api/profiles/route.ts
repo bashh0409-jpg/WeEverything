@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const PROFILE_CACHE_KEY = "published-profiles:v1";
+const PROFILE_CACHE_KEY = "published-profiles:v2";
+const PROFILE_PAGE_SIZE = 40;
 const DEFAULT_PROFILE_CACHE_TTL = 60 * 60;
 
 const getProfileCacheTtl = () => {
@@ -55,16 +56,26 @@ const getRedis = () => {
   return Redis.fromEnv();
 };
 
-export async function GET() {
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const requestedOffset = Number(url.searchParams.get("offset") ?? "0");
+  const offset =
+    Number.isInteger(requestedOffset) && requestedOffset >= 0
+      ? requestedOffset
+      : 0;
+  const cacheKey = `${PROFILE_CACHE_KEY}:${offset}`;
   const redis = getRedis();
 
   if (redis) {
     try {
-      const cachedProfiles = await redis.get<Profile[]>(PROFILE_CACHE_KEY);
+      const cachedProfiles = await redis.get<Profile[]>(cacheKey);
 
       if (cachedProfiles) {
         return NextResponse.json(
-          { profiles: cachedProfiles },
+          {
+            profiles: cachedProfiles,
+            hasMore: cachedProfiles.length === PROFILE_PAGE_SIZE,
+          },
           {
             headers: {
               "Cache-Control": `public, s-maxage=${getProfileCacheTtl()}, stale-while-revalidate=300`,
@@ -87,49 +98,69 @@ export async function GET() {
   }
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  const [profilesResult, mediaResult, linksResult] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, name, bio, avatar_url, role, location, is_sponsored")
-      .eq("is_published", true)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("profile_media")
-      .select("profile_id, storage_path, media_type, position")
-      .in("position", [0, 1])
-      .order("position"),
-    supabase.from("links").select("id, profile_id, type, url"),
-  ]);
+  const profilesResult = await supabase
+    .from("profiles")
+    .select("id, name, bio, avatar_url, role, location, is_sponsored")
+    .eq("is_published", true)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + PROFILE_PAGE_SIZE - 1);
 
-  if (profilesResult.error || mediaResult.error || linksResult.error) {
+  if (profilesResult.error) {
     return NextResponse.json(
       {
-        error:
-          profilesResult.error?.message ??
-          mediaResult.error?.message ??
-          linksResult.error?.message ??
-          "Could not load profiles.",
+        error: profilesResult.error.message,
       },
       { status: 502 },
     );
   }
 
+  const profileIds = (profilesResult.data as { id: string }[]).map(
+    (profile) => profile.id,
+  );
   const mediaByProfile = new Map<string, ProfileMedia[]>();
   const linksByProfile = new Map<string, SocialLink[]>();
 
-  (mediaResult.data as ProfileMedia[]).forEach((media) => {
+  const [mediaResult, linksResult] = profileIds.length
+    ? await Promise.all([
+        supabase
+          .from("profile_media")
+          .select("profile_id, storage_path, media_type, position")
+          .in("profile_id", profileIds)
+          .in("position", [0, 1])
+          .order("position"),
+        supabase
+          .from("links")
+          .select("id, profile_id, type, url")
+          .in("profile_id", profileIds),
+      ])
+    : [
+        { data: [], error: null },
+        { data: [], error: null },
+      ];
+
+  if (mediaResult.error || linksResult.error) {
+    return NextResponse.json(
+      { error: mediaResult.error?.message ?? linksResult.error?.message },
+      { status: 502 },
+    );
+  }
+
+  const profileMedia = mediaResult.data as ProfileMedia[];
+  const profileLinks = linksResult.data as (SocialLink & {
+    profile_id: string;
+  })[];
+
+  profileMedia.forEach((media) => {
     const profileMedia = mediaByProfile.get(media.profile_id) ?? [];
     profileMedia.push(media);
     mediaByProfile.set(media.profile_id, profileMedia);
   });
 
-  (linksResult.data as (SocialLink & { profile_id: string })[]).forEach(
-    (link) => {
-      const profileLinks = linksByProfile.get(link.profile_id) ?? [];
-      profileLinks.push({ id: link.id, type: link.type, url: link.url });
-      linksByProfile.set(link.profile_id, profileLinks);
-    },
-  );
+  profileLinks.forEach((link) => {
+    const links = linksByProfile.get(link.profile_id) ?? [];
+    links.push({ id: link.id, type: link.type, url: link.url });
+    linksByProfile.set(link.profile_id, links);
+  });
 
   const profiles = (
     profilesResult.data as Omit<Profile, "uploaded_image" | "hover_media">[]
@@ -161,14 +192,14 @@ export async function GET() {
 
   if (redis) {
     try {
-      await redis.set(PROFILE_CACHE_KEY, profiles, {
+      await redis.set(cacheKey, profiles, {
         ex: getProfileCacheTtl(),
       });
     } catch {}
   }
 
   return NextResponse.json(
-    { profiles },
+    { profiles, hasMore: profiles.length === PROFILE_PAGE_SIZE },
     {
       headers: {
         "Cache-Control": `public, s-maxage=${getProfileCacheTtl()}, stale-while-revalidate=300`,

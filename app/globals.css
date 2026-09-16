@@ -102,12 +102,19 @@ body::-webkit-scrollbar {
 }
 
 .startup-screen-kicker,
-.startup-screen-year {
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 11px;
+.startup-screen-year,
+.startup-screen-percentage {
+ 
+  
   font-weight: 600;
-  letter-spacing: 0.08em;
+ 
   text-transform: uppercase;
+}
+
+.startup-screen-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .startup-screen-name {
@@ -133,8 +140,7 @@ body::-webkit-scrollbar {
   height: 100%;
   transform: translateX(-100%);
   background: #fff;
-  animation: startup-screen-progress 3s cubic-bezier(0.22, 1, 0.36, 1)
-    forwards;
+  animation: startup-screen-progress 3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes startup-screen-in {

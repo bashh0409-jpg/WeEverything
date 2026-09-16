@@ -58,7 +58,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <SmoothScroll />
         <SpeedInsights />
         <OpenToWorkTicker />
-       <BottomStrip />
+        <BottomStrip />
         <StartupScreen />
         {children}
       </body>
