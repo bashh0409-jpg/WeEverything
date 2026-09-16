@@ -326,14 +326,14 @@ const ProfileModal = ({
                 )}
               </span>
             </span>
-            <span className="mb-6 -mt-2 flex flex-col gap-1 text-sm font-medium capitalize tracking-tight">
+            <span className=" -mt-2 flex flex-col gap-1 text-sm font-medium capitalize tracking-tight">
               <span className="w-fit rounded-full  mono  uppercase text-[#999] ">
                 {location || "Unknown location"}
               </span>
             </span>
-            <span className="flex gap-2 -mt-4">
+            <span className="flex  gap-2 -mt-4">
               {socialLinks.length ? (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex mt-6 flex-wrap gap-2">
                   {socialLinks.map((link) => (
                     <a
                       key={link.id}
@@ -352,11 +352,7 @@ const ProfileModal = ({
                     </a>
                   ))}
                 </div>
-              ) : (
-                <span className="text-sm font-medium">
-                  No social links added.
-                </span>
-              )}
+              ) : null}
             </span>
           </div>
 
@@ -381,7 +377,7 @@ const ProfileModal = ({
           ) : null}
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium tracking-tight text-[#999]">
-              Profile
+              Post
             </span>
 
             {hoverMedia?.type === "video" ? (
