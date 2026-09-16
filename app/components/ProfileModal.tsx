@@ -17,6 +17,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type ProfileModalProps = {
+  profileId: string;
   name: string;
   role: string;
   bio: string | null;
@@ -35,6 +36,7 @@ type ProfileModalProps = {
 };
 
 const ProfileModal = ({
+  profileId,
   name,
   role,
   bio,
@@ -57,6 +59,7 @@ const ProfileModal = ({
     .filter(Boolean);
 
   const [isClosing, setIsClosing] = useState(false);
+  const [shareLabel, setShareLabel] = useState("Share profile");
   const isClosingRef = useRef(false);
   const onCloseRef = useRef(onClose);
   const closeTimerRef = useRef<number | null>(null);
@@ -75,6 +78,24 @@ const ProfileModal = ({
       onCloseRef.current();
     }, 500);
   }, []);
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/?profile=${encodeURIComponent(profileId)}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: name, text: `View ${name}'s profile`, url: shareUrl });
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+      setShareLabel("Link copied");
+      window.setTimeout(() => setShareLabel("Share profile"), 2000);
+    } catch {
+      setShareLabel("Could not share");
+      window.setTimeout(() => setShareLabel("Share profile"), 2000);
+    }
+  };
 
   const socialLabels: Record<string, string> = {
     portfolio: "Portfolio",
@@ -295,6 +316,13 @@ const ProfileModal = ({
               </span>
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => void handleShare()}
+            className="w-fit cursor-pointer text-xs mono   font-semibold uppercase tracking-tight  bg-black/10 p-1 rounded-full px-2 transition hover:text-black"
+          >
+            Share
+          </button>
         </div>
       </section>
     </>

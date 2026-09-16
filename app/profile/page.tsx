@@ -320,6 +320,7 @@ const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
+  const [shareLabel, setShareLabel] = useState("Share profile");
   const [message, setMessage] = useState(() =>
     supabase
       ? ""
@@ -511,6 +512,30 @@ const ProfilePage = () => {
     setIsSponsorModalOpen(true);
     setSponsorshipIdempotencyKey(crypto.randomUUID());
     setMessage("");
+  };
+
+  const handleShareProfile = async () => {
+    if (!user) return;
+
+    const shareUrl = `${window.location.origin}/?profile=${encodeURIComponent(user.id)}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: profileName,
+          text: `View ${profileName}'s profile`,
+          url: shareUrl,
+        });
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+      setShareLabel("Link copied");
+      window.setTimeout(() => setShareLabel("Share profile"), 2000);
+    } catch {
+      setShareLabel("Could not share");
+      window.setTimeout(() => setShareLabel("Share profile"), 2000);
+    }
   };
 
   const handleSponsorCheckout = async () => {
@@ -859,6 +884,13 @@ const ProfilePage = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                onClick={() => void handleShareProfile()}
+                className="rounded-full cursor-pointer border border-black px-3 py-1 text-xs font-semibold transition hover:bg-black hover:text-white"
+              >
+                {shareLabel}
+              </button>
               <button
                 type="button"
                 onClick={handleSponsorProfile}

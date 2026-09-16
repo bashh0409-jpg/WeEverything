@@ -56,6 +56,30 @@ const Page = () => {
   const [error, setError] = useState("");
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
 
+  const openProfile = (profile: Profile) => {
+    setSelectedProfile(profile);
+    window.history.pushState(
+      {},
+      "",
+      `/?profile=${encodeURIComponent(profile.id)}`,
+    );
+  };
+
+  const closeProfile = () => {
+    setSelectedProfile(null);
+    window.history.replaceState({}, "", window.location.pathname);
+  };
+
+  useEffect(() => {
+    const profileId = new URLSearchParams(window.location.search).get(
+      "profile",
+    );
+    if (!profileId || selectedProfile) return;
+
+    const sharedProfile = profiles.find((profile) => profile.id === profileId);
+    if (sharedProfile) setSelectedProfile(sharedProfile);
+  }, [profiles, selectedProfile]);
+
   useEffect(() => {
     let isMounted = true;
     const cachedProfiles = readProfileCache();
@@ -279,7 +303,7 @@ const Page = () => {
                 hoverMedia={profile.hover_media}
                 sponsored={profile.is_sponsored}
                 role={normalizeRole(profile.role)}
-                onOpen={() => setSelectedProfile(profile)}
+                onOpen={() => openProfile(profile)}
               />
             ))
           )}
@@ -292,6 +316,7 @@ const Page = () => {
       <Footer />
       {selectedProfile ? (
         <ProfileModal
+          profileId={selectedProfile.id}
           name={selectedProfile.name}
           role={selectedProfile.role}
           bio={selectedProfile.bio}
@@ -299,7 +324,7 @@ const Page = () => {
           image={selectedProfile.uploaded_image ?? selectedProfile.avatar_url}
           hoverMedia={selectedProfile.hover_media}
           socialLinks={selectedProfile.socialLinks}
-          onClose={() => setSelectedProfile(null)}
+          onClose={closeProfile}
         />
       ) : null}
     </div>
