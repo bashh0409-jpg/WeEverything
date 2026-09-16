@@ -79,7 +79,10 @@ const notifyProfileOwner = async ({
   } = await admin.auth.admin.getUserById(profileId);
 
   if (ownerError || !profileOwner?.email) {
-    console.error("Could not find profile owner for inquiry notification", ownerError);
+    console.error(
+      "Could not find profile owner for inquiry notification",
+      ownerError,
+    );
     return;
   }
 

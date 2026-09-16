@@ -573,9 +573,7 @@ const ProfileModal = ({
               />
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="flex bg-black/5 w-full items-center  pl-2 w-fit h-fit rounded">
-                  <span className="  text-sm font-semibold ">
-                    $
-                  </span>
+                  <span className="  text-sm font-semibold ">$</span>
                   <InputArea
                     name="budget"
                     placeholder="Budget (optional)"
