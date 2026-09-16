@@ -77,7 +77,30 @@ const Page = () => {
     if (!profileId || selectedProfile) return;
 
     const sharedProfile = profiles.find((profile) => profile.id === profileId);
-    if (sharedProfile) setSelectedProfile(sharedProfile);
+    if (sharedProfile) {
+      setSelectedProfile(sharedProfile);
+      return;
+    }
+
+    let isMounted = true;
+
+    void fetch(`/api/profiles?profile=${encodeURIComponent(profileId)}`, {
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        const result = (await response.json()) as {
+          profiles?: Profile[];
+        };
+
+        if (isMounted && response.ok && result.profiles?.[0]) {
+          setSelectedProfile(result.profiles[0]);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isMounted = false;
+    };
   }, [profiles, selectedProfile]);
 
   useEffect(() => {

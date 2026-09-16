@@ -58,12 +58,15 @@ const getRedis = () => {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const profileId = url.searchParams.get("profile");
   const requestedOffset = Number(url.searchParams.get("offset") ?? "0");
   const offset =
     Number.isInteger(requestedOffset) && requestedOffset >= 0
       ? requestedOffset
       : 0;
-  const cacheKey = `${PROFILE_CACHE_KEY}:${offset}`;
+  const cacheKey = profileId
+    ? `${PROFILE_CACHE_KEY}:profile:${profileId}`
+    : `${PROFILE_CACHE_KEY}:${offset}`;
   const redis = getRedis();
 
   if (redis) {
@@ -98,12 +101,20 @@ export async function GET(request: Request) {
   }
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  const profilesResult = await supabase
+  let profilesQuery = supabase
     .from("profiles")
     .select("id, name, bio, avatar_url, role, location, is_sponsored")
     .eq("is_published", true)
-    .order("created_at", { ascending: false })
-    .range(offset, offset + PROFILE_PAGE_SIZE - 1);
+    .order("created_at", { ascending: false });
+
+  if (profileId) {
+    profilesQuery = profilesQuery.eq("id", profileId);
+  }
+
+  const profilesResult = await profilesQuery.range(
+    profileId ? 0 : offset,
+    profileId ? 0 : offset + PROFILE_PAGE_SIZE - 1,
+  );
 
   if (profilesResult.error) {
     return NextResponse.json(
@@ -199,7 +210,7 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json(
-    { profiles, hasMore: profiles.length === PROFILE_PAGE_SIZE },
+    { profiles, hasMore: !profileId && profiles.length === PROFILE_PAGE_SIZE },
     {
       headers: {
         "Cache-Control": `public, s-maxage=${getProfileCacheTtl()}, stale-while-revalidate=300`,

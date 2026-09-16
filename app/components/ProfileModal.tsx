@@ -81,13 +81,9 @@ const ProfileModal = ({
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/?profile=${encodeURIComponent(profileId)}`;
+    setShareLabel("Copying...");
 
     try {
-      if (navigator.share) {
-        await navigator.share({ title: name, text: `View ${name}'s profile`, url: shareUrl });
-        return;
-      }
-
       await navigator.clipboard.writeText(shareUrl);
       setShareLabel("Link copied");
       window.setTimeout(() => setShareLabel("Share profile"), 2000);
@@ -321,7 +317,7 @@ const ProfileModal = ({
             onClick={() => void handleShare()}
             className="w-fit cursor-pointer text-xs mono   font-semibold uppercase tracking-tight  bg-black/10 p-1 rounded-full px-2 transition hover:text-black"
           >
-            Share
+            {shareLabel === "Share profile" ? "Share" : shareLabel}
           </button>
         </div>
       </section>

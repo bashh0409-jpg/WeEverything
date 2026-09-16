@@ -518,17 +518,9 @@ const ProfilePage = () => {
     if (!user) return;
 
     const shareUrl = `${window.location.origin}/?profile=${encodeURIComponent(user.id)}`;
+    setShareLabel("Copying...");
 
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: profileName,
-          text: `View ${profileName}'s profile`,
-          url: shareUrl,
-        });
-        return;
-      }
-
       await navigator.clipboard.writeText(shareUrl);
       setShareLabel("Link copied");
       window.setTimeout(() => setShareLabel("Share profile"), 2000);
