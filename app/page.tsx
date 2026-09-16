@@ -15,17 +15,10 @@ import Footer from "./components/Footer";
 
 const roles = [
   "All",
-  "Designers",
   "Developers",
-  "Illustrators",
-  "Photographers",
+  "Designers",
   "Animators",
-  "Art Directors",
-  "Copywriters",
-  "Filmmakers",
-  "Musicians",
-  "Stylists",
-  "Writers",
+  "Photographers",
   "Other",
 ] as const;
 
@@ -38,17 +31,10 @@ const PROFILE_PAGE_SIZE = 40;
 
 const normalizeRole = (role: string): RoleFilter => {
   const roleLabels: Record<string, RoleFilter> = {
-    designer: "Designers",
     developer: "Developers",
-    illustrator: "Illustrators",
-    photographer: "Photographers",
+    designer: "Designers",
     animator: "Animators",
-    "art director": "Art Directors",
-    copywriter: "Copywriters",
-    filmmaker: "Filmmakers",
-    musician: "Musicians",
-    stylist: "Stylists",
-    writer: "Writers",
+    photographer: "Photographers",
   };
 
   const matchedRole = role
@@ -250,7 +236,7 @@ const Page = () => {
               </div>
 
               <div className="flex flex-wrap gap-4 overflow-y-auto text-xs font-semibold uppercase tracking-tight text-[#999]">
-                {roles.slice(1).map((role) => (
+                {roles.slice(1, 6).map((role) => (
                   <button
                     key={role}
                     type="button"
