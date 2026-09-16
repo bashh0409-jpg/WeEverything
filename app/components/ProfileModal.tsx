@@ -309,7 +309,7 @@ const ProfileModal = ({
           <div className="flex flex-col gap-2">
             <h1
               id="profile-modal-title"
-              className="mb-1 max-w-full text-3xl font-semibold leading-tight tracking-tighter sm:text-4xl md:max-w-[60%] md:text-6xl md:leading-12"
+              className="mb-1  text-3xl font-semibold leading-tight tracking-tighter sm:text-4xl md:text-6xl md:leading-12"
             >
               {name}
             </h1>
