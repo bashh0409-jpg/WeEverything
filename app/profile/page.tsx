@@ -915,8 +915,11 @@ const ProfilePage = () => {
   const unreadInquiryCount = inquiries.filter(
     (inquiry) => !inquiry.archived_at && !readInquiryIds.includes(inquiry.id),
   ).length;
+  const archivedInquiryCount = inquiries.filter((inquiry) =>
+    Boolean(inquiry.archived_at),
+  ).length;
   const visibleInquiries = inquiries.filter((inquiry) =>
-    showArchivedInquiries ? true : !inquiry.archived_at,
+    showArchivedInquiries ? Boolean(inquiry.archived_at) : !inquiry.archived_at,
   );
 
   const markAllInquiriesAsRead = () => {
@@ -1557,22 +1560,57 @@ const ProfilePage = () => {
                   Inbox
                 </p>
               </div>
-              <button
-                type="button"
-                aria-label="Close project inquiries"
-                onClick={() => setIsInquiryDrawerOpen(false)}
-                className="flex h-8 w-8 items-center cursor-pointer justify-center rounded-full text-xl text-[#666] transition hover:bg-black hover:text-white"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="24px"
-                  viewBox="0 -960 960 960"
-                  width="24px"
-                  fill="#999"
+              <div className="flex items-center gap-2">
+                {archivedInquiryCount ? (
+                  <button
+                    type="button"
+                    aria-label={
+                      showArchivedInquiries
+                        ? "Show active inquiries"
+                        : `Show ${archivedInquiryCount} archived ${archivedInquiryCount === 1 ? "inquiry" : "inquiries"}`
+                    }
+                    title={
+                      showArchivedInquiries
+                        ? "Show active inquiries"
+                        : "Show archived inquiries"
+                    }
+                    onClick={() =>
+                      setShowArchivedInquiries((current) => !current)
+                    }
+                    className={`relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border transition hover:bg-black hover:text-white ${showArchivedInquiries ? "bg-black text-white" : "border-black text-black"}`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 -960 960 960"
+                      width="18"
+                      height="18"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path d="M160-160v-640h240v80H240v480h480v-480H560v-80h240v640H160Zm160-200v-80h320v80H320Zm0-160v-80h320v80H320Zm0-160v-80h320v80H320Z" />
+                    </svg>
+                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#1c40f2] px-1 text-[9px] font-bold text-white">
+                      {archivedInquiryCount > 9 ? "9+" : archivedInquiryCount}
+                    </span>
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  aria-label="Close project inquiries"
+                  onClick={() => setIsInquiryDrawerOpen(false)}
+                  className="flex h-8 w-8 items-center cursor-pointer justify-center rounded-full text-xl text-[#666] transition hover:bg-black hover:text-white"
                 >
-                  <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
-                </svg>
-              </button>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="24px"
+                    viewBox="0 -960 960 960"
+                    width="24px"
+                    fill="#999"
+                  >
+                    <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div className="flex w-full justify-between">
@@ -1585,14 +1623,6 @@ const ProfilePage = () => {
                   Mark all as read
                 </button>
               ) : null}
-
-              <button
-                type="button"
-                onClick={() => setShowArchivedInquiries((current) => !current)}
-                className="mt-4 w-fit cursor-pointer text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:text-black"
-              >
-                {showArchivedInquiries ? "Hide archived" : "Show archived"}
-              </button>
             </div>
 
             {visibleInquiries.length ? (
@@ -1689,8 +1719,10 @@ const ProfilePage = () => {
                 ))}
               </div>
             ) : (
-              <p className="mt-6 text-sm leading-relaxed text-[#666]">
-                No project inquiries yet.
+              <p className="mt-6 text-xs mono uppercase leading-relaxed text-[#666]">
+                {showArchivedInquiries
+                  ? "No archived inquiries yet."
+                  : "No  inquiries yet."}
               </p>
             )}
           </aside>

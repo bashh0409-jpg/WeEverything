@@ -504,14 +504,14 @@ const ProfileModal = ({
                 <InputArea
                   name="senderName"
                   required
-                  placeholder="Your name"
+                  placeholder="Full name"
                   className="text-sm outline-none focus:border-black"
                 />
                 <InputArea
                   name="senderEmail"
                   required
                   type="email"
-                  placeholder="Your email"
+                  placeholder="Email address"
                   className="text-sm outline-none focus:border-black"
                 />
               </div>
@@ -536,7 +536,7 @@ const ProfileModal = ({
                   </svg>
                 </button>
                 {isCountryPickerOpen ? (
-                  <div className="absolute bottom-ful left-0 z-20 mb-2 max-h-64 w-64 overflow-y-auto rounded border border-black/10 bg-white p-1 shadow-2xl">
+                  <div className="absolute scrollbar-hide left-0 z-20 mb-2 max-h-64 w-64 overflow-y-auto rounded border border-black/10 bg-white p-1 shadow-2xl">
                     {getCountries().map((country) => (
                       <button
                         key={country}
@@ -558,7 +558,7 @@ const ProfileModal = ({
                 <InputArea
                   name="senderPhone"
                   type="tel"
-                  placeholder="Phone number (optional)"
+                  placeholder="Phone number"
                   className="border-0 text-sm outline-none focus:border-black"
                 />
               </div>
@@ -572,8 +572,8 @@ const ProfileModal = ({
                 className=" p-3 text-sm outline-none focus:border-black/0"
               />
               <div className="grid gap-2 sm:grid-cols-2">
-                <div className="flex bg-black/5 w-full items-center  px-2 w-fit h-fit rounded">
-                  <span className="pr-2  text-sm font-semibold text-[#999]">
+                <div className="flex bg-black/5 w-full items-center  pl-2 w-fit h-fit rounded">
+                  <span className="  text-sm font-semibold ">
                     $
                   </span>
                   <InputArea

@@ -249,6 +249,10 @@ body::-webkit-scrollbar {
   scrollbar-width: none;
 }
 
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 .profile-modal-sheet::-webkit-scrollbar {
   display: none;
 }

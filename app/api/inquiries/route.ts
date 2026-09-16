@@ -1,10 +1,13 @@
 import { Redis } from "@upstash/redis";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import {
   isSupportedCountry,
   parsePhoneNumberFromString,
 } from "libphonenumber-js";
 import { NextResponse } from "next/server";
+import { Resend } from "resend";
 
 const MAX_INQUIRIES_PER_HOUR = 5;
 
@@ -42,22 +45,88 @@ const verifyTurnstile = async (token: string, request: Request) => {
   return response.ok && result.success === true;
 };
 
-const getSupabase = () => {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const notifyProfileOwner = async ({
+  profileId,
+  senderName,
+  senderEmail,
+  senderPhone,
+  project,
+  budget,
+  timeline,
+}: {
+  profileId: string;
+  senderName: string;
+  senderEmail: string;
+  senderPhone: string;
+  project: string;
+  budget: string;
+  timeline: string;
+}) => {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
 
-  return url && key ? createClient(url, key) : null;
+  if (!serviceRoleKey || !resendApiKey || !fromEmail) return;
+
+  const admin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+    serviceRoleKey,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+  const {
+    data: { user: profileOwner },
+    error: ownerError,
+  } = await admin.auth.admin.getUserById(profileId);
+
+  if (ownerError || !profileOwner?.email) {
+    console.error("Could not find profile owner for inquiry notification", ownerError);
+    return;
+  }
+
+  const details = [
+    `Name: ${senderName}`,
+    `Email: ${senderEmail}`,
+    senderPhone ? `Phone: ${senderPhone}` : "",
+    budget ? `Budget: ${budget}` : "",
+    timeline ? `Timeline: ${timeline}` : "",
+    "",
+    "Project details:",
+    project,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const { error: sendError } = await new Resend(resendApiKey).emails.send({
+    from: fromEmail,
+    to: profileOwner.email,
+    replyTo: senderEmail,
+    subject: `New inquiry from ${senderName}`,
+    text: `You received a new inquiry on WeEverything.\n\n${details}`,
+  });
+
+  if (sendError) {
+    console.error("Could not send inquiry notification", sendError);
+  }
 };
 
 export async function POST(request: Request) {
-  const supabase = getSupabase();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabase) {
+  if (!supabaseUrl || !supabaseAnonKey) {
     return NextResponse.json(
       { error: "Inquiry submissions are not configured yet." },
       { status: 503 },
     );
   }
+
+  const cookieStore = await cookies();
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll: () => cookieStore.getAll(),
+      setAll: () => {},
+    },
+  });
 
   const body = (await request.json()) as {
     profileId?: unknown;
@@ -97,6 +166,17 @@ export async function POST(request: Request) {
   const budget = typeof body.budget === "string" ? body.budget.trim() : "";
   const timeline =
     typeof body.timeline === "string" ? body.timeline.trim() : "";
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user?.id === profileId) {
+    return NextResponse.json(
+      { error: "You cannot send an inquiry to your own profile." },
+      { status: 403 },
+    );
+  }
 
   const redis = getRedis();
   if (redis) {
@@ -188,6 +268,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ error: error.message }, { status: 502 });
   }
+
+  await notifyProfileOwner({
+    profileId,
+    senderName,
+    senderEmail,
+    senderPhone: normalizedPhone,
+    project,
+    budget,
+    timeline,
+  });
 
   return NextResponse.json({ success: true });
 }
