@@ -38,11 +38,19 @@ export async function GET(request: Request) {
       } = await supabase.auth.exchangeCodeForSession(code);
 
       if (!error && user) {
-        const fullName = user.user_metadata.full_name ?? user.user_metadata.name;
+        const { data: existingProfile, error: profileLookupError } =
+          await supabase
+            .from("profiles")
+            .select("id")
+            .eq("id", user.id)
+            .maybeSingle();
+
+        const fullName =
+          user.user_metadata.full_name ?? user.user_metadata.name;
         const name =
           typeof fullName === "string" && fullName.trim()
             ? fullName.trim()
-            : user.email?.split("@")[0] ?? "New member";
+            : (user.email?.split("@")[0] ?? "New member");
         const avatarUrl = user.user_metadata.avatar_url;
 
         const { error: profileError } = await supabase.from("profiles").upsert(
@@ -59,7 +67,17 @@ export async function GET(request: Request) {
         );
 
         if (profileError) {
-          console.error("Could not create profile for authenticated user", profileError);
+          console.error(
+            "Could not create profile for authenticated user",
+            profileError,
+          );
+        }
+
+        if (!profileLookupError && !existingProfile && next === "/profile") {
+          response.headers.set(
+            "Location",
+            new URL("/profile?welcome=1", request.url).toString(),
+          );
         }
 
         return response;

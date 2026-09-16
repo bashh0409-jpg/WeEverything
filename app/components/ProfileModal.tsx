@@ -164,10 +164,7 @@ const ProfileModal = ({
     event: React.FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault();
-    if (
-      process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY &&
-      !captchaToken
-    ) {
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken) {
       setInquiryStatus("error");
       setInquiryMessage("Please complete the CAPTCHA and try again.");
       return;
@@ -526,7 +523,7 @@ const ProfileModal = ({
                   onClick={() => setIsCountryPickerOpen((current) => !current)}
                   className="mr-1 flex items-center gap-1 rounded bg-black px-2 py-2 text-sm font-semibold text-white"
                 >
-                   +{getCountryCallingCode(phoneCountry)}
+                  +{getCountryCallingCode(phoneCountry)}
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 -960 960 960"

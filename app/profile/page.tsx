@@ -325,6 +325,7 @@ const ProfilePage = () => {
   const [inquiryPendingDeletion, setInquiryPendingDeletion] =
     useState<ProfileInquiry | null>(null);
   const [showArchivedInquiries, setShowArchivedInquiries] = useState(false);
+  const [isWelcomeOverlayOpen, setIsWelcomeOverlayOpen] = useState(false);
   const [isInquiryDrawerOpen, setIsInquiryDrawerOpen] = useState(false);
   const [socials, setSocials] = useState<SocialForm>(emptySocials);
   const [sponsored, setSponsored] = useState(false);
@@ -473,6 +474,16 @@ const ProfilePage = () => {
       isMounted = false;
       subscription.unsubscribe();
     };
+  }, []);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+
+    if (url.searchParams.get("welcome") !== "1") return;
+
+    setIsWelcomeOverlayOpen(true);
+    url.searchParams.delete("welcome");
+    window.history.replaceState({}, "", url.toString());
   }, []);
 
   const handleChange = (
@@ -1065,7 +1076,7 @@ const ProfilePage = () => {
                 </div>
 
                 <div>
-                  <p className="mono text-sm font-semibold tracking-tight text-[#1c40f2]">
+                  <p className="mono text-sm font-medium uppercase tracking-tight text-[#1c40f2]">
                     @{handle}
                   </p>
                   <p className="mt-2 text-xl font-semibold tracking-tight">
@@ -1564,7 +1575,7 @@ const ProfilePage = () => {
               </button>
             </div>
 
-            <div className='flex w-full justify-between'>
+            <div className="flex w-full justify-between">
               {unreadInquiryCount ? (
                 <button
                   type="button"
@@ -1684,6 +1695,27 @@ const ProfilePage = () => {
             )}
           </aside>
         </>
+      ) : null}
+
+      {isWelcomeOverlayOpen ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-white p-4 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 text-center ">
+            <h2 className="mono text-xl uppercase tracking-tight">
+              Welcome to WeEverything!
+            </h2>
+            <p className="mt-3 font-mono text-sm uppercase tracking-tight text-black/60">
+              Thank you for signing up. Your account is ready. Start building
+              your profile and share what you make with the community.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsWelcomeOverlayOpen(false)}
+              className="mt-6 rounded-full bg-black px-2 cursor-pointer py-1 mono text-xs font-medium uppercase tracking-tight text-white transition hover:bg-[#1c40f2]"
+            >
+              CLOSE
+            </button>
+          </div>
+        </div>
       ) : null}
 
       {inquiryPendingDeletion ? (
