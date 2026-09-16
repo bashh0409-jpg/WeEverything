@@ -67,19 +67,9 @@ body::-webkit-scrollbar {
 }
 
 .ticker-track {
-  animation: ticker-scroll 25s linear infinite;
+  will-change: transform;
 }
 
 .ticker-track span {
   margin-right: 80px;
-}
-
-@keyframes ticker-scroll {
-  from {
-    transform: translateX(-50%);
-  }
-
-  to {
-    transform: translateX(0);
-  }
 }

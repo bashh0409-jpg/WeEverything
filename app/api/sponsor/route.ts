@@ -81,7 +81,9 @@ export async function POST(request: Request) {
     if (existingPayment) {
       if (existingPayment.amount !== amount) {
         return NextResponse.json(
-          { error: "This checkout request was already used for another amount." },
+          {
+            error: "This checkout request was already used for another amount.",
+          },
           { status: 409 },
         );
       }
@@ -98,24 +100,27 @@ export async function POST(request: Request) {
       accessToken: polarAccessToken,
       server: polarEnvironment,
     });
-    const checkout = await polar.checkouts.create({
-      products: [polarProductId],
-      prices: {
-        [polarProductId]: [
-          {
-            amountType: "custom",
-            priceCurrency: "usd",
-            minimumAmount: amount,
-            presetAmount: amount,
-          },
-        ],
+    const checkout = await polar.checkouts.create(
+      {
+        products: [polarProductId],
+        prices: {
+          [polarProductId]: [
+            {
+              amountType: "custom",
+              priceCurrency: "usd",
+              minimumAmount: amount,
+              presetAmount: amount,
+            },
+          ],
+        },
+        customerEmail: user.email,
+        externalCustomerId: user.id,
+        metadata: { user_id: user.id, sponsorship_amount: amount },
+        successUrl: `${siteUrl}/profile/success?checkout_id={CHECKOUT_ID}`,
+        returnUrl: `${siteUrl}/profile`,
       },
-      customerEmail: user.email,
-      externalCustomerId: user.id,
-      metadata: { user_id: user.id, sponsorship_amount: amount },
-      successUrl: `${siteUrl}/profile/success?checkout_id={CHECKOUT_ID}`,
-      returnUrl: `${siteUrl}/profile`,
-    }, { headers: { "Idempotency-Key": idempotencyKey } });
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    );
 
     const { error: paymentError } = await supabase
       .from("sponsorship_payments")

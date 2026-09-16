@@ -13,7 +13,7 @@ const page = () => {
   return (
     <div>
       <Navbar />
-   
+
       <LegalPage />
     </div>
   );

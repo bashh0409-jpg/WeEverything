@@ -38,39 +38,46 @@ const Page = () => {
           </span>
 
           <div className="lg:grid-cols-2 grid-cols-1 grid mt-8 gap-4">
-                  <p className="  text-sm mb-2 font-medium tracking-tight ">
-              Welcome to WeEverything.xyz. These Terms of Service (“Terms”)
-              govern your use of our website, products, and services. By
-              accessing or using our services, you agree to comply with these
-              Terms. If you do not agree, please do not use our website.
+            <p className="  text-sm mb-2 font-medium tracking-tight ">
+              Welcome to WeEverything.xyz, a directory for discovering creative
+              professionals and sharing public creative profiles. These Terms
+              govern your use of the directory, profile tools, and related
+              services. By using the site, you agree to these Terms. If you do
+              not agree, please do not use the site.
             </p>
             <div>
               <span className="flex flex-col  px-4">
                 <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
-                  1. Acceptance of Terms
+                  1. Acceptance of Terms.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  By using our services, you acknowledge that you have read,
-                  understood, and agreed to these Terms. If you are using our
-                  services on behalf of a company or organization, you represent
-                  that you have the authority to bind them to these Terms.
+                  You must provide accurate information when creating an account
+                  and are responsible for activity carried out through it. You
+                  may use WeEverything to create, manage, and publish a profile
+                  for yourself, including a biography, role, location, profile
+                  image, work media, and links to external social or portfolio
+                  pages.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  We reserve the right to update, modify, or change these Terms
-                  at any time. Changes will be effective upon posting on our
-                  website. Continued use of our services after changes are
-                  posted constitutes acceptance of the updated Terms.
+                  Do not upload or link to content that you do not have the
+                  right to share, that impersonates another person, or that is
+                  unlawful, misleading, abusive, invasive of privacy, or
+                  harmful. Do not attempt to access another account, disrupt the
+                  site, scrape it abusively, or upload malicious code.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  If you do not agree to the modified Terms, you must stop using
-                  our services. We encourage you to review these Terms
-                  periodically to stay informed of any updates.
+                  You control whether your profile is published. Published
+                  profiles, profile media, and social links may be visible to
+                  anyone who visits the directory. We may remove content or
+                  restrict an account when reasonably necessary to protect the
+                  site, its users, or the rights of others. We may also update
+                  these Terms by posting a revised version here.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
                 <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
-                  2. User responsibilities
+                  2. User responsibilities.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
@@ -81,15 +88,17 @@ const Page = () => {
                   overload it.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  All content on this website — including case studies, project
-                  imagery, branding, and copy — is the intellectual property of
-                  WeEverything.xyz or its clients and may not be reproduced or
-                  distributed without permission.
+                  You retain responsibility for the content you submit. You give
+                  WeEverything permission to host, store, display, and format
+                  that content as needed to operate the directory. You retain
+                  ownership of your content, while WeEverything retains rights
+                  in its software, branding, and original site content.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  Misuse of this website, including attempting unauthorized
-                  access or distributing harmful software, may result in legal
-                  action.
+                  WeEverything is a directory and does not guarantee the
+                  quality, availability, identity, or suitability of any listed
+                  professional. Any work, communication, or agreement you make
+                  with a listed person is between you and that person.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
@@ -97,26 +106,21 @@ const Page = () => {
                   3. Usage Data
                 </span>
 
-                {/* Vercel Speed Insights is enabled — it collects performance metrics
-                    (page URL, referrer, country, device/browser type, connection speed)
-                    without cookies or personal identifiers. Still needs disclosure since
-                    it is passive data collection from every visitor, POPIA-relevant even
-                    if anonymized. Update again if PII-collecting analytics gets added. */}
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
                   This website uses Vercel Speed Insights to measure site
-                  performance, such as page load times. This tool does not use
-                  cookies and does not collect information that identifies you
-                  personally — it records anonymized technical data like your
-                  general location (country), device type, and browser, purely
-                  to help us keep the site fast.
+                  performance, such as page load times. It may process technical
+                  information about your visit, such as the page URL, referrer,
+                  approximate country, device or browser type, and connection
+                  information. It is used to improve reliability and does not
+                  use advertising cookies or create an advertising profile for
+                  you.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  The “Consult” button on this website links to Google
-                  Calendar’s booking tool. If you book a consultation, the
-                  personal information you provide (such as your name, email,
-                  and meeting details) is collected directly by Google, subject
-                  to Google’s own privacy policy, not ours.
+                  External websites linked from a profile, including social
+                  networks and portfolio sites, operate under their own terms
+                  and privacy policies. WeEverything is not responsible for how
+                  those external services process information.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
@@ -125,29 +129,27 @@ const Page = () => {
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  We only collect personal information that you choose to send
-                  us directly — for example, when you email us at{" "}
-                  <a
-                    className="text-blue-500 underline"
-                    href="mailto:info@thewisestudio.xyz"
-                  >
-                    info@thewisestudio.xyz
-                  </a>
-                  , when you call us on the number listed on this site. This may
-                  include your name, contact details, and the content of your
-                  message.
+                  We collect information needed to provide the directory and
+                  account features. This can include your email address and
+                  authentication details, profile name, role, biography,
+                  location, avatar, uploaded images or videos, social links,
+                  profile publication settings, profile views, sponsorship
+                  status, and account deletion status.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  We use this information solely to respond to your enquiry,
-                  discuss potential work, or process a job application. We do
-                  not sell, rent, or share your personal information with third
-                  parties for marketing purposes.
+                  We use this information to authenticate users, create and
+                  display profiles when publication is enabled, store uploaded
+                  media, show profile view counts, process sponsorships, prevent
+                  misuse, respond to requests, and operate and secure the site.
+                  We do not sell your personal information for advertising.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  We may update our Privacy Policy from time to time and will
-                  notify users of any changes by posting the new Privacy Policy
-                  on this page. You are advised to revisit this page and review
-                  our Privacy Policy periodically for any changes.
+                  Account and profile data is stored using Supabase. Sponsorship
+                  payments are handled by Polar; we do not receive or store your
+                  full payment card details. We may share information with these
+                  service providers only as needed to provide their services,
+                  and we may disclose information when required by law or to
+                  protect the site and its users.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
@@ -155,34 +157,24 @@ const Page = () => {
                   5. Your rights (POPIA)
                 </span>
 
-                {/* WeEverything.xyz is South Africa-registered, so POPIA governs this
-                    site's data processing — not GDPR/CCPA. This section is the
-                    minimum POPIA requires: named Information Officer + data
-                    subject rights + Regulator complaint route. Replace the
-                    Information Officer name below with whoever is actually
-                    designated — POPIA requires this role be filled by a real
-                    person, not left as a role title. */}
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  As a South African small business, we process personal
-                  information in accordance with the Protection of Personal
-                  Information Act (POPIA). You have the right to request access
-                  to, correction of, or deletion of any personal information we
-                  hold about you, and to object to its processing.
+                  Where applicable, the Protection of Personal Information Act
+                  (POPIA) governs our handling of personal information. You may
+                  request access to, correction of, or deletion of personal
+                  information we hold about you, and you may object to certain
+                  processing or ask questions about how your information is
+                  used.
                 </span>
                 <span className="font-medium indent-8 text-sm leading-4 tracking-tight ">
-                  Our Information Officer can be reached at{" "}
-                  <a
-                    className="text-blue-500 underline"
-                    href="mailto:info@thewisestudio.xyz"
-                  >
-                    info@thewisestudio.xyz
-                  </a>
-                  , for any requests relating to your personal information.
+                  Send privacy or account requests to the contact address used
+                  by the WeEverything operator, including the email address
+                  associated with your account. We may need to verify your
+                  identity before completing a request.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  If you believe your information has been mishandled, you may
-                  lodge a complaint with the Information Regulator of South
-                  Africa at{" "}
+                  If POPIA applies to you and you believe your information has
+                  been mishandled, you may lodge a complaint with the
+                  Information Regulator of South Africa at{" "}
                   <a
                     href="https://inforegulator.org.za"
                     target="_blank"
@@ -200,14 +192,119 @@ const Page = () => {
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  If you have any questions about this Privacy Policy, You can
-                  contact us by email:{" "}
-                  <a
-                    className="text-blue-500 underline"
-                    href="mailto:info@thewisestudio.xyz"
-                  >
-                    info@thewisestudio.xyz
-                  </a>
+                  If you have questions about these Terms or this Privacy
+                  Policy, contact the WeEverything operator through the support
+                  contact associated with the site or your account. Requests
+                  about account deletion can be started from your profile. When
+                  deletion is requested, the profile is unpublished and the
+                  account is scheduled for permanent deletion after 30 days.
+                </span>
+              </span>
+              <span className="flex flex-col mt-4  px-4">
+                <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
+                  7. Sponsorships and payments.
+                </span>
+
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  A profile owner may choose a one-time sponsorship amount of
+                  USD 5, USD 15, or USD 30. Sponsorship is an optional paid
+                  feature that may give the sponsored profile priority in the
+                  directory; it does not guarantee a particular position, number
+                  of views, enquiries, or work opportunities.
+                </span>
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  Checkout and payment processing are provided by Polar. The
+                  payment amount, currency, checkout terms, taxes where
+                  applicable, and available payment methods may be shown by
+                  Polar at checkout. We do not store your complete card number
+                  or payment security code.
+                </span>
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  A checkout request may be retried safely. We use a unique
+                  request key so that a retry returns the same pending checkout
+                  instead of intentionally creating a second checkout for the
+                  same request. Completed, expired, or refunded sponsorships may
+                  be recorded so that payment status can be reconciled.
+                </span>
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  Questions about a charge, refund, or duplicate payment should
+                  be raised with the WeEverything operator and may also need to
+                  be handled through Polar according to the payment terms shown
+                  at checkout. We do not promise refunds except where required
+                  by applicable law or expressly agreed by the operator.
+                </span>
+              </span>
+              <span className="flex flex-col mt-4  px-4">
+                <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
+                  8. Account deletion and data retention.
+                </span>
+
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  You can request deletion from your signed-in profile. When a
+                  request is accepted, your profile is unpublished immediately
+                  and scheduled for permanent deletion after 30 days. During
+                  that period, you may be able to contact the operator to cancel
+                  the request or restore the account, subject to the
+                  operator&apos;s ability to do so.
+                </span>
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  At permanent deletion, the account and associated profile
+                  records are removed through the account deletion process, and
+                  uploaded profile media is removed from the profile media
+                  storage area where the system can do so. We may retain limited
+                  information where necessary for legal compliance, fraud
+                  prevention, payment reconciliation, dispute handling, or
+                  legitimate operational records.
+                </span>
+              </span>
+              <span className="flex flex-col mt-4  px-4">
+                <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
+                  9. Cookies and browser storage.
+                </span>
+
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  We use browser cookies or similar session technology where it
+                  is needed for authentication and account sessions. The site
+                  may also use browser session storage to help count a profile
+                  view once per browsing session. These technologies are used to
+                  operate the site, not to sell advertising profiles.
+                </span>
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  You can control cookies and browser storage through your
+                  browser settings, but disabling them may prevent sign-in or
+                  make parts of the site unavailable.
+                </span>
+              </span>
+              <span className="flex flex-col mt-4  px-4">
+                <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
+                  10. Availability and security.
+                </span>
+
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  We work to keep WeEverything available and to protect account
+                  and profile information, but no online service can guarantee
+                  uninterrupted availability or absolute security. The site may
+                  be changed, suspended, or unavailable for maintenance,
+                  upgrades, provider outages, or circumstances outside our
+                  reasonable control.
+                </span>
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  You are responsible for keeping access to your email account
+                  and sign-in method secure. Tell us promptly if you believe
+                  that your account has been accessed without permission.
+                </span>
+              </span>
+              <span className="flex flex-col mt-4  px-4">
+                <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
+                  11. Changes to these policies.
+                </span>
+
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  We may update these Terms and this Privacy Policy when the
+                  site, its providers, or applicable law changes. The date at
+                  the top of this page identifies the latest update. Continued
+                  use of WeEverything after an update means that you accept the
+                  updated terms to the extent permitted by law.
                 </span>
               </span>
             </div>
