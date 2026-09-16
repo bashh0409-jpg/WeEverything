@@ -22,6 +22,25 @@ import {
 } from "libphonenumber-js";
 import InputArea from "./InputArea";
 
+type TurnstileWidget = {
+  render: (
+    container: HTMLElement,
+    options: {
+      sitekey: string;
+      callback: (token: string) => void;
+      "expired-callback": () => void;
+      "error-callback": () => void;
+    },
+  ) => string;
+  remove: (widgetId: string) => void;
+};
+
+declare global {
+  interface Window {
+    turnstile?: TurnstileWidget;
+  }
+}
+
 type ProfileModalProps = {
   profileId: string;
   name: string;
@@ -71,12 +90,46 @@ const ProfileModal = ({
     "idle" | "sending" | "sent" | "error"
   >("idle");
   const [inquiryMessage, setInquiryMessage] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
   const [phoneCountry, setPhoneCountry] = useState<CountryCode>("ZA");
   const [isCountryPickerOpen, setIsCountryPickerOpen] = useState(false);
   const isClosingRef = useRef(false);
   const onCloseRef = useRef(onClose);
   const closeTimerRef = useRef<number | null>(null);
   const inquiryFormRef = useRef<HTMLFormElement>(null);
+  const captchaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    if (!isContactOpen || !siteKey || !captchaRef.current) return;
+
+    let widgetId: string | undefined;
+    const renderCaptcha = () => {
+      if (!captchaRef.current || !window.turnstile) return;
+      captchaRef.current.innerHTML = "";
+      widgetId = window.turnstile.render(captchaRef.current, {
+        sitekey: siteKey,
+        callback: setCaptchaToken,
+        "expired-callback": () => setCaptchaToken(""),
+        "error-callback": () => setCaptchaToken(""),
+      });
+    };
+
+    if (window.turnstile) {
+      renderCaptcha();
+    } else {
+      const script = document.createElement("script");
+      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+      script.async = true;
+      script.onload = renderCaptcha;
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
+      setCaptchaToken("");
+    };
+  }, [isContactOpen]);
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -111,6 +164,14 @@ const ProfileModal = ({
     event: React.FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault();
+    if (
+      process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY &&
+      !captchaToken
+    ) {
+      setInquiryStatus("error");
+      setInquiryMessage("Please complete the CAPTCHA and try again.");
+      return;
+    }
     setInquiryStatus("sending");
     setInquiryMessage("");
 
@@ -124,6 +185,7 @@ const ProfileModal = ({
         senderEmail: formData.get("senderEmail"),
         senderCountry: phoneCountry,
         senderPhone: formData.get("senderPhone"),
+        captchaToken,
         project: formData.get("project"),
         budget: formData.get("budget"),
         timeline: formData.get("timeline"),
@@ -542,6 +604,9 @@ const ProfileModal = ({
                   </select>
                 </div>
               </div>
+              {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
+                <div ref={captchaRef} />
+              ) : null}
               <button
                 type="submit"
                 disabled={inquiryStatus === "sending"}

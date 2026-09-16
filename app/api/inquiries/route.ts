@@ -1,9 +1,46 @@
+import { Redis } from "@upstash/redis";
 import { createClient } from "@supabase/supabase-js";
 import {
   isSupportedCountry,
   parsePhoneNumberFromString,
 } from "libphonenumber-js";
 import { NextResponse } from "next/server";
+
+const MAX_INQUIRIES_PER_HOUR = 5;
+
+const getRedis = () => {
+  if (
+    !process.env.UPSTASH_REDIS_REST_URL ||
+    !process.env.UPSTASH_REDIS_REST_TOKEN
+  ) {
+    return null;
+  }
+
+  return Redis.fromEnv();
+};
+
+const getClientIp = (request: Request) =>
+  request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+  request.headers.get("x-real-ip") ||
+  "unknown";
+
+const verifyTurnstile = async (token: string, request: Request) => {
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+  if (!secret) return true;
+
+  const formData = new URLSearchParams({
+    secret,
+    response: token,
+    remoteip: getClientIp(request),
+  });
+  const response = await fetch(
+    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+    { method: "POST", body: formData },
+  );
+  const result = (await response.json()) as { success?: boolean };
+
+  return response.ok && result.success === true;
+};
 
 const getSupabase = () => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -28,6 +65,7 @@ export async function POST(request: Request) {
     senderEmail?: unknown;
     senderCountry?: unknown;
     senderPhone?: unknown;
+    captchaToken?: unknown;
     project?: unknown;
     budget?: unknown;
     timeline?: unknown;
@@ -42,6 +80,8 @@ export async function POST(request: Request) {
     typeof body.senderCountry === "string" ? body.senderCountry : "";
   const senderPhone =
     typeof body.senderPhone === "string" ? body.senderPhone.trim() : "";
+  const captchaToken =
+    typeof body.captchaToken === "string" ? body.captchaToken : "";
   const parsedPhone = senderPhone
     ? parsePhoneNumberFromString(
         senderPhone,
@@ -57,6 +97,30 @@ export async function POST(request: Request) {
   const budget = typeof body.budget === "string" ? body.budget.trim() : "";
   const timeline =
     typeof body.timeline === "string" ? body.timeline.trim() : "";
+
+  const redis = getRedis();
+  if (redis) {
+    const rateLimitKey = `inquiries:rate:${getClientIp(request)}`;
+    try {
+      const requestCount = await redis.incr(rateLimitKey);
+      if (requestCount === 1) await redis.expire(rateLimitKey, 60 * 60);
+      if (requestCount > MAX_INQUIRIES_PER_HOUR) {
+        return NextResponse.json(
+          { error: "Too many inquiries. Please try again later." },
+          { status: 429, headers: { "Retry-After": "3600" } },
+        );
+      }
+    } catch {
+      // Keep inquiries available if the optional rate-limit service is down.
+    }
+  }
+
+  if (!(await verifyTurnstile(captchaToken, request))) {
+    return NextResponse.json(
+      { error: "Please complete the CAPTCHA and try again." },
+      { status: 400 },
+    );
+  }
 
   if (!profileId || !senderName || !senderEmail || !project) {
     return NextResponse.json(
