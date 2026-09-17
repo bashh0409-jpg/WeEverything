@@ -2,31 +2,80 @@
 
 import { useEffect, useState } from "react";
 
+const STARTUP_MIN_DURATION = 2_800;
+const STARTUP_LEAVE_DURATION = 650;
+
 const StartupScreen = () => {
   const [isLeaving, setIsLeaving] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    document.body.style.overflow = "hidden";
+    if (typeof window === "undefined") return;
 
-    const progressTimer = window.setInterval(() => {
-      setProgress((current) => Math.min(current + 1, 100));
-    }, 30);
-
-    const leaveTimer = window.setTimeout(() => {
-      setIsLeaving(true);
-    }, 3_000);
-    const removeTimer = window.setTimeout(() => {
+    const hasSeenSplash = window.sessionStorage.getItem("weeverything-startup-seen");
+    if (hasSeenSplash === "true") {
       setIsVisible(false);
-      document.body.style.overflow = "";
-    }, 3_650);
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    setIsVisible(true);
+
+    let removeTimer: number | undefined;
+    let leaveTimer: number | undefined;
+    let progressTimer: number | undefined;
+
+    const finishStartup = () => {
+      setProgress(100);
+      if (progressTimer) {
+        window.clearInterval(progressTimer);
+      }
+
+      leaveTimer = window.setTimeout(() => {
+        setIsLeaving(true);
+        removeTimer = window.setTimeout(() => {
+          setIsVisible(false);
+          document.body.style.overflow = previousOverflow;
+          window.sessionStorage.setItem("weeverything-startup-seen", "true");
+        }, STARTUP_LEAVE_DURATION);
+      }, 180);
+    };
+
+    const start = performance.now();
+    progressTimer = window.setInterval(() => {
+      const elapsed = performance.now() - start;
+      const nextProgress = Math.min((elapsed / STARTUP_MIN_DURATION) * 100, 100);
+      setProgress(nextProgress);
+
+      if (elapsed >= STARTUP_MIN_DURATION) {
+        finishStartup();
+      }
+    }, 16);
+
+    const loadHandler = () => {
+      finishStartup();
+    };
+
+    if (document.readyState === "complete") {
+      finishStartup();
+    } else {
+      window.addEventListener("load", loadHandler, { once: true });
+    }
 
     return () => {
-      window.clearTimeout(leaveTimer);
-      window.clearTimeout(removeTimer);
-      window.clearInterval(progressTimer);
-      document.body.style.overflow = "";
+      if (progressTimer) {
+        window.clearInterval(progressTimer);
+      }
+      if (leaveTimer) {
+        window.clearTimeout(leaveTimer);
+      }
+      if (removeTimer) {
+        window.clearTimeout(removeTimer);
+      }
+      window.removeEventListener("load", loadHandler);
+      document.body.style.overflow = previousOverflow;
     };
   }, []);
 
@@ -42,15 +91,19 @@ const StartupScreen = () => {
         <span className="startup-screen-kicker tracking-tight">A directory for people</span>
         <span className="startup-screen-name">WeEverything</span>
       </div>
-    
+
       <div className="startup-screen-footer">
         <span className="startup-screen-year geist tracking-tight">2026</span>
         <span
           className="startup-screen-percentage geist w-10 tracking-tight"
-          aria-label={`${progress}% loaded`}
+          aria-label={`${Math.round(progress)}% loaded`}
         >
-          {progress}
+          {Math.round(progress)}
         </span>
+      </div>
+
+      <div className="startup-screen-progress" aria-hidden="true">
+        <span style={{ width: `${progress}%` }} />
       </div>
     </div>
   );
