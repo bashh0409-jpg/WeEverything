@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { Polar } from "@polar-sh/sdk";
 import { createServerClient } from "@supabase/ssr";
 
-const allowedAmounts = new Set([500, 1500, 3000]);
+const minimumSponsorshipAmount = 100;
+const maximumSponsorshipAmount = 1_000_000;
 
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -34,9 +35,16 @@ export async function POST(request: Request) {
   const amount = body.amount;
   const idempotencyKey = body.idempotencyKey;
 
-  if (typeof amount !== "number" || !allowedAmounts.has(amount)) {
+  if (
+    typeof amount !== "number" ||
+    !Number.isInteger(amount) ||
+    amount < minimumSponsorshipAmount ||
+    amount > maximumSponsorshipAmount
+  ) {
     return NextResponse.json(
-      { error: "Choose a valid sponsorship amount." },
+      {
+        error: "Choose a sponsorship amount between $1 and $10,000.",
+      },
       { status: 400 },
     );
   }

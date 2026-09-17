@@ -1596,12 +1596,12 @@ const ProfilePage = () => {
             >
               Put your work in front.
             </h2>
-            <p className="mt-3 text-sm leading-relaxed text-[#666]">
+            <p className="mt-3 text-sm leading-tighter text-[#666]">
               Choose a one-time sponsorship amount to support the directory.
               Payments are securely handled by Polar.
             </p>
-            <div className="mt-6 grid grid-cols-3 gap-2">
-              {[500, 1500, 3000].map((amount) => (
+            <div className="mt-6 grid grid-cols-4 gap-2">
+              {[500, 1500, 3000, 5000].map((amount) => (
                 <button
                   key={amount}
                   type="button"
@@ -1616,11 +1616,37 @@ const ProfilePage = () => {
                 </button>
               ))}
             </div>
+            <label className="mt-5 block mono uppercase tracking-tight text-xs font-medium text-black">
+              Or choose your amount
+              <div className="mt-2 flex items-center rounded-full border border-black/20 px-4 py-2 focus-within:border-[#1c40f2]">
+                <span className="text-[#666]">$</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="10000"
+                  step="1"
+                  inputMode="decimal"
+                  value={(sponsorshipAmount / 100).toFixed(2)}
+                  onChange={(event) => {
+                    const amount = Number(event.target.value);
+                    setSponsorshipAmount(
+                      Number.isFinite(amount) ? Math.round(amount * 100) : 0,
+                    );
+                  }}
+                  className="ml-2 w-full bg-transparent text-sm font-semibold outline-none"
+                  aria-label="Custom sponsorship amount in US dollars"
+                />
+              </div>
+              <span className="mt-2 block text-xs font-normal text-[#777]">
+                Choose any amount from $<span className="geist">1</span> to $
+                <span className="geist">10,000 </span>USD.
+              </span>
+            </label>
             <div className="mt-6 flex flex-wrap justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setIsSponsorModalOpen(false)}
-                className="rounded-full border border-black/20 px-4 py-2 text-sm font-semibold text-black transition hover:border-black"
+                className="rounded-full mono uppercase tracking-tighter border border-black/20 px-2 py-1 text-sm font-medium text-black transition hover:border-black"
               >
                 Cancel
               </button>
@@ -1628,11 +1654,11 @@ const ProfilePage = () => {
                 type="button"
                 onClick={() => void handleSponsorCheckout()}
                 disabled={startingCheckout}
-                className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1c40f2] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full mono uppercase tracking-tighter bg-black px-2 py-1 text-sm font-medium text-white transition hover:bg-[#1c40f2] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {startingCheckout
                   ? "Opening checkout..."
-                  : "Continue to payment"}
+                  : "Checkout"}
               </button>
             </div>
           </div>

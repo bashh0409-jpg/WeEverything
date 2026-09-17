@@ -34,7 +34,7 @@ const Page = () => {
         </div>
         <div>
           <span className="text-[#999] font-medium tracking-tight ">
-            Last Update: Sep 15, 2026
+            Last Update: Sep 17, 2026
           </span>
 
           <div className="lg:grid-cols-2 grid-cols-1 grid mt-8 gap-4">
@@ -117,6 +117,20 @@ const Page = () => {
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  We use necessary cookies for authentication and account
+                  sessions. Optional Vercel Analytics is enabled only after you
+                  accept analytics in the cookie notice. Your choice is saved in
+                  your browser so the notice does not appear on every visit.
+                </span>
+
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  When enabled for an inquiry form, Cloudflare Turnstile helps
+                  us prevent abuse. Cloudflare may process technical and device
+                  information to verify that the request is legitimate under its
+                  own privacy policy.
+                </span>
+
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
                   External websites linked from a profile, including social
                   networks and portfolio sites, operate under their own terms
                   and privacy policies. WeEverything is not responsible for how
@@ -134,7 +148,9 @@ const Page = () => {
                   authentication details, profile name, role, biography,
                   location, avatar, uploaded images or videos, social links,
                   profile publication settings, profile views, sponsorship
-                  status, and account deletion status.
+                  status, account deletion status, and inquiry details such as a
+                  sender name, email address, phone number, project brief,
+                  budget, and timeline.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
                   We use this information to authenticate users, create and
@@ -206,8 +222,8 @@ const Page = () => {
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  A profile owner may choose a one-time sponsorship amount of
-                  USD 5, USD 15, or USD 30. Sponsorship is an optional paid
+                  A profile owner may choose a one-time sponsorship amount
+                  between USD 1 and USD 10,000. Sponsorship is an optional paid
                   feature that may give the sponsored profile priority in the
                   directory; it does not guarantee a particular position, number
                   of views, enquiries, or work opportunities.
@@ -230,8 +246,16 @@ const Page = () => {
                   Questions about a charge, refund, or duplicate payment should
                   be raised with the WeEverything operator and may also need to
                   be handled through Polar according to the payment terms shown
-                  at checkout. We do not promise refunds except where required
-                  by applicable law or expressly agreed by the operator.
+                  at checkout. Sponsorship payments are generally non-refundable
+                  because they are one-time payments for an optional promotion.
+                  We may consider a refund for a duplicate charge, an
+                  unauthorized payment, a material technical error, or another
+                  circumstance where a refund is required by applicable law.
+                  Refund requests should be submitted promptly with the account
+                  email, payment date, amount, and reason. Approved refunds are
+                  issued through Polar to the original payment method and may
+                  take time to appear according to the payment provider&apos;s
+                  processing times. A refunded sponsorship is no longer active.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
@@ -265,9 +289,10 @@ const Page = () => {
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
                   We use browser cookies or similar session technology where it
                   is needed for authentication and account sessions. The site
-                  may also use browser session storage to help count a profile
-                  view once per browsing session. These technologies are used to
-                  operate the site, not to sell advertising profiles.
+                  also uses local browser storage for your cookie choice, saved
+                  profiles, and inquiry read status, and to support profile view
+                  tracking. These technologies are used to operate the site, not
+                  to sell advertising profiles.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
                   You can control cookies and browser storage through your
