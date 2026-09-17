@@ -4,6 +4,38 @@ import { useEffect, useState } from "react";
 
 const STARTUP_MIN_DURATION = 2_800;
 const STARTUP_LEAVE_DURATION = 650;
+const STARTUP_STORAGE_TTL_MS = 12 * 60 * 60 * 1000;
+
+const getStartupStorageValue = () => {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.sessionStorage.getItem("weeverything-startup-seen");
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as { expiresAt: number } | null;
+    if (!parsed || typeof parsed.expiresAt !== "number") return null;
+
+    if (parsed.expiresAt <= Date.now()) {
+      window.sessionStorage.removeItem("weeverything-startup-seen");
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    window.sessionStorage.removeItem("weeverything-startup-seen");
+    return null;
+  }
+};
+
+const setStartupStorageValue = () => {
+  if (typeof window === "undefined") return;
+
+  window.sessionStorage.setItem(
+    "weeverything-startup-seen",
+    JSON.stringify({ expiresAt: Date.now() + STARTUP_STORAGE_TTL_MS }),
+  );
+};
 
 const StartupScreen = () => {
   const [isLeaving, setIsLeaving] = useState(false);
@@ -13,8 +45,7 @@ const StartupScreen = () => {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const hasSeenSplash = window.sessionStorage.getItem("weeverything-startup-seen");
-    if (hasSeenSplash === "true") {
+    if (getStartupStorageValue()) {
       setIsVisible(false);
       return;
     }
@@ -38,7 +69,7 @@ const StartupScreen = () => {
         removeTimer = window.setTimeout(() => {
           setIsVisible(false);
           document.body.style.overflow = previousOverflow;
-          window.sessionStorage.setItem("weeverything-startup-seen", "true");
+          setStartupStorageValue();
         }, STARTUP_LEAVE_DURATION);
       }, 180);
     };
