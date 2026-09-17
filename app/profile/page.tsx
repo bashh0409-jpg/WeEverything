@@ -27,9 +27,11 @@ import type { User } from "@supabase/supabase-js";
 import BottomButton from "../components/BottomButton";
 import Navbar from "../components/Navbar";
 import { supabase } from "@/lib/supabase/client";
+import { getProfileHandle } from "@/lib/profile-handle";
 
 type ProfileRecord = {
   id: string;
+  handle: string | null;
   name: string | null;
   role: string | null;
   bio: string | null;
@@ -399,7 +401,7 @@ const ProfilePage = () => {
         client
           .from("profiles")
           .select(
-            "id, name, role, bio, location, awards, avatar_url, is_published",
+            "id, handle, name, role, bio, location, awards, avatar_url, is_published",
           )
           .eq("id", currentUser.id)
           .maybeSingle(),
@@ -611,7 +613,8 @@ const ProfilePage = () => {
   const handleShareProfile = async () => {
     if (!user) return;
 
-    const shareUrl = `${window.location.origin}/?profile=${encodeURIComponent(user.id)}`;
+    const profileHandle = profile?.handle ?? getProfileHandle(getHandle(user));
+    const shareUrl = `${window.location.origin}/?profile=${encodeURIComponent(profileHandle)}`;
     setShareLabel("Copying...");
 
     try {
@@ -682,6 +685,7 @@ const ProfilePage = () => {
       .upsert(
         {
           id: user.id,
+          handle: profile?.handle ?? getProfileHandle(getHandle(user)),
           name: form.name.trim(),
           role: form.role,
           bio: form.bio.trim() || null,
@@ -692,7 +696,9 @@ const ProfilePage = () => {
         },
         { onConflict: "id" },
       )
-      .select("id, name, role, bio, location, awards, avatar_url, is_published")
+      .select(
+        "id, handle, name, role, bio, location, awards, avatar_url, is_published",
+      )
       .single();
 
     if (error) {

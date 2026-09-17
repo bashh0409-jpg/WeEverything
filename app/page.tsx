@@ -12,6 +12,7 @@ import {
   type CachedProfile,
 } from "@/lib/profile-cache";
 import Footer from "./components/Footer";
+import { getProfileHandle } from "@/lib/profile-handle";
 
 const roles = [
   "All",
@@ -72,13 +73,15 @@ const Page = () => {
 
   const openProfile = (profile: Profile) => {
     setSelectedProfile(profile);
+    const profileHandle =
+      profile.handle || getProfileHandle(profile.name) || profile.id;
     window.history.pushState(
       {},
       "",
-      `/?profile=${encodeURIComponent(profile.id)}`,
+      `/?profile=${encodeURIComponent(profileHandle)}`,
     );
 
-    void fetch(`/api/profiles?profile=${encodeURIComponent(profile.id)}`, {
+    void fetch(`/api/profiles?profile=${encodeURIComponent(profileHandle)}`, {
       cache: "no-store",
     })
       .then(async (response) => {
@@ -398,6 +401,7 @@ const Page = () => {
       {selectedProfile ? (
         <ProfileModal
           profileId={selectedProfile.id}
+          handle={selectedProfile.handle}
           name={selectedProfile.name}
           role={selectedProfile.role}
           bio={selectedProfile.bio}

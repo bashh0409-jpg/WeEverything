@@ -51,11 +51,16 @@ export async function GET(request: Request) {
           typeof fullName === "string" && fullName.trim()
             ? fullName.trim()
             : (user.email?.split("@")[0] ?? "New member");
+        const handle = (user.email?.split("@")[0] ?? "member")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
         const avatarUrl = user.user_metadata.avatar_url;
 
         const { error: profileError } = await supabase.from("profiles").upsert(
           {
             id: user.id,
+            handle,
             name,
             role: "Designer",
             ...(typeof avatarUrl === "string" ? { avatar_url: avatarUrl } : {}),

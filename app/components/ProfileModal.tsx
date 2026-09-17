@@ -21,6 +21,7 @@ import {
   type CountryCode,
 } from "libphonenumber-js";
 import InputArea from "./InputArea";
+import { getProfileHandle } from "@/lib/profile-handle";
 
 type TurnstileWidget = {
   render: (
@@ -43,6 +44,7 @@ declare global {
 
 type ProfileModalProps = {
   profileId: string;
+  handle?: string | null;
   name: string;
   role: string;
   bio: string | null;
@@ -65,6 +67,7 @@ type ProfileModalProps = {
 
 const ProfileModal = ({
   profileId,
+  handle,
   name,
   role,
   bio,
@@ -153,7 +156,7 @@ const ProfileModal = ({
   }, []);
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/?profile=${encodeURIComponent(profileId)}`;
+    const shareUrl = `${window.location.origin}/?profile=${encodeURIComponent(handle ?? getProfileHandle(name))}`;
     setShareLabel("Copying...");
 
     try {

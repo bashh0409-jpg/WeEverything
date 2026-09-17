@@ -1,5 +1,6 @@
 export type CachedProfile = {
   id: string;
+  handle: string | null;
   name: string;
   bio: string | null;
   avatar_url: string | null;

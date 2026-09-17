@@ -18,6 +18,7 @@ const getProfileCacheTtl = () => {
 
 type Profile = {
   id: string;
+  handle: string | null;
   name: string;
   bio: string | null;
   avatar_url: string | null;
@@ -104,12 +105,26 @@ export async function GET(request: Request) {
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
   let profilesQuery = supabase
     .from("profiles")
-    .select("id, name, bio, avatar_url, role, location, awards, is_sponsored")
+    .select(
+      "id, handle, name, bio, avatar_url, role, location, awards, is_sponsored",
+    )
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 
   if (profileId) {
-    profilesQuery = profilesQuery.eq("id", profileId);
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        profileId,
+      );
+
+    if (isUuid) {
+      profilesQuery = profilesQuery.eq("id", profileId);
+    } else {
+      profilesQuery = profilesQuery.eq(
+        "handle",
+        profileId.trim().toLowerCase(),
+      );
+    }
   }
 
   const profilesResult = await profilesQuery.range(
