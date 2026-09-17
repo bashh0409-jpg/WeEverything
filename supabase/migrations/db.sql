@@ -15,7 +15,7 @@ create table profiles (
 create table links (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references profiles(id) on delete cascade,
-  type text not null check (type in ('portfolio', 'github', 'dribbble', 'behance', 'linkedin', 'instagram', 'other')),
+  type text not null check (type in ('portfolio', 'github', 'linkedin', 'instagram', 'dribbble', 'behance', 'awwwards', 'discord', 'facebook', 'youtube', 'tiktok', 'x', 'threads', 'email', 'other')),
   url text not null,
   created_at timestamptz not null default now()
 );

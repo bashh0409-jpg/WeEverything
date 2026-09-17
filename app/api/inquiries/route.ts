@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { Redis } from "@upstash/redis";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -10,6 +11,11 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
 const MAX_INQUIRIES_PER_HOUR = 5;
+const MAX_INQUIRIES_PER_PROFILE_PER_HOUR = 20;
+const MAX_INQUIRIES_PER_SENDER_PER_HOUR = 5;
+const MAX_INQUIRIES_PER_SENDER_PER_PROFILE_PER_HOUR = 2;
+const MAX_BUDGET_LENGTH = 200;
+const MAX_TIMELINE_LENGTH = 100;
 
 const getRedis = () => {
   if (
@@ -22,20 +28,34 @@ const getRedis = () => {
   return Redis.fromEnv();
 };
 
-const getClientIp = (request: Request) =>
-  request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-  request.headers.get("x-real-ip") ||
-  "unknown";
+const isValidIpAddress = (value: string) => {
+  if (!value || value === "unknown") return false;
+
+  const normalized = value.trim();
+  if (normalized.includes(":")) {
+    return /^(([0-9a-fA-F]{1,4}:){1,7}[0-9a-fA-F]{1,4}|::1|::)$/i.test(
+      normalized,
+    );
+  }
+
+  return /^((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/.test(
+    normalized,
+  );
+};
+
+const getClientIp = (request: Request) => {
+  // Vercel sets this after removing client-supplied forwarding headers.
+  const vercelIp = request.headers.get("x-vercel-forwarded-for")?.trim() ?? "";
+  return isValidIpAddress(vercelIp) ? vercelIp : "unknown";
+};
 
 const verifyTurnstile = async (token: string, request: Request) => {
   const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret) return true;
+  if (!secret) return false;
 
-  const formData = new URLSearchParams({
-    secret,
-    response: token,
-    remoteip: getClientIp(request),
-  });
+  const formData = new URLSearchParams({ secret, response: token });
+  const clientIp = getClientIp(request);
+  if (clientIp !== "unknown") formData.set("remoteip", clientIp);
   const response = await fetch(
     "https://challenges.cloudflare.com/turnstile/v0/siteverify",
     { method: "POST", body: formData },
@@ -115,8 +135,16 @@ const notifyProfileOwner = async ({
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
+    return NextResponse.json(
+      { error: "Inquiry submissions are not configured yet." },
+      { status: 503 },
+    );
+  }
+
+  if (!process.env.TURNSTILE_SECRET_KEY || !getRedis()) {
     return NextResponse.json(
       { error: "Inquiry submissions are not configured yet." },
       { status: 503 },
@@ -131,7 +159,7 @@ export async function POST(request: Request) {
     },
   });
 
-  const body = (await request.json()) as {
+  let body: {
     profileId?: unknown;
     senderName?: unknown;
     senderEmail?: unknown;
@@ -142,6 +170,11 @@ export async function POST(request: Request) {
     budget?: unknown;
     timeline?: unknown;
   };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  }
 
   const profileId = typeof body.profileId === "string" ? body.profileId : "";
   const senderName =
@@ -181,26 +214,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const redis = getRedis();
-  if (redis) {
-    const rateLimitKey = `inquiries:rate:${getClientIp(request)}`;
-    try {
-      const requestCount = await redis.incr(rateLimitKey);
-      if (requestCount === 1) await redis.expire(rateLimitKey, 60 * 60);
-      if (requestCount > MAX_INQUIRIES_PER_HOUR) {
-        return NextResponse.json(
-          { error: "Too many inquiries. Please try again later." },
-          { status: 429, headers: { "Retry-After": "3600" } },
-        );
-      }
-    } catch {
-      // Keep inquiries available if the optional rate-limit service is down.
-    }
-  }
+  const isValidProfileId =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      profileId,
+    );
 
-  if (!(await verifyTurnstile(captchaToken, request))) {
+  if (!isValidProfileId) {
     return NextResponse.json(
-      { error: "Please complete the CAPTCHA and try again." },
+      { error: "Invalid profile target." },
       { status: 400 },
     );
   }
@@ -230,7 +251,9 @@ export async function POST(request: Request) {
     senderName.length > 120 ||
     senderEmail.length > 254 ||
     normalizedPhone.length > 40 ||
-    project.length > 5000
+    project.length > 5000 ||
+    budget.length > MAX_BUDGET_LENGTH ||
+    timeline.length > MAX_TIMELINE_LENGTH
   ) {
     return NextResponse.json(
       { error: "One or more fields are too long." },
@@ -238,7 +261,75 @@ export async function POST(request: Request) {
     );
   }
 
-  const { error } = await supabase.from("profile_inquiries").insert({
+  const { data: targetProfile, error: targetProfileError } = await supabase
+    .from("profiles")
+    .select("id, is_published")
+    .eq("id", profileId)
+    .maybeSingle();
+
+  if (targetProfileError || !targetProfile || !targetProfile.is_published) {
+    return NextResponse.json(
+      { error: "This profile is not available for inquiries." },
+      { status: 404 },
+    );
+  }
+
+  if (!(await verifyTurnstile(captchaToken, request))) {
+    return NextResponse.json(
+      { error: "Please complete the CAPTCHA and try again." },
+      { status: 400 },
+    );
+  }
+
+  const redis = getRedis();
+  const clientIp = getClientIp(request);
+  const senderHash = crypto
+    .createHash("sha256")
+    .update(senderEmail.toLowerCase())
+    .digest("hex");
+  const rateLimits = [
+    { key: `inquiries:rate:${clientIp}`, limit: MAX_INQUIRIES_PER_HOUR },
+    {
+      key: `inquiries:profile:${profileId}:${clientIp}`,
+      limit: MAX_INQUIRIES_PER_PROFILE_PER_HOUR,
+    },
+    {
+      key: `inquiries:profile:${profileId}:all`,
+      limit: MAX_INQUIRIES_PER_PROFILE_PER_HOUR,
+    },
+    {
+      key: `inquiries:sender:${senderHash}`,
+      limit: MAX_INQUIRIES_PER_SENDER_PER_HOUR,
+    },
+    {
+      key: `inquiries:sender:${senderHash}:profile:${profileId}`,
+      limit: MAX_INQUIRIES_PER_SENDER_PER_PROFILE_PER_HOUR,
+    },
+  ];
+
+  try {
+    for (const rateLimit of rateLimits) {
+      const count = await redis!.incr(rateLimit.key);
+      if (count === 1) await redis!.expire(rateLimit.key, 60 * 60);
+      if (count > rateLimit.limit) {
+        return NextResponse.json(
+          { error: "Too many inquiries. Please try again later." },
+          { status: 429, headers: { "Retry-After": "3600" } },
+        );
+      }
+    }
+  } catch {
+    return NextResponse.json(
+      { error: "Inquiry submissions are temporarily unavailable." },
+      { status: 503 },
+    );
+  }
+
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const { error } = await admin.from("profile_inquiries").insert({
     profile_id: profileId,
     sender_name: senderName,
     sender_email: senderEmail,
@@ -249,27 +340,11 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    if (error.code === "42P01") {
-      return NextResponse.json(
-        {
-          error:
-            "The inquiries table is not set up yet. Apply the Supabase migration.",
-        },
-        { status: 503 },
-      );
-    }
-
-    if (error.code === "42501") {
-      return NextResponse.json(
-        {
-          error:
-            "Supabase is blocking public inquiry submissions. Check the inquiry insert policy.",
-        },
-        { status: 503 },
-      );
-    }
-
-    return NextResponse.json({ error: error.message }, { status: 502 });
+    console.error("Could not store profile inquiry", error);
+    return NextResponse.json(
+      { error: "Could not send your inquiry. Please try again." },
+      { status: 502 },
+    );
   }
 
   await notifyProfileOwner({

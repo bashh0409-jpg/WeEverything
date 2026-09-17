@@ -13,6 +13,7 @@ import {
   FaBehance,
   FaDiscord,
   FaDribbble,
+  FaEnvelope,
   FaFacebookF,
   FaGithub,
   FaGlobe,
@@ -24,10 +25,16 @@ import {
   FaYoutube,
 } from "react-icons/fa6";
 import type { User } from "@supabase/supabase-js";
-import BottomButton from "../components/BottomButton";
 import Navbar from "../components/Navbar";
 import { supabase } from "@/lib/supabase/client";
 import { getProfileHandle } from "@/lib/profile-handle";
+import { isSafeExternalUrl } from "@/lib/safe-url";
+import {
+  getSocialInputValue,
+  getSocialUrl,
+  isValidEmailAddress,
+  isValidSocialHandle,
+} from "@/lib/social-links";
 
 type ProfileRecord = {
   id: string;
@@ -72,12 +79,14 @@ type SocialType =
   | "instagram"
   | "dribbble"
   | "behance"
+  | "awwwards"
   | "discord"
   | "facebook"
   | "youtube"
   | "tiktok"
   | "x"
-  | "threads";
+  | "threads"
+  | "email";
 
 type SocialLink = {
   id: string;
@@ -132,6 +141,12 @@ const parseRoles = (value: string) =>
     .map((role) => role.trim())
     .filter(Boolean);
 
+const normalizeCustomRole = (value: string) =>
+  value
+    .replace(/\|/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
 const formatRoles = (values: string[]) =>
   Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).join(
     ROLE_SEPARATOR,
@@ -158,12 +173,14 @@ const socialOptions: { type: SocialType; label: string }[] = [
   { type: "instagram", label: "Instagram" },
   { type: "dribbble", label: "Dribbble" },
   { type: "behance", label: "Behance" },
+  { type: "awwwards", label: "Awwwards" },
   { type: "discord", label: "Discord" },
   { type: "facebook", label: "Facebook" },
   { type: "youtube", label: "YouTube" },
   { type: "tiktok", label: "TikTok" },
   { type: "x", label: "X" },
   { type: "threads", label: "Threads" },
+  { type: "email", label: "Email" },
 ];
 
 const getSocialIcon = (type: SocialType) => {
@@ -180,6 +197,12 @@ const getSocialIcon = (type: SocialType) => {
       return <FaDribbble className="text-base" />;
     case "behance":
       return <FaBehance className="text-base" />;
+    case "awwwards":
+      return (
+        <svg width="20" height="16"  fill="currentColor" viewBox="0 0 30 16">
+          <path d="m18.4 0-2.803 10.855L12.951 0H9.34L6.693 10.855 3.892 0H0l5.012 15.812h3.425l2.708-10.228 2.709 10.228h3.425L22.29 0h-3.892ZM24.77 13.365c0 1.506 1.12 2.635 2.615 2.635C28.879 16 30 14.87 30 13.365c0-1.506-1.12-2.636-2.615-2.636s-2.615 1.13-2.615 2.636Z"></path>
+        </svg>
+      );
     case "discord":
       return <FaDiscord className="text-base" />;
     case "facebook":
@@ -192,6 +215,8 @@ const getSocialIcon = (type: SocialType) => {
       return <FaXTwitter className="text-base" />;
     case "threads":
       return <FaThreads className="text-base" />;
+    case "email":
+      return <FaEnvelope className="text-base" />;
     default:
       return null;
   }
@@ -232,16 +257,28 @@ const toSocialForm = (links: SocialLink[]): SocialForm => {
 
   links.forEach((link) => {
     if (socialOptions.some((option) => option.type === link.type)) {
-      next[link.type] = link.url;
+      next[link.type] = getSocialInputValue(link.type, link.url);
     }
   });
 
   return next;
 };
 
-const getMediaUrl = (storagePath: string) =>
-  supabase?.storage.from(MEDIA_BUCKET).getPublicUrl(storagePath).data
-    .publicUrl ?? "";
+const createMediaUrl = async (storagePath: string) => {
+  const client = supabase;
+  if (!client) return "";
+
+  const { data, error } = await client.storage
+    .from(MEDIA_BUCKET)
+    .createSignedUrl(storagePath, 60 * 60);
+
+  if (error) {
+    console.error("Could not create a profile media URL", error);
+    return "";
+  }
+
+  return data?.signedUrl ?? "";
+};
 
 const ProfileVideo = ({
   src,
@@ -327,6 +364,7 @@ const ProfilePage = () => {
   const [profile, setProfile] = useState<ProfileRecord | null>(null);
   const [form, setForm] = useState<ProfileForm | null>(null);
   const [media, setMedia] = useState<ProfileMedia[]>([]);
+  const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [inquiries, setInquiries] = useState<ProfileInquiry[]>([]);
   const [readInquiryIds, setReadInquiryIds] = useState<string[]>([]);
@@ -340,6 +378,7 @@ const ProfilePage = () => {
   const [isInquiryDrawerOpen, setIsInquiryDrawerOpen] = useState(false);
   const [socials, setSocials] = useState<SocialForm>(emptySocials);
   const [newAward, setNewAward] = useState("");
+  const [customRoleInput, setCustomRoleInput] = useState("");
   const [sponsored, setSponsored] = useState(false);
   const [profileViews, setProfileViews] = useState(0);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -352,10 +391,16 @@ const ProfilePage = () => {
   const [startingCheckout, setStartingCheckout] = useState(false);
   const [loading, setLoading] = useState(() => Boolean(supabase));
   const [isEditing, setIsEditing] = useState(false);
+  const [editingSocialType, setEditingSocialType] = useState<SocialType | null>(
+    null,
+  );
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
+  const [draggingSlot, setDraggingSlot] = useState<number | null>(null);
   const [shareLabel, setShareLabel] = useState("Share profile");
   const bioInputRef = useRef<HTMLTextAreaElement>(null);
+  const profileFormRef = useRef<HTMLFormElement>(null);
   const [message, setMessage] = useState(() =>
     supabase
       ? ""
@@ -377,6 +422,7 @@ const ProfilePage = () => {
         setProfile(null);
         setForm(null);
         setMedia([]);
+        setMediaUrls({});
         setSocialLinks([]);
         setInquiries([]);
         setReadInquiryIds([]);
@@ -439,6 +485,16 @@ const ProfilePage = () => {
           .order("created_at", { ascending: false }),
       ]);
 
+      const loadedMedia = (mediaResult.data ?? []) as ProfileMedia[];
+      const signedMediaUrls = Object.fromEntries(
+        await Promise.all(
+          loadedMedia.map(async (item) => [
+            item.storage_path,
+            await createMediaUrl(item.storage_path),
+          ]),
+        ),
+      );
+
       if (!isMounted) return;
 
       const errors = [
@@ -453,11 +509,12 @@ const ProfilePage = () => {
       setMessage(errors[0]?.message ?? "");
       setProfile(profileResult.data ?? null);
       setForm(toForm(currentUser, profileResult.data ?? null));
+      setCustomRoleInput(getCustomRole(profileResult.data?.role ?? ""));
 
-      const loadedMedia = (mediaResult.data ?? []) as ProfileMedia[];
       const loadedLinks = (linksResult.data ?? []) as SocialLink[];
 
       setMedia(loadedMedia);
+      setMediaUrls(signedMediaUrls);
       setSocialLinks(loadedLinks);
       setSocials(toSocialForm(loadedLinks));
       setSponsored(
@@ -503,6 +560,28 @@ const ProfilePage = () => {
     return () => window.clearTimeout(timeoutId);
   }, []);
 
+  useEffect(() => {
+    if (!isEditing) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsEditing(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isEditing]);
+
   const handleChange = (
     event: ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -533,15 +612,21 @@ const ProfilePage = () => {
           selectedRoles.includes("Other") ||
           Boolean(getCustomRole(current.role));
 
+        if (hasOther) {
+          setCustomRoleInput("");
+          return {
+            ...current,
+            role: formatRoles(
+              selectedRoles.filter((selectedRole) =>
+                standardRoles.has(selectedRole),
+              ),
+            ),
+          };
+        }
+
         return {
           ...current,
-          role: hasOther
-            ? formatRoles(
-                selectedRoles.filter((selectedRole) =>
-                  standardRoles.has(selectedRole),
-                ),
-              )
-            : formatRoles([...selectedRoles, "Other"]),
+          role: formatRoles([...selectedRoles, "Other"]),
         };
       }
 
@@ -555,6 +640,9 @@ const ProfilePage = () => {
   };
 
   const handleCustomRoleChange = (value: string) => {
+    const nextValue = normalizeCustomRole(value);
+    setCustomRoleInput(value);
+
     setForm((current) => {
       if (!current) return current;
 
@@ -562,9 +650,13 @@ const ProfilePage = () => {
         standardRoles.has(role),
       );
 
+      const nextRoles = nextValue
+        ? [...standardSelections, nextValue]
+        : [...standardSelections, "Other"];
+
       return {
         ...current,
-        role: formatRoles([...standardSelections, value]),
+        role: formatRoles(nextRoles),
       };
     });
   };
@@ -680,30 +772,55 @@ const ProfilePage = () => {
     setSaving(true);
     setMessage("");
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .upsert(
-        {
-          id: user.id,
-          handle: profile?.handle ?? getProfileHandle(getHandle(user)),
-          name: form.name.trim(),
-          role: form.role,
-          bio: form.bio.trim() || null,
-          location: form.location.trim() || null,
-          awards: form.awards.trim() || null,
-          avatar_url: form.avatar_url.trim() || null,
-          is_published: form.is_published,
-        },
-        { onConflict: "id" },
-      )
-      .select(
-        "id, handle, name, role, bio, location, awards, avatar_url, is_published",
-      )
-      .single();
+    const profilePayload = {
+      handle: profile?.handle ?? getProfileHandle(getHandle(user)),
+      name: form.name.trim(),
+      role: form.role,
+      bio: form.bio.trim() || null,
+      location: form.location.trim() || null,
+      awards: form.awards.trim() || null,
+      avatar_url: form.avatar_url.trim() || null,
+      is_published: form.is_published,
+    };
+    const profileResult = profile
+      ? await supabase
+          .from("profiles")
+          .update(profilePayload)
+          .eq("id", user.id)
+          .select(
+            "id, handle, name, role, bio, location, awards, avatar_url, is_published",
+          )
+          .single()
+      : await supabase
+          .from("profiles")
+          .insert({ id: user.id, ...profilePayload })
+          .select(
+            "id, handle, name, role, bio, location, awards, avatar_url, is_published",
+          )
+          .single();
+    const { data, error } = profileResult;
 
     if (error) {
       setSaving(false);
       setMessage(error.message);
+      return;
+    }
+
+    const invalidSocialInput = socialOptions.some(({ type }) => {
+      const value = socials[type].trim();
+
+      if (!value) return false;
+
+      if (type === "portfolio") return !isSafeExternalUrl(value);
+      if (type === "email") return !isValidEmailAddress(value);
+      return !isValidSocialHandle(value);
+    });
+
+    if (invalidSocialInput) {
+      setSaving(false);
+      setMessage(
+        "Use valid usernames for social accounts, a valid email address, and a valid HTTP or HTTPS URL for your portfolio.",
+      );
       return;
     }
 
@@ -724,7 +841,13 @@ const ProfilePage = () => {
     }
 
     const socialPayload = socialOptions.flatMap(({ type }) => {
-      const url = socials[type].trim();
+      const inputValue = socials[type].trim();
+      const existingLink = socialLinks.find((link) => link.type === type);
+      const url = inputValue
+        ? getSocialUrl(type, inputValue)
+        : editingSocialType !== type
+          ? (existingLink?.url ?? null)
+          : null;
       return url ? [{ profile_id: user.id, type, url }] : [];
     });
 
@@ -754,8 +877,60 @@ const ProfilePage = () => {
     setForm(toForm(user, data));
     setSocialLinks(savedSocials);
     setSocials(toSocialForm(savedSocials));
+    setEditingSocialType(null);
     setIsEditing(false);
     setMessage("Profile changes saved.");
+  };
+
+  const handlePublishToggle = async () => {
+    if (!supabase || !user || !form || publishing || saving) return;
+
+    const nextPublishedState = !form.is_published;
+    const bioWordCount = countWords(form.bio);
+    const hasPrimaryImage = media.some(
+      (item) => item.position === 0 && item.media_type === "image",
+    );
+
+    if (nextPublishedState && bioWordCount < 20) {
+      setMessage(
+        `Your bio must contain at least 20 words before publishing. It currently has ${bioWordCount}.`,
+      );
+      return;
+    }
+
+    if (nextPublishedState && !hasPrimaryImage) {
+      setMessage(
+        "Upload an image in container 1 before publishing your profile.",
+      );
+      return;
+    }
+
+    setPublishing(true);
+    setMessage("");
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({ is_published: nextPublishedState })
+      .eq("id", user.id)
+      .select(
+        "id, handle, name, role, bio, location, awards, avatar_url, is_published",
+      )
+      .single();
+
+    if (error) {
+      setPublishing(false);
+      setMessage(error.message);
+      return;
+    }
+
+    setProfile(data);
+    setForm((current) =>
+      current ? { ...current, is_published: nextPublishedState } : current,
+    );
+    setPublishing(false);
+    setMessage(
+      nextPublishedState ? "Profile published." : "Profile unpublished.",
+    );
   };
 
   const handleMediaUpload = async (
@@ -764,7 +939,10 @@ const ProfilePage = () => {
   ) => {
     const file = event.target.files?.[0];
     event.target.value = "";
+    await processMediaFile(position, file);
+  };
 
+  const processMediaFile = async (position: number, file: File | undefined) => {
     if (!file || !supabase || !user) return;
 
     if (!acceptedMediaTypes.includes(file.type)) {
@@ -795,6 +973,7 @@ const ProfilePage = () => {
     }
 
     setUploadingSlot(position);
+    setDraggingSlot(null);
     setMessage("");
 
     const extension =
@@ -844,8 +1023,59 @@ const ProfilePage = () => {
         (first, second) => first.position - second.position,
       ),
     );
+    const mediaUrl = await createMediaUrl(data.storage_path);
+    setMediaUrls((current) => ({ ...current, [data.storage_path]: mediaUrl }));
+    if (previousItem) {
+      setMediaUrls((current) => {
+        const next = { ...current };
+        delete next[previousItem.storage_path];
+        return next;
+      });
+    }
     setUploadingSlot(null);
     setMessage("Media uploaded.");
+  };
+
+  const handleMediaDrop = async (
+    position: number,
+    event: React.DragEvent<HTMLLabelElement>,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDraggingSlot(null);
+    await processMediaFile(position, event.dataTransfer.files?.[0]);
+  };
+
+  const handleSocialRemove = async (link: SocialLink) => {
+    if (!supabase) return;
+
+    const { error } = await supabase
+      .from("links")
+      .delete()
+      .eq("id", link.id)
+      .eq("profile_id", user?.id ?? "");
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setSocialLinks((current) =>
+      current.filter((currentLink) => currentLink.id !== link.id),
+    );
+    setSocials((current) => ({ ...current, [link.type]: "" }));
+    if (editingSocialType === link.type) setEditingSocialType(null);
+    setMessage(`${link.type} link removed.`);
+  };
+
+  const openSocialEditor = (link: SocialLink) => {
+    if (!user) return;
+
+    setMessage("");
+    setForm(toForm(user, profile));
+    setSocials(toSocialForm(socialLinks));
+    setEditingSocialType(link.type);
+    setIsEditing(true);
   };
 
   const handleMediaRemove = async (item: ProfileMedia) => {
@@ -874,6 +1104,11 @@ const ProfilePage = () => {
 
     await supabase.storage.from(MEDIA_BUCKET).remove([item.storage_path]);
     setMedia((current) => current.filter((entry) => entry.id !== item.id));
+    setMediaUrls((current) => {
+      const next = { ...current };
+      delete next[item.storage_path];
+      return next;
+    });
     setUploadingSlot(null);
   };
 
@@ -960,7 +1195,9 @@ const ProfilePage = () => {
   const handle = getHandle(user);
   const avatarUrl = activeForm.avatar_url;
   const initial = profileName.charAt(0).toUpperCase() || "U";
-  const visibleSocials = socialLinks.filter((link) => link.url);
+  const visibleSocials = socialLinks.filter(
+    (link) => link.url && isSafeExternalUrl(link.url),
+  );
   const mediaByPosition = new Map(media.map((item) => [item.position, item]));
   const unreadInquiryCount = inquiries.filter(
     (inquiry) => !inquiry.archived_at && !readInquiryIds.includes(inquiry.id),
@@ -1043,10 +1280,24 @@ const ProfilePage = () => {
 
     setMessage("");
     setForm(toForm(user, profile));
+    setCustomRoleInput(getCustomRole(profile?.role ?? ""));
     setSocials(toSocialForm(socialLinks));
+    setEditingSocialType(null);
     setNewAward("");
     setIsEditing(true);
     window.setTimeout(() => bioInputRef.current?.focus(), 0);
+  };
+
+  const handleUpdateClick = () => {
+    const shouldOpen = !isEditing;
+
+    setMessage("");
+    setForm(toForm(user, profile));
+    setCustomRoleInput(getCustomRole(profile?.role ?? ""));
+    setSocials(toSocialForm(socialLinks));
+    setEditingSocialType(null);
+    setNewAward("");
+    setIsEditing(shouldOpen);
   };
 
   return (
@@ -1065,6 +1316,18 @@ const ProfilePage = () => {
             <div className="flex flex-wrap items-center gap-1">
               <button
                 type="button"
+                onClick={() => void handlePublishToggle()}
+                disabled={publishing || saving}
+                className={`rounded-full cursor-pointer px-3 py-1 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 ${profile?.is_published ? "bg-black" : "bg-[#1c40f2]"}`}
+              >
+                {publishing
+                  ? "Saving..."
+                  : profile?.is_published
+                    ? "Unpublish"
+                    : "Publish"}
+              </button>
+              <button
+                type="button"
                 onClick={handleSponsorProfile}
                 className="rounded-full  cursor-pointer bg-[#1c40f2] px-3 py-1 text-xs  font-semibold text-white transition hover:bg-black"
               >
@@ -1072,13 +1335,7 @@ const ProfilePage = () => {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setMessage("");
-                  setForm(toForm(user, profile));
-                  setSocials(toSocialForm(socialLinks));
-                  setNewAward("");
-                  setIsEditing((current) => !current);
-                }}
+                onClick={handleUpdateClick}
                 className="rounded-full cursor-pointer border border-black px-3 py-1 text-xs  font-semibold transition hover:bg-black hover:text-white"
               >
                 {isEditing ? "Close editor" : "Update"}
@@ -1217,17 +1474,67 @@ const ProfilePage = () => {
                       );
 
                       return (
-                        <a
+                        <div
                           key={link.id}
-                          href={link.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          title={option?.label ?? link.type}
-                          aria-label={option?.label ?? link.type}
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-black/1 bg-black/[0.03] text-black transition hover:border-black hover:bg-black hover:text-white"
+                          className="group relative flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-black/[0.04] text-black transition hover:border-black hover:bg-black hover:text-white"
                         >
-                          {getSocialIcon(link.type)}
-                        </a>
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={option?.label ?? link.type}
+                            aria-label={option?.label ?? link.type}
+                            className="flex h-full w-full items-center justify-center rounded-full"
+                          >
+                            {getSocialIcon(link.type)}
+                          </a>
+                          <span className="pointer-events-none absolute -right-1 -top-1 flex translate-y-1 gap-0.5 opacity-0 transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
+                            <button
+                              type="button"
+                              aria-label={`Edit ${option?.label ?? link.type} link`}
+                              title="Edit link"
+                              onClick={() => openSocialEditor(link)}
+                              className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-black bg-white text-black shadow-sm transition hover:bg-black hover:text-white"
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                width="11"
+                                height="11"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M12 20h9" />
+                                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Remove ${option?.label ?? link.type} link`}
+                              title="Remove link"
+                              onClick={() => void handleSocialRemove(link)}
+                              className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-red-600 bg-white text-red-600 shadow-sm transition hover:bg-red-600 hover:text-white"
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                width="11"
+                                height="11"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M3 6h18" />
+                                <path d="M8 6V4h8v2" />
+                                <path d="m19 6-1 14H6L5 6" />
+                              </svg>
+                            </button>
+                          </span>
+                        </div>
                       );
                     })}
                   </div>
@@ -1241,7 +1548,7 @@ const ProfilePage = () => {
                   </p>
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
                     {media.map((item) => {
-                      const mediaUrl = getMediaUrl(item.storage_path);
+                      const mediaUrl = mediaUrls[item.storage_path] ?? "";
 
                       return item.media_type === "video" ? (
                         <ProfileVideo
@@ -1316,271 +1623,390 @@ const ProfilePage = () => {
           </div>
 
           {isEditing ? (
-            <form
-              onSubmit={handleSave}
-              className="mt-16 border-t border-black pt-5"
-            >
-              <div className="flex flex-wrap items-end justify-between gap-4">
-                <div>
-                  <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                    Edit details
-                  </p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tighter">
-                    Make it yours.
-                  </h2>
-                </div>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-full bg-[#1c40f2] cursor-pointer px-3 py-1 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-[#9caeff]"
+            <div className="pointer-events-none fixed inset-0 z-50">
+              <button
+                type="button"
+                aria-label="Close profile editor"
+                onClick={() => setIsEditing(false)}
+                className="profile-modal-backdrop pointer-events-auto fixed inset-0 z-40 cursor-default bg-black/50 backdrop-blur-sm"
+              />
+              <button
+                type="button"
+                aria-label="Close profile editor"
+                onClick={() => setIsEditing(false)}
+                className="profile-modal-close pointer-events-auto fixed right-1/2 bottom-[calc(90vh+0px)] z-50 flex h-10 w-10 translate-x-1/2 cursor-pointer items-center justify-center rounded-full text-white"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  height="40"
+                  viewBox="0 -960 960 960"
+                  width="40"
+                  fill="currentColor"
+                  aria-hidden="true"
                 >
-                  {saving ? "Saving..." : "Save changes"}
-                </button>
-              </div>
-
-              <div className="mt-8 grid gap-6 md:grid-cols-2">
-                <label className="text-sm font-semibold">
-                  Name
-                  <input
-                    required
-                    name="name"
-                    value={activeForm.name}
-                    onChange={handleChange}
-                    className="mt-2 w-full border-b border-black/20 bg-transparent px-0 py-3 outline-none transition focus:border-black"
-                  />
-                </label>
-                <fieldset className="text-sm font-semibold">
-                  <legend>Disciplines</legend>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    {roles.map((role) => {
-                      const selectedRoles = parseRoles(activeForm.role);
-                      const checked =
-                        role === "Other"
-                          ? Boolean(getCustomRole(activeForm.role)) ||
-                            selectedRoles.includes("Other")
-                          : selectedRoles.includes(role);
-
-                      return (
-                        <label
-                          key={role}
-                          className="flex cursor-pointer items-center gap-2 font-normal "
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => handleRoleToggle(role)}
-                            className="h-4 w-4 accent-[#1c40f2]"
-                          />
-                          {role}
-                        </label>
-                      );
-                    })}
-                  </div>
-                  {Boolean(getCustomRole(activeForm.role)) ||
-                  parseRoles(activeForm.role).includes("Other") ? (
-                    <input
-                      value={getCustomRole(activeForm.role)}
-                      onChange={(event) =>
-                        handleCustomRoleChange(event.target.value)
-                      }
-                      placeholder="Type your discipline"
-                      className="mt-3 w-full border-b border-black/20 bg-transparent px-0 py-3 font-normal outline-none transition placeholder:text-[#aaa] focus:border-black"
-                    />
-                  ) : null}
-                </fieldset>
-                <label className="text-sm font-semibold">
-                  Location
-                  <input
-                    name="location"
-                    value={activeForm.location}
-                    onChange={handleChange}
-                    placeholder="City, country"
-                    className="mt-2 w-full border-b border-black/20 bg-transparent px-0 py-3 outline-none transition placeholder:text-[#aaa] focus:border-black"
-                  />
-                </label>
-              </div>
-
-              <label className="mt-8 block text-sm font-semibold">
-                Bio
-                <textarea
-                  ref={bioInputRef}
-                  required
-                  name="bio"
-                  value={activeForm.bio}
-                  onChange={handleChange}
-                  rows={4}
-                  minLength={20}
-                  placeholder="Tell people what you do in at least 20 words."
-                  className="mt-2 w-full resize-y border border-black/15 bg-transparent p-3 outline-none transition placeholder:text-[#aaa] focus:border-black"
-                />
-                <p className="mt-2 text-xs font-medium text-[#999]">
-                  {countWords(activeForm.bio)} / 20 words minimum
-                </p>
-              </label>
-
-              <label className="mt-8 block text-sm font-semibold">
-                Awards
-                <div className="mt-2 flex gap-2">
-                  <input
-                    value={newAward}
-                    onChange={(event) => setNewAward(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        addAward();
-                      }
-                    }}
-                    placeholder="Award or recognition"
-                    className="min-w-0 flex-1 border-b border-black/20 bg-transparent px-0 py-1 outline-none transition placeholder:text-[#aaa] focus:border-black"
-                  />
-                  <button
-                    type="button"
-                    onClick={addAward}
-                    className="shrink-0 rounded-full border border-black px-3 py-1 text-xs font-semibold transition hover:bg-black hover:text-white"
-                  >
-                    Add award
-                  </button>
-                </div>
-                {parseAwards(activeForm.awards).length ? (
-                  <ul className="mt-4 flex  gap-2">
-                    {parseAwards(activeForm.awards).map((award, index) => (
-                      <li
-                        key={`${award}-${index}`}
-                        className="flex items-center justify-between gap-3 border-b border-black/10 py-2 text-sm font-normal"
+                  <path d="M160-380v-66.67h640V-380H160Zm0-133.33V-580h640v66.67H160Z" />
+                </svg>
+              </button>
+              <form
+                ref={profileFormRef}
+                onSubmit={handleSave}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="profile-editor-title"
+                data-lenis-prevent
+                onWheelCapture={(event) => event.stopPropagation()}
+                onTouchMoveCapture={(event) => event.stopPropagation()}
+                className="  pointer-events-auto fixed bottom-0 left-0 right-0 z-50 flex h-[90vh] max-h-[90dvh] min-h-0 touch-pan-y flex-col overflow-y-auto overscroll-contain rounded-t bg-white px-6 py-10 shadow-2xl sm:px-10"
+              >
+                <div className="max-w-3xl mx-auto w-full geist tracking-tight font-medium">
+                  <div className="flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                      <p className="mono text-sm font-medium tracking-tighter uppercase tracking-tight text-[#999]">
+                        your Profile
+                      </p>
+                      <h2
+                        id="profile-editor-title"
+                        className="mt-2 text-2xl font-semibold tracking-tighter"
                       >
-                        <span>{award}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeAward(index)}
-                          className="shrink-0 text-xs font-semibold text-[#777] cursor-pointer bg-black/10 px-2 py-1 rounded-full transition hover:text-black"
-                        >
-                          Remove
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                <p className="mt-2 text-xs font-medium text-[#999]">
-                  Optional. Add as many awards as you like.
-                </p>
-              </label>
+                        Make it yours.
+                      </h2>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="rounded-full bg-[#1c40f2] mono uppercase cursor-pointer px-3 py-1 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-[#9caeff]"
+                    >
+                      {saving ? "Saving..." : "Save changes"}
+                    </button>
+                  </div>
 
-              <section className="mt-10 border-t border-black/10 pt-5">
-                <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                  Work media
-                </p>
-                <p className="mt-2 max-w-2xl  text-sm leading-relaxed text-[#666]">
-                  Container 1 must be an image. Container 2 can be either an
-                  image or a short video. JPG, PNG, WebP, AVIF, MP4, and WebM
-                  files up to 15 MB are accepted.
-                </p>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {[0, 1].map((position) => {
-                    const item = mediaByPosition.get(position);
-                    const isUploading = uploadingSlot === position;
-                    const mediaUrl = item ? getMediaUrl(item.storage_path) : "";
-
-                    return (
-                      <div key={position}>
-                        <label className="group relative flex max-w-xs aspect-[4/5] cursor-pointer items-center justify-center overflow-hidden border border-dashed border-black/20 bg-black/[0.03] transition hover:border-black">
-                          <input
-                            type="file"
-                            accept={acceptedMediaTypes.join(",")}
-                            onChange={(event) => {
-                              void handleMediaUpload(position, event);
-                            }}
-                            disabled={isUploading}
-                            className="sr-only"
-                          />
-                          {item?.media_type === "video" ? (
-                            <video
-                              src={mediaUrl}
-                              muted
-                              playsInline
-                              className="h-full w-full object-cover"
-                            />
-                          ) : item ? (
-                            <img
-                              src={mediaUrl}
-                              alt={`Work media ${position + 1}`}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <span className="mono px-4 text-center text-sm font-medium uppercase tracking-tight text-[#777]">
-                              {isUploading
-                                ? "Uploading..."
-                                : `Add media ${position + 1}`}
-                            </span>
-                          )}
-                          {item && !isUploading ? (
-                            <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-xs font-semibold text-white opacity-0 transition group-hover:opacity-100">
-                              Replace media
-                            </span>
-                          ) : null}
-                        </label>
-                        {item ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void handleMediaRemove(item);
-                            }}
-                            disabled={isUploading}
-                            className="mt-2 z-10 text-xs font-semibold text-[#666] underline underline-offset-4 transition hover:text-black disabled:cursor-not-allowed"
-                          >
-                            Remove media
-                          </button>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-
-              <section className="mt-10 border-t border-black/10 pt-5">
-                <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                  Portfolio & social links
-                </p>
-                <p className="mt-2 text-sm text-[#666]">
-                  Add only the portfolio and accounts you want to show publicly.
-                </p>
-                <div className="mt-5 grid gap-x-6 gap-y-5 md:grid-cols-2">
-                  {socialOptions.map(({ type, label }) => (
-                    <label key={type} className="text-sm font-semibold">
-                      {label}
+                  <div className="mt-8 grid gap-6 md:grid-cols-2">
+                    <label className="text-sm mono uppercase tracking-tight text-[#999] font-medium">
+                      Name <span>*</span>
                       <input
-                        type="url"
-                        value={socials[type]}
-                        onChange={(event) => handleSocialChange(type, event)}
-                        placeholder={
-                          type === "portfolio"
-                            ? "https://yourportfolio.com"
-                            : `https://${type === "x" ? "x.com" : `${type}.com`}/`
-                        }
-                        className="mt-2 w-full border-b border-black/20 bg-transparent px-0 py-3 text-sm font-normal outline-none transition placeholder:text-[#aaa] focus:border-black"
+                        required
+                        name="name"
+                        value={activeForm.name}
+                        onChange={handleChange}
+                        className="mt-2 w-full border-b text-black geist border-black/20 bg-transparent px-0 py-1 outline-none transition focus:border-black"
                       />
                     </label>
-                  ))}
-                </div>
-              </section>
+                    <label className="text-sm mono uppercase tracking-tight text-[#999] font-medium ">
+                      Location <span>*</span>
+                      <input
+                        required
+                        name="location"
+                        value={activeForm.location}
+                        onChange={handleChange}
+                        placeholder="City, country"
+                        className="mt-2 w-full border-b geist text-black border-black/20 bg-transparent px-0 py-1 outline-none transition placeholder:text-[#aaa] focus:border-black"
+                      />
+                    </label>
+                    <fieldset className="text-sm font-semibold">
+                      <legend className="mono uppercase tracking-tight text-[#999] font-medium">
+                        Disciplines <span>*</span>
+                      </legend>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {roles.map((role) => {
+                          const selectedRoles = parseRoles(activeForm.role);
+                          const checked =
+                            role === "Other"
+                              ? Boolean(getCustomRole(activeForm.role)) ||
+                                selectedRoles.includes("Other")
+                              : selectedRoles.includes(role);
 
-              <label className="mt-8 flex cursor-pointer items-center gap-3 text-sm font-semibold">
-                <input
-                  type="checkbox"
-                  name="is_published"
-                  checked={activeForm.is_published}
-                  onChange={handleChange}
-                  disabled={
-                    !activeForm.is_published &&
-                    !media.some(
-                      (item) =>
-                        item.position === 0 && item.media_type === "image",
-                    )
-                  }
-                  className="h-4 w-4 accent-[#1c40f2]"
-                />
-                Make my profile visible in the directory
-              </label>
-            </form>
+                          return (
+                            <button
+                              key={role}
+                              type="button"
+                              aria-pressed={checked}
+                              onClick={() => handleRoleToggle(role)}
+                              className={`rounded-full border tracking-tight px-2 py-1 text-xs mono uppercase font-medium transition ${
+                                checked
+                                  ? " bg-[#1c40f2] border-none transition-colors duration-500 text-white"
+                                  : "border-none bg-black/5 transition-colors duration-500 hover:bg-black/10 text-[#999]"
+                              }`}
+                            >
+                              {role}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {Boolean(getCustomRole(activeForm.role)) ||
+                      parseRoles(activeForm.role).includes("Other") ? (
+                        <div className="mt-4">
+                          <label className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
+                            Custom discipline
+                          </label>
+                          <div className="mt-1 flex items-center gap-2">
+                            <input
+                              value={customRoleInput}
+                              onChange={(event) =>
+                                handleCustomRoleChange(event.target.value)
+                              }
+                              placeholder="Type your discipline"
+                              className="w-full border-b border-black/20 bg-transparent px-0 py-1 font-medium text-black outline-none transition placeholder:text-[#aaa] focus:border-black"
+                            />
+                          </div>
+                        </div>
+                      ) : null}
+                    </fieldset>
+                  </div>
+
+                  <label className="mt-8 block mono text-sm font-Medium uppercase tracking-tight text-[#999]">
+                    About Me <span>*</span>
+                    <textarea
+                      ref={bioInputRef}
+                      required
+                      name="bio"
+                      value={activeForm.bio}
+                      onChange={handleChange}
+                      rows={4}
+                      minLength={20}
+                      placeholder="Tell people what you do in at least 20 words."
+                      className="mt-2 w-full text-black geist resize-y border border-black/15 bg-transparent rounded p-3 outline-none transition placeholder:text-[#aaa] focus:border-[#1c40f2]/50  focus:border-2"
+                    />
+                    <p className="mt-2 text-xs font-medium capitalize mono uppercase text-[#999]">
+                      {countWords(activeForm.bio)} / 20 words minimum
+                    </p>
+                  </label>
+
+                  <section className="mt-8  w-full text-sm font-semibold">
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <div>
+                        <p className="mono uppercase tracking-tight text-[#999] font-medium">
+                          Awards & Recognitions
+                        </p>
+                        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+                          <input
+                            value={newAward}
+                            onChange={(event) =>
+                              setNewAward(event.target.value)
+                            }
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                addAward();
+                              }
+                            }}
+                            placeholder="Award or recognition"
+                            className="min-w-0 flex-1 capitalize font-medium border-b border-black/20 bg-transparent px-0 py-2 outline-none transition placeholder:text-[#aaa] focus:border-black"
+                          />
+                          <button
+                            type="button"
+                            onClick={addAward}
+                            className="w-fit shrink-0 rounded-full mono uppercase border border-black px-3 py-1 text-xs font-medium transition hover:bg-black hover:text-white"
+                          >
+                            Add
+                          </button>
+                        </div>
+                        <p className="mt-3 mono uppercase text-xs font-medium text-[#999]">
+                          Optional. Add as many awards as you like.
+                        </p>
+                      </div>
+
+                      <div className="min-w-0">
+                        {parseAwards(activeForm.awards).length ? (
+                          <ul className="divide-y divide-black/10 border-y border-black/10">
+                            {parseAwards(activeForm.awards).map(
+                              (award, index) => (
+                                <li
+                                  key={`${award}-${index}`}
+                                  className="flex items-center justify-between gap-4 py-3 text-sm font-normal"
+                                >
+                                  <span className="min-w-0 font-medium break-words">
+                                    {award}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeAward(index)}
+                                    className="shrink-0 mono uppercase cursor-pointer rounded-full bg-black/5 px-2 py-1 text-xs font-medium text-[#777] transition hover:bg-black hover:text-white"
+                                  >
+                                    Remove
+                                  </button>
+                                </li>
+                              ),
+                            )}
+                          </ul>
+                        ) : (
+                          <div className="border-y border-dashed border-black/15 py-5 mono uppercase text-sm font-medium text-[#999]">
+                            No awards added yet.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="mt-10 border-t border-black/10 pt-5">
+                    <p className="mono text-sm font-medium uppercase tracking-tight text-[#999]">
+                      media<span>*</span>
+                    </p>
+
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                      {[0, 1].map((position) => {
+                        const item = mediaByPosition.get(position);
+                        const isUploading = uploadingSlot === position;
+                        const mediaUrl = item
+                          ? (mediaUrls[item.storage_path] ?? "")
+                          : "";
+
+                        return (
+                          <div key={position}>
+                            <label
+                              className={`group relative flex max-w-xs aspect-[4/5] cursor-pointer items-center justify-center overflow-hidden border border-dashed transition hover:border-black ${draggingSlot === position ? "border-black bg-black/[0.06]" : "border-black/20 bg-black/[0.03]"}`}
+                              onDragOver={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                if (!isUploading) setDraggingSlot(position);
+                              }}
+                              onDragEnter={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                if (!isUploading) setDraggingSlot(position);
+                              }}
+                              onDragLeave={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                if (draggingSlot === position) {
+                                  setDraggingSlot(null);
+                                }
+                              }}
+                              onDrop={(event) => {
+                                void handleMediaDrop(position, event);
+                              }}
+                            >
+                              <input
+                                type="file"
+                                accept={acceptedMediaTypes.join(",")}
+                                onChange={(event) => {
+                                  void handleMediaUpload(position, event);
+                                }}
+                                disabled={isUploading}
+                                className="sr-only"
+                              />
+                              {item?.media_type === "video" ? (
+                                <video
+                                  src={mediaUrl}
+                                  muted
+                                  playsInline
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : item ? (
+                                <img
+                                  src={mediaUrl}
+                                  alt={`Work media ${position + 1}`}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex flex-col items-center justify-center gap-3 px-4 text-center">
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    height="24px"
+                                    viewBox="0 -960 960 960"
+                                    width="24px"
+                                    fill="#000"
+                                    aria-hidden="true"
+                                  >
+                                    <path d="M170-228q-38-45-61-99T80-440h82q6 43 22 82.5t42 73.5l-56 56ZM80-520q8-59 30-113t60-99l56 56q-26 34-42 73.5T162-520H80ZM438-82q-59-6-112.5-28.5T226-170l56-58q35 26 74 43t82 23v80ZM284-732l-58-58q47-37 101-59.5T440-878v80q-43 6-82.5 23T284-732ZM518-82v-80q44-6 83.5-22.5T676-228l58 58q-47 38-101.5 60T518-82Zm160-650q-35-26-75-43t-83-23v-80q59 6 113.5 28.5T734-790l-56 58Zm112 504-56-56q26-34 42-73.5t22-82.5h82q-8 59-30 113t-60 99Zm8-292q-6-43-22-82.5T734-676l56-56q38 45 61 99t29 113h-82ZM441-280v-247L337-423l-56-57 200-200 200 200-57 56-103-103v247h-80Z" />
+                                  </svg>
+                                  <span className="mono text-center text-xs font-medium uppercase tracking-tight text-black">
+                                    {isUploading
+                                      ? "Uploading..."
+                                      : position === 0
+                                        ? "Upload image"
+                                        : "Upload image or video"}
+                                  </span>
+                                  {isUploading ? (
+                                    ""
+                                  ) : position === 0 ? (
+                                    <span className="mono text-center text-xs font-medium uppercase tracking-tighter text-[#999]">
+                                      JPG, PNG, WebP, and AVIF files up to 15 MB
+                                      are accepted.
+                                    </span>
+                                  ) : (
+                                    <span className="mono text-center text-xs font-medium uppercase tracking-tighter text-[#999]">
+                                      JPG, PNG, WebP, AVIF, MP4, and WebM files
+                                      up to 15 MB are accepted.
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              {item && !isUploading ? (
+                                <span className="absolute mono uppercase inset-0 flex items-center justify-center bg-black/45 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100">
+                                  Replace media
+                                </span>
+                              ) : null}
+                            </label>
+                            {item ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void handleMediaRemove(item);
+                                }}
+                                disabled={isUploading}
+                                className="mt-2 z-10 mono uppercase tracking-tight text-xs font-medium text-[#666] underline underline-offset-4 transition hover:text-black disabled:cursor-not-allowed"
+                              >
+                                Remove media
+                              </button>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  <section className="mt-10 border-t border-black/10 pt-5">
+                    <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
+                      Portfolio & social links
+                    </p>
+                    <p className="mt-2 tracking-tight mono hidden text-sm text-[#666]">
+                      Add only the portfolio and accounts you want to show
+                      publicly.
+                    </p>
+                    <div className="mt-5 grid gap-x-6 gap-y-5 md:grid-cols-3">
+                      {socialOptions.map(({ type, label }) => {
+                        const hasSavedLink = socialLinks.some(
+                          (link) => link.type === type,
+                        );
+
+                        return !hasSavedLink || editingSocialType === type ? (
+                          <label
+                            key={type}
+                            className="flex flex-col gap-2 text-sm mono font-medium uppercase"
+                          >
+                            <span className="flex items-center gap-2 text-[#999]">
+                              <span className="flex items-center justify-center  text-black">
+                                {getSocialIcon(type)}
+                              </span>
+                              <span className="sr-only">{label}</span>
+                            </span>
+                            <input
+                              aria-label={label}
+                              title={label}
+                              value={socials[type]}
+                              onChange={(event) =>
+                                handleSocialChange(type, event)
+                              }
+                              placeholder={
+                                type === "portfolio"
+                                  ? "https://yourportfolio.com"
+                                  : type === "email"
+                                    ? "you@example.com"
+                                    : type === "discord"
+                                      ? "Username/User ID"
+                                      : "Username"
+                              }
+                              type={type === "portfolio" ? "url" : "text"}
+                              className="mt-0 w-full geist tracking-tight border-b border-black/20 bg-transparent px-0 py-1 text-sm font-medium outline-none transition placeholder:text-[#aaa] focus:border-black"
+                            />
+                          </label>
+                        ) : null;
+                      })}
+                    </div>
+                  </section>
+                </div>
+              </form>
+            </div>
           ) : null}
         </section>
       </main>
@@ -1662,9 +2088,7 @@ const ProfilePage = () => {
                 disabled={startingCheckout}
                 className="rounded-full mono uppercase tracking-tighter bg-black px-2 py-1 text-sm font-medium text-white transition hover:bg-[#1c40f2] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {startingCheckout
-                  ? "Opening checkout..."
-                  : "Checkout"}
+                {startingCheckout ? "Opening checkout..." : "Checkout"}
               </button>
             </div>
           </div>

@@ -26,27 +26,49 @@ const purgeAccounts = async () => {
   }
 
   let deleted = 0;
+  let failed = 0;
 
   for (const profile of profiles ?? []) {
-    const { data: media } = await admin
+    const { data: media, error: mediaError } = await admin
       .from("profile_media")
       .select("storage_path")
       .eq("profile_id", profile.id);
 
+    if (mediaError) {
+      console.error("Could not load account media for purge", mediaError);
+      failed += 1;
+      continue;
+    }
+
     if (media?.length) {
-      await admin.storage
+      const { error: storageError } = await admin.storage
         .from("profile-media")
         .remove(media.map((item) => item.storage_path));
+
+      if (storageError) {
+        console.error("Could not delete account media during purge", storageError);
+        failed += 1;
+        continue;
+      }
     }
 
     const { error: deleteError } = await admin.auth.admin.deleteUser(
       profile.id,
     );
 
-    if (!deleteError) deleted += 1;
+    if (deleteError) {
+      console.error("Could not delete scheduled account", deleteError);
+      failed += 1;
+      continue;
+    }
+
+    deleted += 1;
   }
 
-  return NextResponse.json({ success: true, deleted });
+  return NextResponse.json(
+    { success: failed === 0, deleted, failed },
+    { status: failed === 0 ? 200 : 500 },
+  );
 };
 
 export async function GET(request: Request) {

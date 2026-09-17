@@ -1,20 +1,12 @@
-import { Redis } from "@upstash/redis";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { isSafeExternalUrl } from "@/lib/safe-url";
 
 export const dynamic = "force-dynamic";
 
-const PROFILE_CACHE_KEY = "published-profiles:v5";
 const PROFILE_PAGE_SIZE = 40;
-const DEFAULT_PROFILE_CACHE_TTL = 5 * 60;
-
-const getProfileCacheTtl = () => {
-  const configuredTtl = Number(process.env.PROFILE_CACHE_TTL_SECONDS);
-
-  return Number.isFinite(configuredTtl) && configuredTtl > 0
-    ? Math.floor(configuredTtl)
-    : DEFAULT_PROFILE_CACHE_TTL;
-};
+const MEDIA_URL_TTL_SECONDS = 5 * 60;
+const MAX_PROFILE_OFFSET = 10_000;
 
 type Profile = {
   id: string;
@@ -47,16 +39,7 @@ type ProfileMedia = {
   position: number;
 };
 
-const getRedis = () => {
-  if (
-    !process.env.UPSTASH_REDIS_REST_URL ||
-    !process.env.UPSTASH_REDIS_REST_TOKEN
-  ) {
-    return null;
-  }
-
-  return Redis.fromEnv();
-};
+const noStoreHeaders = { "Cache-Control": "no-store, max-age=0" };
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -66,44 +49,31 @@ export async function GET(request: Request) {
     Number.isInteger(requestedOffset) && requestedOffset >= 0
       ? requestedOffset
       : 0;
-  const cacheKey = profileId
-    ? `${PROFILE_CACHE_KEY}:profile:${profileId}`
-    : `${PROFILE_CACHE_KEY}:${offset}`;
-  const redis = getRedis();
 
-  if (redis && !profileId) {
-    try {
-      const cachedProfiles = await redis.get<Profile[]>(cacheKey);
-
-      if (cachedProfiles) {
-        return NextResponse.json(
-          {
-            profiles: cachedProfiles,
-            hasMore: cachedProfiles.length === PROFILE_PAGE_SIZE,
-          },
-          {
-            headers: {
-              "Cache-Control": `public, s-maxage=${getProfileCacheTtl()}, stale-while-revalidate=300`,
-              "X-Profile-Cache": "HIT",
-            },
-          },
-        );
-      }
-    } catch {}
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (
+    (profileId && profileId.length > 100) ||
+    (!profileId && offset > MAX_PROFILE_OFFSET)
+  ) {
     return NextResponse.json(
-      { error: "Supabase is not configured yet." },
-      { status: 503 },
+      { error: "Invalid profile target." },
+      { status: 400, headers: noStoreHeaders },
     );
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  let profilesQuery = supabase
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return NextResponse.json(
+      { error: "Profiles are not configured yet." },
+      { status: 503, headers: noStoreHeaders },
+    );
+  }
+
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  let profilesQuery = admin
     .from("profiles")
     .select(
       "id, handle, name, bio, avatar_url, role, location, awards, is_sponsored",
@@ -117,14 +87,9 @@ export async function GET(request: Request) {
         profileId,
       );
 
-    if (isUuid) {
-      profilesQuery = profilesQuery.eq("id", profileId);
-    } else {
-      profilesQuery = profilesQuery.eq(
-        "handle",
-        profileId.trim().toLowerCase(),
-      );
-    }
+    profilesQuery = isUuid
+      ? profilesQuery.eq("id", profileId)
+      : profilesQuery.eq("handle", profileId.trim().toLowerCase());
   }
 
   const profilesResult = await profilesQuery.range(
@@ -133,29 +98,25 @@ export async function GET(request: Request) {
   );
 
   if (profilesResult.error) {
+    console.error("Could not load published profiles", profilesResult.error);
     return NextResponse.json(
-      {
-        error: profilesResult.error.message,
-      },
-      { status: 502 },
+      { error: "Could not load profiles." },
+      { status: 502, headers: noStoreHeaders },
     );
   }
 
   const profileIds = (profilesResult.data as { id: string }[]).map(
     (profile) => profile.id,
   );
-  const mediaByProfile = new Map<string, ProfileMedia[]>();
-  const linksByProfile = new Map<string, SocialLink[]>();
-
   const [mediaResult, linksResult] = profileIds.length
     ? await Promise.all([
-        supabase
+        admin
           .from("profile_media")
           .select("profile_id, storage_path, media_type, position")
           .in("profile_id", profileIds)
           .in("position", [0, 1])
           .order("position"),
-        supabase
+        admin
           .from("links")
           .select("id, profile_id, type, url")
           .in("profile_id", profileIds),
@@ -166,9 +127,13 @@ export async function GET(request: Request) {
       ];
 
   if (mediaResult.error || linksResult.error) {
+    console.error("Could not load published profile details", {
+      mediaError: mediaResult.error,
+      linksError: linksResult.error,
+    });
     return NextResponse.json(
-      { error: mediaResult.error?.message ?? linksResult.error?.message },
-      { status: 502 },
+      { error: "Could not load profiles." },
+      { status: 502, headers: noStoreHeaders },
     );
   }
 
@@ -176,14 +141,36 @@ export async function GET(request: Request) {
   const profileLinks = linksResult.data as (SocialLink & {
     profile_id: string;
   })[];
+  const signedMediaUrls = new Map(
+    (
+      await Promise.all(
+        profileMedia.map(async (media) => {
+          const { data, error } = await admin.storage
+            .from("profile-media")
+            .createSignedUrl(media.storage_path, MEDIA_URL_TTL_SECONDS);
+
+          if (error || !data?.signedUrl) {
+            console.error("Could not sign published profile media", error);
+            return null;
+          }
+
+          return [media.storage_path, data.signedUrl] as const;
+        }),
+      )
+    ).filter((entry): entry is readonly [string, string] => entry !== null),
+  );
+  const mediaByProfile = new Map<string, ProfileMedia[]>();
+  const linksByProfile = new Map<string, SocialLink[]>();
 
   profileMedia.forEach((media) => {
-    const profileMedia = mediaByProfile.get(media.profile_id) ?? [];
-    profileMedia.push(media);
-    mediaByProfile.set(media.profile_id, profileMedia);
+    if (!signedMediaUrls.has(media.storage_path)) return;
+    const mediaForProfile = mediaByProfile.get(media.profile_id) ?? [];
+    mediaForProfile.push(media);
+    mediaByProfile.set(media.profile_id, mediaForProfile);
   });
 
   profileLinks.forEach((link) => {
+    if (!isSafeExternalUrl(link.url)) return;
     const links = linksByProfile.get(link.profile_id) ?? [];
     links.push({ id: link.id, type: link.type, url: link.url });
     linksByProfile.set(link.profile_id, links);
@@ -192,46 +179,34 @@ export async function GET(request: Request) {
   const profiles = (
     profilesResult.data as Omit<Profile, "uploaded_image" | "hover_media">[]
   ).map((profile) => {
-    const profileMedia = mediaByProfile.get(profile.id) ?? [];
-    const primaryMedia = profileMedia.find(
+    const mediaForProfile = mediaByProfile.get(profile.id) ?? [];
+    const primaryMedia = mediaForProfile.find(
       (media) => media.position === 0 && media.media_type === "image",
     );
-    const secondaryMedia = profileMedia.find((media) => media.position === 1);
+    const secondaryMedia = mediaForProfile.find(
+      (media) => media.position === 1,
+    );
 
     return {
       ...profile,
+      avatar_url: isSafeExternalUrl(profile.avatar_url ?? "")
+        ? profile.avatar_url
+        : null,
       uploaded_image: primaryMedia
-        ? supabase.storage
-            .from("profile-media")
-            .getPublicUrl(primaryMedia.storage_path).data.publicUrl
+        ? (signedMediaUrls.get(primaryMedia.storage_path) ?? null)
         : null,
       hover_media: secondaryMedia
         ? {
             type: secondaryMedia.media_type,
-            url: supabase.storage
-              .from("profile-media")
-              .getPublicUrl(secondaryMedia.storage_path).data.publicUrl,
+            url: signedMediaUrls.get(secondaryMedia.storage_path) ?? "",
           }
         : null,
       socialLinks: linksByProfile.get(profile.id) ?? [],
     };
   });
 
-  if (redis) {
-    try {
-      await redis.set(cacheKey, profiles, {
-        ex: getProfileCacheTtl(),
-      });
-    } catch {}
-  }
-
   return NextResponse.json(
     { profiles, hasMore: !profileId && profiles.length === PROFILE_PAGE_SIZE },
-    {
-      headers: {
-        "Cache-Control": `public, s-maxage=${getProfileCacheTtl()}, stale-while-revalidate=300`,
-        "X-Profile-Cache": "MISS",
-      },
-    },
+    { headers: noStoreHeaders },
   );
 }

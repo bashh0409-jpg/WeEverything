@@ -22,6 +22,7 @@ import {
 } from "libphonenumber-js";
 import InputArea from "./InputArea";
 import { getProfileHandle } from "@/lib/profile-handle";
+import { isSafeExternalUrl } from "@/lib/safe-url";
 
 type TurnstileWidget = {
   render: (
@@ -107,16 +108,31 @@ const ProfileModal = ({
   const closeTimerRef = useRef<number | null>(null);
   const inquiryFormRef = useRef<HTMLFormElement>(null);
   const captchaRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     if (!isContactOpen || !siteKey || !captchaRef.current) return;
 
-    let widgetId: string | undefined;
+    const removeWidget = () => {
+      const currentWidgetId = widgetIdRef.current;
+      if (currentWidgetId && window.turnstile) {
+        try {
+          window.turnstile.remove(currentWidgetId);
+        } catch {
+          // Ignore stale widget cleanup attempts; the widget may already be gone.
+        }
+      }
+      widgetIdRef.current = null;
+      setCaptchaToken("");
+    };
+
     const renderCaptcha = () => {
       if (!captchaRef.current || !window.turnstile) return;
+
+      removeWidget();
       captchaRef.current.innerHTML = "";
-      widgetId = window.turnstile.render(captchaRef.current, {
+      widgetIdRef.current = window.turnstile.render(captchaRef.current, {
         sitekey: siteKey,
         callback: setCaptchaToken,
         "expired-callback": () => setCaptchaToken(""),
@@ -135,8 +151,7 @@ const ProfileModal = ({
     }
 
     return () => {
-      if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
-      setCaptchaToken("");
+      removeWidget();
     };
   }, [isContactOpen]);
 
@@ -219,6 +234,7 @@ const ProfileModal = ({
     dribbble: "Dribbble",
     behance: "Behance",
     discord: "Discord",
+    awwwards: "awwwards",
     facebook: "Facebook",
     youtube: "YouTube",
     tiktok: "TikTok",
@@ -233,6 +249,11 @@ const ProfileModal = ({
     instagram: <FaInstagram aria-hidden="true" />,
     dribbble: <FaDribbble aria-hidden="true" />,
     behance: <FaBehance aria-hidden="true" />,
+    awwwards: (
+      <svg width="20" height="16" fill="currentColor" viewBox="0 0 30 16">
+        <path d="m18.4 0-2.803 10.855L12.951 0H9.34L6.693 10.855 3.892 0H0l5.012 15.812h3.425l2.708-10.228 2.709 10.228h3.425L22.29 0h-3.892ZM24.77 13.365c0 1.506 1.12 2.635 2.615 2.635C28.879 16 30 14.87 30 13.365c0-1.506-1.12-2.636-2.615-2.636s-2.615 1.13-2.615 2.636Z"></path>
+      </svg>
+    ),
     discord: <FaDiscord aria-hidden="true" />,
     facebook: <FaFacebookF aria-hidden="true" />,
     youtube: <FaYoutube aria-hidden="true" />,
@@ -337,23 +358,25 @@ const ProfileModal = ({
             <span className="flex  gap-2 -mt-4">
               {socialLinks.length ? (
                 <div className="flex mt-6 flex-wrap gap-2">
-                  {socialLinks.map((link) => (
-                    <a
-                      key={link.id}
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={socialLabels[link.type] ?? link.type}
-                      title={socialLabels[link.type] ?? link.type}
-                      className="flex w- h-7 items-center justify-center rounded-full text-base transition "
-                    >
-                      {socialIcons[link.type] ?? (
-                        <span className="text-lg font-semibold uppercase">
-                          {link.type.slice(0, 2)}
-                        </span>
-                      )}
-                    </a>
-                  ))}
+                  {socialLinks
+                    .filter((link) => isSafeExternalUrl(link.url))
+                    .map((link) => (
+                      <a
+                        key={link.id}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={socialLabels[link.type] ?? link.type}
+                        title={socialLabels[link.type] ?? link.type}
+                        className="flex w- h-7 items-center justify-center rounded-full text-base transition "
+                      >
+                        {socialIcons[link.type] ?? (
+                          <span className="text-lg font-semibold uppercase">
+                            {link.type.slice(0, 2)}
+                          </span>
+                        )}
+                      </a>
+                    ))}
                 </div>
               ) : null}
             </span>
@@ -414,23 +437,25 @@ const ProfileModal = ({
 
             {socialLinks.length ? (
               <div className="flex flex-wrap">
-                {socialLinks.map((link) => (
-                  <a
-                    key={link.id}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={socialLabels[link.type] ?? link.type}
-                    title={socialLabels[link.type] ?? link.type}
-                    className="flex h-9 w-9 items-center justify-center rounded-full text-base transition hover:bg-black hover:text-white"
-                  >
-                    {socialIcons[link.type] ?? (
-                      <span className="text-xs font-semibold uppercase">
-                        {link.type.slice(0, 2)}
-                      </span>
-                    )}
-                  </a>
-                ))}
+                {socialLinks
+                  .filter((link) => isSafeExternalUrl(link.url))
+                  .map((link) => (
+                    <a
+                      key={link.id}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={socialLabels[link.type] ?? link.type}
+                      title={socialLabels[link.type] ?? link.type}
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-base transition hover:bg-black hover:text-white"
+                    >
+                      {socialIcons[link.type] ?? (
+                        <span className="text-xs font-semibold uppercase">
+                          {link.type.slice(0, 2)}
+                        </span>
+                      )}
+                    </a>
+                  ))}
               </div>
             ) : (
               <span className="text-sm font-medium">

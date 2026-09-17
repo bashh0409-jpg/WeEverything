@@ -1,16 +1,22 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
     return NextResponse.json(
       { error: "Supabase account deletion is not configured." },
       { status: 503 },
     );
+  }
+
+  if (request.headers.get("origin") !== new URL(request.url).origin) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
   const cookieStore = await cookies();
@@ -37,7 +43,10 @@ export async function DELETE() {
   const deletionScheduledAt = new Date();
   deletionScheduledAt.setDate(deletionScheduledAt.getDate() + 30);
 
-  const { error: scheduleError } = await supabase
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { error: scheduleError } = await admin
     .from("profiles")
     .update({
       is_published: false,
@@ -46,7 +55,11 @@ export async function DELETE() {
     .eq("id", user.id);
 
   if (scheduleError) {
-    return NextResponse.json({ error: scheduleError.message }, { status: 500 });
+    console.error("Could not schedule account deletion", scheduleError);
+    return NextResponse.json(
+      { error: "Could not schedule account deletion." },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({

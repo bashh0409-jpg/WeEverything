@@ -5,12 +5,6 @@ import { useEffect } from "react";
 import Navbar from "./components/Navbar";
 import PersonCard from "./components/PersonCard";
 import ProfileModal from "./components/ProfileModal";
-import BottomButton from "./components/BottomButton";
-import {
-  readProfileCache,
-  writeProfileCache,
-  type CachedProfile,
-} from "@/lib/profile-cache";
 import Footer from "./components/Footer";
 import { getProfileHandle } from "@/lib/profile-handle";
 
@@ -23,11 +17,24 @@ const roles = [
   "Other",
 ] as const;
 
-const endOfProfilesEmojis = ["🙈", "👀", "🥶", "🤦🏻‍♂️"];
+
 
 type RoleFilter = (typeof roles)[number];
 
-type Profile = CachedProfile;
+type Profile = {
+  id: string;
+  handle: string | null;
+  name: string;
+  bio: string | null;
+  avatar_url: string | null;
+  role: string;
+  location: string | null;
+  awards: string | null;
+  is_sponsored: boolean;
+  uploaded_image: string | null;
+  hover_media: { type: "image" | "video"; url: string } | null;
+  socialLinks: { id: string; type: string; url: string }[];
+};
 const PROFILE_PAGE_SIZE = 40;
 const SAVED_PROFILES_KEY = "weeverything:saved-profiles";
 
@@ -50,9 +57,7 @@ const normalizeRole = (role: string): RoleFilter => {
 const Page = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("All");
-  const [endOfProfilesEmoji, setEndOfProfilesEmoji] = useState(
-    endOfProfilesEmojis[0],
-  );
+
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -152,7 +157,6 @@ const Page = () => {
 
   useEffect(() => {
     let isMounted = true;
-    const cachedProfiles = readProfileCache();
     const fetchProfilePage = async (offset: number) => {
       const response = await fetch(`/api/profiles?offset=${offset}`, {
         cache: "no-store",
@@ -171,18 +175,11 @@ const Page = () => {
     };
 
     const loadProfiles = async () => {
-      if (cachedProfiles) {
-        setProfiles(cachedProfiles);
-        setLoading(false);
-      }
-
       try {
         const firstPage = await fetchProfilePage(0);
         if (!isMounted) return;
 
-        const profilesById = new Map(
-          (cachedProfiles ?? []).map((profile) => [profile.id, profile]),
-        );
+        const profilesById = new Map<string, Profile>();
         firstPage.profiles.forEach((profile) => {
           profilesById.set(profile.id, profile);
         });
@@ -190,7 +187,6 @@ const Page = () => {
         let loadedProfiles = Array.from(profilesById.values());
         setError("");
         setProfiles(loadedProfiles);
-        writeProfileCache(loadedProfiles);
         setLoading(false);
 
         let offset = PROFILE_PAGE_SIZE;
@@ -205,12 +201,11 @@ const Page = () => {
           });
           loadedProfiles = Array.from(profilesById.values());
           setProfiles(loadedProfiles);
-          writeProfileCache(loadedProfiles);
           hasMore = nextPage.hasMore;
           offset += PROFILE_PAGE_SIZE;
         }
       } catch (loadError) {
-        if (!isMounted || cachedProfiles) return;
+        if (!isMounted) return;
 
         setError(
           loadError instanceof Error
@@ -227,16 +222,6 @@ const Page = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
-
-  useEffect(() => {
-    let emojiIndex = 0;
-    const interval = window.setInterval(() => {
-      emojiIndex = (emojiIndex + 1) % endOfProfilesEmojis.length;
-      setEndOfProfilesEmoji(endOfProfilesEmojis[emojiIndex]);
-    }, 1_500);
-
-    return () => window.clearInterval(interval);
   }, []);
 
   const filteredProfiles = [...profiles]
@@ -393,9 +378,7 @@ const Page = () => {
           )}
         </section>
 
-        <span aria-label="Rotating profile ending" role="img">
-          {endOfProfilesEmoji}
-        </span>
+        
       </main>
       <Footer />
       {selectedProfile ? (

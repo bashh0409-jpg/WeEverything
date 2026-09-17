@@ -6,10 +6,25 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const requestedNext = searchParams.get("next");
-  const next =
-    requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
-      ? requestedNext
-      : "/profile";
+  const requestUrl = new URL(request.url);
+  const next = (() => {
+    if (
+      !requestedNext?.startsWith("/") ||
+      requestedNext.startsWith("//") ||
+      /[\\\r\n]/.test(requestedNext)
+    ) {
+      return "/profile";
+    }
+
+    try {
+      const parsed = new URL(requestedNext, requestUrl.origin);
+      return parsed.origin === requestUrl.origin
+        ? `${parsed.pathname}${parsed.search}${parsed.hash}`
+        : "/profile";
+    } catch {
+      return "/profile";
+    }
+  })();
 
   if (code) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

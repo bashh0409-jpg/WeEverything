@@ -63,48 +63,27 @@ export async function POST(request: Request) {
   }
 
   if (!checkoutId) {
-    console.info("Polar order event using fallback payment correlation", {
-      type: event.type,
-      eventId: event.data.id,
-    });
+    return NextResponse.json(
+      { error: "Polar event is missing its checkout identifier." },
+      { status: 400 },
+    );
   }
 
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  let paymentQuery = admin
+  const paymentQuery = admin
     .from("sponsorship_payments")
-    .select("id, profile_id")
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (checkoutId) {
-    paymentQuery = paymentQuery.eq("polar_checkout_id", checkoutId);
-  } else if (event.type === "order.paid" || event.type === "order.refunded") {
-    const metadataUserId = event.data.metadata.user_id;
-    const userId =
-      typeof metadataUserId === "string"
-        ? metadataUserId
-        : event.data.customer.externalId;
-
-    if (!userId) {
-      return NextResponse.json({ received: true });
-    }
-
-    paymentQuery = paymentQuery
-      .eq("user_id", userId)
-      .eq("polar_product_id", event.data.productId ?? "")
-      .in("status", ["pending", "paid"]);
-  } else {
-    return NextResponse.json({ received: true });
-  }
+    .select("id")
+    .eq("polar_checkout_id", checkoutId);
 
   const { data: payment, error: paymentLookupError } =
     await paymentQuery.maybeSingle();
 
   if (paymentLookupError) {
+    console.error("Could not look up sponsorship payment", paymentLookupError);
     return NextResponse.json(
-      { error: paymentLookupError.message },
+      { error: "Could not process webhook." },
       { status: 500 },
     );
   }
@@ -113,30 +92,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   }
 
-  const update = {
-    status: paymentStatus,
-    ...(polarOrderId ? { polar_order_id: polarOrderId } : {}),
-    ...(event.type === "order.paid"
-      ? { paid_at: event.timestamp.toISOString() }
-      : {}),
-  };
-
-  const { error } = await admin
-    .from("sponsorship_payments")
-    .update(update)
-    .eq("id", payment.id);
+  const { error } = await admin.rpc("apply_polar_sponsorship_event", {
+    p_payment_id: payment.id,
+    p_status: paymentStatus,
+    p_polar_order_id: polarOrderId,
+    p_event_at: event.timestamp.toISOString(),
+  });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  const { error: profileError } = await admin
-    .from("profiles")
-    .update({ is_sponsored: paymentStatus === "paid" })
-    .eq("id", payment.profile_id);
-
-  if (profileError) {
-    return NextResponse.json({ error: profileError.message }, { status: 500 });
+    console.error("Could not apply sponsorship event", error);
+    return NextResponse.json({ error: "Could not process webhook." }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });
