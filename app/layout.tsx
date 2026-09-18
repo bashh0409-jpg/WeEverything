@@ -4,7 +4,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import SmoothScroll from "@/components/SmoothScroll";
 import OpenToWorkTicker from "@/app/components/OpenToWorkTicker";
-import BottomButton from "@/app/components/BottomButton";
 import "./globals.css";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import BottomStrip from "./components/BottomStrip";
@@ -65,3 +64,4 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   );
 }
+ 
