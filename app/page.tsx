@@ -362,7 +362,7 @@ const Page = () => {
             </div>
           </div>{" "}
         </section>
-        <section className="mt-10 grid w-full grid-cols-2 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <section className="mt-10 grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {loading ? (
             <p className="text-xs font-semibold uppercase text-[#999]">
               Loading profiles...

@@ -331,7 +331,7 @@ const Navbar = forwardRef<
                 <button
                   type="button"
                   onClick={() => setIsLogoutConfirmOpen(true)}
-                  className="bg-black mr-1 hover:text-[#1c40f2] transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
+                  className="bg-black mr-1 mono tracking-tighter hover:text-[#1c40f2] transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
                 >
                   Log out
                 </button>
@@ -386,7 +386,7 @@ const Navbar = forwardRef<
           sidebarOpen ? "" : "pointer-events-none"
         }`}
       >
-        <div className="flex items-center justify-between">
+        <div className="flexitems-center justify-between">
           <span className="font-bold italic tracking-tighter">
             WeEverything.xyz
           </span>

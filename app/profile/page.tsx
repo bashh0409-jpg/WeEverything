@@ -1400,9 +1400,9 @@ const ProfilePage = () => {
 
       <main className="min-h-screen px-6 pb-28 pt-32 text-black sm:px-10">
         <section className="mx-auto w-full max-w-6xl border- mt-10 border-black pt-5">
-          <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="flex flex-wrap items-center justify-between gap-5">
             <div>
-              <h1 className="mt-3 text-4xl font-semibold tracking-tighter sm:text-6xl">
+              <h1 className="mt-3 geist text-4xl font-medium tracking-tighter sm:text-6xl">
                 {profileName}
               </h1>
             </div>
@@ -1477,8 +1477,76 @@ const ProfilePage = () => {
           <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-20">
             <div>
               <div className="flex flex-col gap-7 sm:flex-row sm:items-center">
-                <div className="relative flex h-32 w-32 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#dfbf00] text-4xl font-semibold uppercase text-black">
-                  <span aria-hidden>{initial}</span>
+                <div className="relative flex mono uppercase h-32 w-32 shrink-0 items-center justify-center overflow-hidden rounded-full bg-black/5 text-4xl font-semibold uppercase text-black">
+                  <span
+                    aria-hidden
+                    className="relative animate-spin [animation-duration:10s] block w-8 h-8"
+                  >
+                    <div
+                      className="absolute w-2 h-2 rounded-full bg-black shrink-0"
+                      style={{
+                        top: "5%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    />
+                    <div
+                      className="absolute w-2 h-2 rounded-full bg-black shrink-0"
+                      style={{
+                        top: "18.2%",
+                        left: "81.8%",
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    />
+                    <div
+                      className="absolute w-2 h-2 rounded-full bg-black shrink-0"
+                      style={{
+                        top: "50%",
+                        left: "95%",
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    />
+                    <div
+                      className="absolute w-2 h-2 rounded-full bg-black shrink-0"
+                      style={{
+                        top: "81.8%",
+                        left: "81.8%",
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    />
+                    <div
+                      className="absolute w-2 h-2 rounded-full bg-black shrink-0"
+                      style={{
+                        top: "95%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    />
+                    <div
+                      className="absolute w-2 h-2 rounded-full bg-black shrink-0"
+                      style={{
+                        top: "81.8%",
+                        left: "18.2%",
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    />
+                    <div
+                      className="absolute w-2 h-2 rounded-full bg-black shrink-0"
+                      style={{
+                        top: "50%",
+                        left: "5%",
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    />
+                    <div
+                      className="absolute w-2 h-2 rounded-full bg-black shrink-0"
+                      style={{
+                        top: "18.2%",
+                        left: "18.2%",
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    />
+                  </span>
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
@@ -1510,7 +1578,7 @@ const ProfilePage = () => {
                     {handle}
                   </p>
                   <p className="mt-2 geis mono text-xl font-medium tracking-tight">
-                    {profile?.role || "Designer"}
+                    {profile?.role || "Add your discipline"}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <span className="rounded-full mono tracking-tight bg-black px-3 py-1 text-xs font-semibold text-white">

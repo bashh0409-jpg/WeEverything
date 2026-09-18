@@ -45,33 +45,32 @@ const CookieConsent = () => {
       {choice === null ? (
         <aside
           aria-label="Cookie consent"
-          className="fixed inset-x-4 bottom-4  z-[60] border border-black/15 bg-white p-4 shadow-[0_18px_60px_rgb(0_0_0/18%)] sm:inset-x-auto sm:bottom-6 sm:left-6 sm:max-w-lg"
+          className="fixed inset-x-4 bottom-4 rounded-lg z-[60] border border-black/15 bg-white p-4 shadow-[0_18px_60px_rgb(0_0_0/18%)] sm:inset-x-auto sm:bottom-6 sm:left-6 sm:max-w-md"
         >
-          <p className="text-xs font-semibold mono uppercase tracking-tight text-[#777]">
-            Your privacy
-          </p>
-          <p className="mt-2 max-w-xl text-sm mono tracking-tighter font-medium leading-5 text-black">
+          <p className="mt-2 max-w-xl text-sm mon geist tracking-tight font-medium leading-5 text-black">
             We use necessary cookies to keep the site working. With your
             permission, we also use privacy-friendly analytics to improve it.
           </p>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => saveChoice("accepted")}
-              className="bg-black px-2 py-1 mono uppercase tracking-tighter text-xs rounded-full font-semibold text-white transition hover:bg-[#1c40f2]"
-            >
-              Accept analytics
-            </button>
-            <button
-              type="button"
-              onClick={() => saveChoice("rejected")}
-              className="border border-black/20 px-2 py-1 mono uppercase tracking-tighter text-xs rounded-full font-semibold text-black transition hover:border-black"
-            >
-              Only necessary
-            </button>
+          <div className="mt-4 flex flex-wrap justify-between items-center gap-2">
+            <span className="gap-1 flex">
+              <button
+                type="button"
+                onClick={() => saveChoice("accepted")}
+                className="border border-black/20 px-2 py-1 mono uppercase tracking-tighter text-xs rounded-full font-medium text-black transition hover:bg-black hover:text-white"
+              >
+                Accept analytics
+              </button>
+              <button
+                type="button"
+                onClick={() => saveChoice("rejected")}
+                className="border border-black/20 px-2 py-1 mono uppercase tracking-tighter text-xs rounded-full font-medium text-black transition hover:bg-black hover:text-white"
+              >
+                Only necessary
+              </button>
+            </span>
             <Link
               href="/legal"
-              className="px-2 py-1 mono uppercase tracking-tighter text-xs font-semibold text-[#666] underline underline-offset-4 transition hover:text-black"
+              className="border border-black/20 px-2 bg-black py-1 mono uppercase tracking-tighter text-xs rounded-full font-medium text-white transition hover:bg-black/60 "
             >
               Learn more
             </Link>
