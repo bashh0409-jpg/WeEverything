@@ -159,8 +159,8 @@ const Page = () => {
     const cachedProfiles = readProfileCache();
     const hasCachedProfiles = Boolean(cachedProfiles?.length);
 
-    if (hasCachedProfiles) {
-      setProfiles(cachedProfiles);
+    if (cachedProfiles && hasCachedProfiles) {
+      setProfiles(cachedProfiles as Profile[]);
       setError("");
       setLoading(false);
     }
