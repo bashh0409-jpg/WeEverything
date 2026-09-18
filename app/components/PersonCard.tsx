@@ -118,7 +118,8 @@ const PersonCard = ({
           ) : null}
         </div>
         <div>
-          <h1 className="cursor-pointer text-sm font-semibold capitalize tracking-tight hover:text-[#1c40f2] hover:underline">
+          
+          <h1 className="cursor-pointer text-sm mt-1 font-semibold geist uppercas capitalize tracking-tighter duration-500 transition-colors hover:text-[#1c40f2] hover:underline">
             {name}
           </h1>
           <p className="mono line-clamp-3 mt-1 overflow-hidden text-[11px] font-medium uppercase leading-3 tracking-tight text-[#999]">

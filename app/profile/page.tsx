@@ -160,6 +160,80 @@ const getCustomRole = (value: string) =>
 const countWords = (value: string) =>
   value.trim().split(/\s+/).filter(Boolean).length;
 
+const getDeviceTypeLabel = () => {
+  if (typeof navigator === "undefined") return "Unknown device";
+
+  const userAgent = navigator.userAgent;
+
+  if (/Mobi|Android|iPhone|iPad|iPod/.test(userAgent)) {
+    return "Mobile phone";
+  }
+
+  if (/Tablet/.test(userAgent)) {
+    return "Tablet";
+  }
+
+  return "Desktop computer";
+};
+
+const getBrowserRegionLabel = () => {
+  if (typeof navigator === "undefined") return "";
+
+  const locale = navigator.languages?.[0] ?? navigator.language ?? "";
+
+  const region = (() => {
+    try {
+      const localeObject = new Intl.Locale(locale);
+      if (localeObject.region) return localeObject.region;
+    } catch {}
+
+    const match = locale.match(/-([A-Z]{2,3})$/i);
+    return match?.[1]?.toUpperCase() ?? "";
+  })();
+
+  if (!region) return "";
+
+  try {
+    return (
+      new Intl.DisplayNames(["en"], { type: "region" }).of(region) ?? region
+    );
+  } catch {
+    return region;
+  }
+};
+
+const getBrowserDetails = () => {
+  if (typeof navigator === "undefined") return "Unknown";
+
+  const userAgent = navigator.userAgent;
+
+  const browser = /EdgA?\//.test(userAgent)
+    ? "Edge"
+    : /OPR\//.test(userAgent)
+      ? "Opera"
+      : /Chrome\//.test(userAgent)
+        ? "Chrome"
+        : /Firefox\//.test(userAgent)
+          ? "Firefox"
+          : /Safari\//.test(userAgent)
+            ? "Safari"
+            : "Browser";
+
+  const os = /Windows/.test(userAgent)
+    ? "Windows"
+    : /Macintosh|Mac OS X/i.test(userAgent)
+      ? "macOS"
+      : /Android/.test(userAgent)
+        ? "Android"
+        : /iPhone|iPad|iPod/.test(userAgent)
+          ? "iOS"
+          : /Linux/.test(userAgent)
+            ? "Linux"
+            : "Unknown OS";
+
+  return `${browser} on ${os}`;
+};
+
 const parseAwards = (value: string) =>
   value
     .split("\n")
@@ -186,7 +260,22 @@ const socialOptions: { type: SocialType; label: string }[] = [
 const getSocialIcon = (type: SocialType) => {
   switch (type) {
     case "portfolio":
-      return <FaGlobe className="text-base" />;
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+          />
+        </svg>
+      );
     case "github":
       return <FaGithub className="text-base" />;
     case "linkedin":
@@ -199,7 +288,7 @@ const getSocialIcon = (type: SocialType) => {
       return <FaBehance className="text-base" />;
     case "awwwards":
       return (
-        <svg width="20" height="16"  fill="currentColor" viewBox="0 0 30 16">
+        <svg width="20" height="16" fill="currentColor" viewBox="0 0 30 16">
           <path d="m18.4 0-2.803 10.855L12.951 0H9.34L6.693 10.855 3.892 0H0l5.012 15.812h3.425l2.708-10.228 2.709 10.228h3.425L22.29 0h-3.892ZM24.77 13.365c0 1.506 1.12 2.635 2.615 2.635C28.879 16 30 14.87 30 13.365c0-1.506-1.12-2.636-2.615-2.636s-2.615 1.13-2.615 2.636Z"></path>
         </svg>
       );
@@ -1199,6 +1288,11 @@ const ProfilePage = () => {
     (link) => link.url && isSafeExternalUrl(link.url),
   );
   const mediaByPosition = new Map(media.map((item) => [item.position, item]));
+  const deviceType = getDeviceTypeLabel();
+  const browserDetails = getBrowserDetails();
+  const browserRegion = getBrowserRegionLabel();
+  const thisDeviceLocation =
+    profile?.location || user?.user_metadata?.location || "Unknown location";
   const unreadInquiryCount = inquiries.filter(
     (inquiry) => !inquiry.archived_at && !readInquiryIds.includes(inquiry.id),
   ).length;
@@ -1313,12 +1407,12 @@ const ProfilePage = () => {
               </h1>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1">
+            <div className="flex mono tracking-tight flex-wrap items-center gap-1">
               <button
                 type="button"
                 onClick={() => void handlePublishToggle()}
                 disabled={publishing || saving}
-                className={`rounded-full cursor-pointer px-3 py-1 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 ${profile?.is_published ? "bg-black" : "bg-[#1c40f2]"}`}
+                className={`rounded-full  uppercase cursor-pointer px-3 py-1 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 ${profile?.is_published ? "bg-black" : "bg-[#1c40f2]"}`}
               >
                 {publishing
                   ? "Saving..."
@@ -1329,21 +1423,21 @@ const ProfilePage = () => {
               <button
                 type="button"
                 onClick={handleSponsorProfile}
-                className="rounded-full  cursor-pointer bg-[#1c40f2] px-3 py-1 text-xs  font-semibold text-white transition hover:bg-black"
+                className="rounded-full  uppercase  cursor-pointer bg-[#1c40f2] px-3 py-1 text-xs  font-semibold text-white transition hover:bg-black"
               >
                 Promote
               </button>
               <button
                 type="button"
                 onClick={handleUpdateClick}
-                className="rounded-full cursor-pointer border border-black px-3 py-1 text-xs  font-semibold transition hover:bg-black hover:text-white"
+                className="rounded-full  uppercase  cursor-pointer border border-black px-3 py-1 text-xs  font-semibold transition hover:bg-black hover:text-white"
               >
                 {isEditing ? "Close editor" : "Update"}
               </button>
               <button
                 type="button"
                 onClick={() => void handleShareProfile()}
-                className="rounded-full cursor-pointer border border-black px-3 py-1 text-xs font-semibold transition hover:bg-black hover:text-white"
+                className="rounded-full  uppercase  cursor-pointer border border-black px-3 py-1 text-xs  font-semibold transition hover:bg-black hover:text-white"
               >
                 {shareLabel}
               </button>
@@ -1375,7 +1469,7 @@ const ProfilePage = () => {
           </div>
 
           {message ? (
-            <p className="mt-6 border rounded-md border-[#1c40f2]/20 bg-[#1c40f2]/5 px-3 py-1 text-sm text-[#1734a9]">
+            <p className="mt-6 border geist uppercas rounded-md font-medium border-[#1c40f2]/20 bg-[#1c40f2]/5 px-3 py-1 text-xs text-[#1734a9]">
               {message}
             </p>
           ) : null}
@@ -1398,18 +1492,32 @@ const ProfilePage = () => {
                 </div>
 
                 <div>
-                  <p className="mono text-sm font-medium uppercase tracking-tight text-[#1c40f2]">
-                    @{handle}
+                  <p className="mon flex items-center geist text-xs uppercase font-medium uppercas tracking-tigh text-[#1c40f2]">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                      className="size-4"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.5 12a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Zm0 0c0 1.657 1.007 3 2.25 3S21 13.657 21 12a9 9 0 1 0-2.636 6.364M16.5 12V8.25"
+                      />
+                    </svg>
+                    {handle}
                   </p>
-                  <p className="mt-2 text-xl font-semibold tracking-tight">
+                  <p className="mt-2 geis mono text-xl font-medium tracking-tight">
                     {profile?.role || "Designer"}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-black px-3 py-1 text-xs font-semibold text-white">
+                    <span className="rounded-full mono tracking-tight bg-black px-3 py-1 text-xs font-semibold text-white">
                       {profile?.is_published ? "Live profile" : "Draft profile"}
                     </span>
                     {profile?.location ? (
-                      <span className="rounded-full border border-black/15 px-3 py-1 text-xs font-semibold text-[#666]">
+                      <span className="rounded-full mono tracking-tight border border-black/15 px-3 py-1 text-xs font-semibold text-[#666]">
                         {profile.location}
                       </span>
                     ) : null}
@@ -1447,7 +1555,7 @@ const ProfilePage = () => {
                   </button>
                 </div>
 
-                <p className="mt-4 text-sm  leading-4 tracking-tighter text-[#444] sm:text-sm">
+                <p className="mt-2 text-sm geist  leading-4 tracking-tight font-medium text-[#444] sm:text-sm">
                   {activeForm.bio ||
                     "Add a short introduction so the community knows what you make and how you work."}
                 </p>
@@ -1457,7 +1565,7 @@ const ProfilePage = () => {
                   <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
                     Awards
                   </p>
-                  <p className="mt-4 whitespace-pre-line text-sm leading-relaxed tracking-tight text-[#444]">
+                  <p className="mt-4 geist whitespace-pre-line text-sm leading-tight font-medium tracking-tight text-[#444]">
                     {profile.awards}
                   </p>
                 </section>
@@ -1574,20 +1682,21 @@ const ProfilePage = () => {
               <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
                 Profile status
               </p>
-              <p className="mt-4 text-lg font-semibold tracking-tight">
+              <p className="mt-4 text-lg mono font-medium tracking-tighter text-[#1c40f2]">
                 {profile?.is_published
                   ? "Visible to everyone"
                   : "Only visible to you"}
               </p>
               {sponsored ? (
-                <span className="mt-3 inline-flex rounded-full bg-[#1c40f2] px-3 py-1 text-xs font-semibold uppercase tracking-tight text-white">
+                <span className="mt-3 mono inline-flex rounded-full bg-[#1c40f2] px-3 py-1 text-xs font-semibold uppercase tracking-tight text-white">
                   Sponsored profile
                 </span>
               ) : null}
-              <p className="mt-4 text-sm font-semibold text-[#666]">
-                {profileViews.toLocaleString()} profile views
+              <p className="mt-4 text-xs mono uppercase font-medium text-[#666]">
+                <span className="geist">{profileViews.toLocaleString()}</span>{" "}
+                profile views
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-[#666]">
+              <p className="mt-2 text-[#1734a9] geist text-xs leading-tight tracking-tight font-medium text-[#666]">
                 {profile?.is_published
                   ? "Your profile is ready to appear in the directory."
                   : "Finish your details, then switch on public visibility when you are ready."}
@@ -1597,13 +1706,44 @@ const ProfilePage = () => {
                 <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
                   Signed in as
                 </p>
-                <p className="mt-2 break-all text-xs mon uppercase  tracking-tight font-medium text-[#1c40f2]">
-                  Name:{" "}
-                  {user.user_metadata.full_name || user.user_metadata.name}
+                <div>
+                  <p className="mono text-xs font-medium uppercase tracking-tight text-[#1c40f2]">
+                    Name:{" "}
+                    {user.user_metadata.full_name || user.user_metadata.name}
+                  </p>
+                  <p className="mono text-[#1c40f2] text-xs font-medium uppercase tracking-tight ">
+                    Email: {user.email}
+                  </p>
+                </div>
+                <p className="mono mt-4 text-xs font-medium uppercase tracking-tight text-[#999]">
+                  This Device
                 </p>
-                <p className="mt-2 break-all moo uppercase tracking-tight   text-xs font-medium text-[#1c40f2]">
-                  Email: {user.email}
-                </p>
+                <div className="mt-2 flex rounded  text-[#1c40f2] items-center gap-2  bg-[#1c40f2]/5 px-3 py-2">
+                  <div>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="mono text-[#1c40f2] text-xs font-medium uppercase tracking-tight ">
+                      {browserDetails || user.user_metadata.device || "Unknown"}
+                    </p>
+                    <p className="mono hidden text-[#1c40f2] text-xs font-medium uppercase tracking-tight ">
+                      {thisDeviceLocation}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="mt-8 border-t border-red-200 pt-5">
@@ -1614,7 +1754,7 @@ const ProfilePage = () => {
                   type="button"
                   onClick={openDeleteAccountModal}
                   disabled={deletingAccount}
-                  className="mt-3 rounded-full cursor-pointer border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-3 rounded-full mono tracking-tight uppercase cursor-pointer border border-red-300 px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {deletingAccount ? "Deleting account..." : "Delete account"}
                 </button>
@@ -1963,7 +2103,7 @@ const ProfilePage = () => {
                       Add only the portfolio and accounts you want to show
                       publicly.
                     </p>
-                    <div className="mt-5 grid gap-x-6 gap-y-5 md:grid-cols-3">
+                    <div className="mt-5 grid gap-x-6 gap-y-5 grid-cols-2 md:grid-cols-3">
                       {socialOptions.map(({ type, label }) => {
                         const hasSavedLink = socialLinks.some(
                           (link) => link.type === type,
@@ -1980,25 +2120,77 @@ const ProfilePage = () => {
                               </span>
                               <span className="sr-only">{label}</span>
                             </span>
-                            <input
-                              aria-label={label}
-                              title={label}
-                              value={socials[type]}
-                              onChange={(event) =>
-                                handleSocialChange(type, event)
-                              }
-                              placeholder={
-                                type === "portfolio"
-                                  ? "https://yourportfolio.com"
-                                  : type === "email"
-                                    ? "you@example.com"
-                                    : type === "discord"
-                                      ? "Username/User ID"
-                                      : "Username"
-                              }
-                              type={type === "portfolio" ? "url" : "text"}
-                              className="mt-0 w-full geist tracking-tight border-b border-black/20 bg-transparent px-0 py-1 text-sm font-medium outline-none transition placeholder:text-[#aaa] focus:border-black"
-                            />
+                            <div className="relative border-b border-black/20 flex items-center gap-1">
+                              <span className="flex hidde h-3 w-3 items-center justify-center text-sm font-semibold text-black">
+                                {type === "email" ? (
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-3 w-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                                    />
+                                  </svg>
+                                ) : type === "portfolio" ? (
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-3 w-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                                    />
+                                  </svg>
+                                ) : (
+                                  <span aria-hidden="true">
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      className="h-3 w-3"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                      strokeWidth={2}
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+                                      />
+                                    </svg>
+                                  </span>
+                                )}
+                              </span>
+                              <input
+                                aria-label={label}
+                                title={label}
+                                value={socials[type]}
+                                onChange={(event) =>
+                                  handleSocialChange(type, event)
+                                }
+                                placeholder={
+                                  type === "portfolio"
+                                    ? "https://yourportfolio.com"
+                                    : type === "email"
+                                      ? "you@example.com"
+                                      : type === "discord"
+                                        ? "Username/ User ID"
+                                        : "Username"
+                                }
+                                type={type === "portfolio" ? "url" : "text"}
+                                className="mt-0 w-full geist tracking-tight bg-transparent px-0 py-1 text-sm font-medium outline-none transition placeholder:text-[#aaa] focus:border-black"
+                              />
+                            </div>
                           </label>
                         ) : null;
                       })}

@@ -7,6 +7,7 @@ import PersonCard from "./components/PersonCard";
 import ProfileModal from "./components/ProfileModal";
 import Footer from "./components/Footer";
 import { getProfileHandle } from "@/lib/profile-handle";
+import { readProfileCache, writeProfileCache } from "@/lib/profile-cache";
 
 const roles = [
   "All",
@@ -16,8 +17,6 @@ const roles = [
   "Photographers",
   "Other",
 ] as const;
-
-
 
 type RoleFilter = (typeof roles)[number];
 
@@ -157,6 +156,15 @@ const Page = () => {
 
   useEffect(() => {
     let isMounted = true;
+    const cachedProfiles = readProfileCache();
+    const hasCachedProfiles = Boolean(cachedProfiles?.length);
+
+    if (hasCachedProfiles) {
+      setProfiles(cachedProfiles);
+      setError("");
+      setLoading(false);
+    }
+
     const fetchProfilePage = async (offset: number) => {
       const response = await fetch(`/api/profiles?offset=${offset}`, {
         cache: "no-store",
@@ -185,6 +193,8 @@ const Page = () => {
         });
 
         let loadedProfiles = Array.from(profilesById.values());
+        writeProfileCache(loadedProfiles);
+
         setError("");
         setProfiles(loadedProfiles);
         setLoading(false);
@@ -200,12 +210,17 @@ const Page = () => {
             profilesById.set(profile.id, profile);
           });
           loadedProfiles = Array.from(profilesById.values());
+          writeProfileCache(loadedProfiles);
           setProfiles(loadedProfiles);
           hasMore = nextPage.hasMore;
           offset += PROFILE_PAGE_SIZE;
         }
       } catch (loadError) {
         if (!isMounted) return;
+
+        if (hasCachedProfiles) {
+          return;
+        }
 
         setError(
           loadError instanceof Error
@@ -377,8 +392,6 @@ const Page = () => {
             ))
           )}
         </section>
-
-        
       </main>
       <Footer />
       {selectedProfile ? (
