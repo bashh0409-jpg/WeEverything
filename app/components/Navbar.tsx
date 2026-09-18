@@ -322,7 +322,7 @@ const Navbar = forwardRef<
               <button
                 type="button"
                 onClick={() => setIsSignInOpen(true)}
-                className="bg-black ml-1 hover:text-[#1c40f2] transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
+                className="bg-black ml-1 hover:bg-black/50 mono tracking-tighter transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
               >
                 Sign in
               </button>
@@ -331,7 +331,7 @@ const Navbar = forwardRef<
                 <button
                   type="button"
                   onClick={() => setIsLogoutConfirmOpen(true)}
-                  className="bg-black mr-1 mono tracking-tighter hover:text-[#1c40f2] transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
+                  className="bg-black mr-1 mono tracking-tighter hover:bg-black/50 transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
                 >
                   Log out
                 </button>
