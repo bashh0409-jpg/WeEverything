@@ -256,7 +256,7 @@ const Navbar = forwardRef<
     <>
       <nav
         ref={ref}
-        className={`fixed left-0 top-0 z-20 flex w-full items-start justify-between gap-4 p-4 font-medium tracking-tight bg-[linear-gradient(to_bottom,_rgba(28,64,242,0.5)_0%,_transparent_100%)] ${className}`}
+        className={`fixed  left-0 top-0 z-20 flex w-full items-start justify-between gap-4 p-4 font-medium tracking-tight bg-[linear-gradient(to_bottom,_rgba(28,64,242,0.5)_0%,_transparent_100%)] ${className}`}
       >
         <Link
           href="/"

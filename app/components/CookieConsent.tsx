@@ -45,9 +45,9 @@ const CookieConsent = () => {
       {choice === null ? (
         <aside
           aria-label="Cookie consent"
-          className="fixed inset-x-4 bottom-4 rounded-lg z-[60] border border-black/15 bg-white p-4 shadow-[0_18px_60px_rgb(0_0_0/18%)] sm:inset-x-auto sm:bottom-6 sm:left-6 sm:max-w-md"
+          className="fixed inset-x-4 bottom-4 rounded-2xl z-[60] border border-black/15 bg-white p-2 shadow-[0_18px_60px_rgb(0_0_0/18%)] sm:inset-x-auto sm:bottom-6 sm:left-6 sm:max-w-sm"
         >
-          <p className="mt-2 max-w-xl text-sm mon geist tracking-tight font-medium leading-5 text-black">
+          <p className=" max-w-xl text-sm geist tracking-tight font-medium leading-5 text-black">
             We use necessary cookies to keep the site working. With your
             permission, we also use privacy-friendly analytics to improve it.
           </p>

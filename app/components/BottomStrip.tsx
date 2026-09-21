@@ -103,15 +103,26 @@ const BottomStrip = () => {
           const key = event ? event.id : `placeholder-${index}`;
 
           return (
-            <div
+            <a
               key={key}
-              className="flex h-full aspect-[16/9] flex-col justify-between bg-[#999] p-2"
+              href={event?.url ?? undefined}
+              target={event?.url ? "_blank" : undefined}
+              rel={event?.url ? "noopener noreferrer" : undefined}
+              onClick={(eventObject) => {
+                if (!event?.url) {
+                  eventObject.preventDefault();
+                }
+              }}
+              className="group relative flex h-full aspect-[16/9] cursor-pointer flex-col justify-between overflow-hidden p-2"
             >
-              <div className="flex h-8 items-center">
-                <div className="h-7 w-8 rounded-full p-1 bg-white flex items-center justify-center text-black uppercase geist font-medium text-sm tracking-tighter">
+              <div className="absolute inset-0 bg-[linear-gradient(to_top,_rgba(28,64,242,0.5)_40%,_transparent_100%)] opacity-100 transition-opacity duration-500 group-hover:opacity-0" />
+              <div className="absolute inset-0 bg-[linear-gradient(to_top,_rgba(28,64,242,0.5)_20%,_transparent_100%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+
+              <div className="relative z-10 flex h-8 items-center">
+                <div className="h-7 aspect-square rounded-full p-1.5 bg-white flex items-center justify-center text-black uppercase geist font-medium text-sm tracking-tighter">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
+                    fill="#999"
                     viewBox="0 0 133 134"
                   >
                     <path
@@ -120,43 +131,42 @@ const BottomStrip = () => {
                     ></path>
                   </svg>
                 </div>
-                <div className="flex w-full justify-between">
-                  <span className="ml-2 tracking-tight font-medium uppercase text-xs geist text-white">
-                    {event?.company ?? ""}
-                  </span>
-                  
-                  <span className="ml-2 tracking-tight font-medium uppercase text-xs geist text-white">
-                    {event
-                      ? new Date(event.date).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                      : "O"}
-                  </span>
+                <div className="w-full flex flex-col">
+                  <div className="flex w-full text-[#999] justify-between">
+                    <span className="ml-2 tracking-tight font-medium uppercase text-xs geist ">
+                      {event?.company ?? "WeEverything"}
+                    </span>
+
+                    <span className="ml-2 tracking-tight font-medium uppercase text-xs geist ">
+                      {event
+                        ? new Date(event.date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })
+                        : "SEP 01, 2026"}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="ml-9 flex flex-1 flex-col justify-between">
-                <span className="tracking-tighter  line-clamp-4 font-medium text-x geist text-white">
+              <div className="relative z-10 ml-9 flex flex-1 flex-col justify-between">
+                <span className="tracking-tighter leading-tight line-clamp-4 font-medium text-x geist text-white">
                   {event?.description ?? ""}
                 </span>
 
-                <div className="mt-3 flex w-full items-end text-sm justify-between gap-2 uppercas">
-                  <span className="tracking-tight font-medium uppercas text-x geist text-white">
+                <div className="mt-3 mix-blend-difference flex w-full mono uppercase tracking-tighter text-xs items-end text-sm justify-between gap-2 uppercas">
+                  <span className=" font-medium uppercase mono text-xs geist text-white">
                     {event?.city ?? "San Francisco, CA"}
                   </span>
-                  <a
-                    href={event?.url ?? "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="tracking-tight font-medium hover:underline  geist text-white"
-                  >
-                    Learn More
-                  </a>
+                  <span className=" font-medium uppercase mono text-xs geist text-white">
+                    {event?.price && event.price !== "Free"
+                      ? `$${event.price}`
+                      : "Free"}
+                  </span>
                 </div>
               </div>
-            </div>
+            </a>
           );
         })}
       </div>
