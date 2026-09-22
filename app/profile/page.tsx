@@ -58,6 +58,18 @@ type ProfileMedia = {
 
 type SponsorshipPayment = {
   status: string;
+  paid_at: string | null;
+};
+
+const SPONSORSHIP_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+const isActiveSponsorship = (payment: SponsorshipPayment | null) => {
+  if (!payment || payment.status !== "paid" || !payment.paid_at) return false;
+
+  const paidAt = Date.parse(payment.paid_at);
+  if (!Number.isFinite(paidAt)) return false;
+
+  return Date.now() - paidAt <= SPONSORSHIP_TTL_MS;
 };
 
 type ProfileInquiry = {
@@ -555,7 +567,7 @@ const ProfilePage = () => {
           ),
         client
           .from("sponsorship_payments")
-          .select("status")
+          .select("status, paid_at")
           .eq("user_id", currentUser.id)
           .eq("status", "paid")
           .order("created_at", { ascending: false })
@@ -607,7 +619,7 @@ const ProfilePage = () => {
       setSocialLinks(loadedLinks);
       setSocials(toSocialForm(loadedLinks));
       setSponsored(
-        (paymentResult.data as SponsorshipPayment | null)?.status === "paid",
+        isActiveSponsorship(paymentResult.data as SponsorshipPayment | null),
       );
       setProfileViews(viewsResult.count ?? 0);
       const loadedInquiries = (inquiriesResult.data ?? []) as ProfileInquiry[];
@@ -1763,7 +1775,7 @@ const ProfilePage = () => {
                 <span className="geist">{profileViews.toLocaleString()}</span>{" "}
                 profile views
               </p>
-              <p className="mt-2 text-[#1734a9] geist text-xs leading-tight tracking-tight font-medium text-[#666]">
+              <p className="mt-2 text-[#1734a9] geist text-sm leading-tight tracking-tight font-medium text-[#666]">
                 {profile?.is_published
                   ? "Your profile is ready to appear in the directory."
                   : "Finish your details, then switch on public visibility when you are ready."}
@@ -1774,7 +1786,7 @@ const ProfilePage = () => {
                   Signed in as
                 </p>
                 <div>
-                  <p className="mono text-xs mt-1 font-medium uppercase tracking-tight text-[#1c40f2]">
+                  <p className="mono hidden text-xs mt-1 font-medium uppercase tracking-tight text-[#1c40f2]">
                     Name:{" "}
                     {user.user_metadata.full_name || user.user_metadata.name}
                   </p>

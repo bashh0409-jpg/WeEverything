@@ -73,6 +73,15 @@ export async function GET(request: Request) {
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+
+  const { error: sponsorshipExpiryError } = await admin.rpc(
+    "expire_stale_sponsorships",
+  );
+
+  if (sponsorshipExpiryError) {
+    console.error("Could not expire stale sponsorships", sponsorshipExpiryError);
+  }
+
   let profilesQuery = admin
     .from("profiles")
     .select(
