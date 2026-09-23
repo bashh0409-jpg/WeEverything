@@ -127,11 +127,13 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
           </svg>
         </button>
 
-        <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#999]">
+        
+
+        <p className="text-xs font-medium uppercase tr mono text-[#999]">
           Welcome to WeEverything
         </p>
 
-        <h2 className="mt-3 text-3xl  font-bold tracking-tighter text-black">
+        <h2 className="mt-3 geist text-3xl font-semibold tracking-tight text-black">
           {user ? "You are signed in" : "Sign in or create your profile"}
         </h2>
 
@@ -184,7 +186,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={!isSupabaseConfigured}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1c40f2] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1636d4] disabled:cursor-not-allowed disabled:bg-[#c2ccff]"
+                className="flex w-full mono tracking-tight cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1c40f2] px-4 py-2 text-sm font-medium uppercase text-white transition hover:bg-[#1636d4] disabled:cursor-not-allowed disabled:bg-[#c2ccff]"
               >
                 <FaGoogle aria-hidden="true" className="text-base" />
                 Google
@@ -194,7 +196,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
                 type="button"
                 onClick={handleGithubSignIn}
                 disabled={!isSupabaseConfigured}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#aaa]"
+                className="flex w-full mono tracking-tight cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-medium uppercase text-white transition hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#aaa]"
               >
                 <FaGithub aria-hidden="true" className="text-base" />
                 GitHub

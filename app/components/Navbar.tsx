@@ -36,6 +36,8 @@ const topDesigners = [
   { id: 5, name: "nina.works", href: "https://nina.works" },
 ];
 
+const SPONSORSHIP_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
 const Navbar = forwardRef<
   HTMLElement,
   { className?: string; currentTime?: string }
@@ -46,11 +48,13 @@ const Navbar = forwardRef<
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isSponsored, setIsSponsored] = useState(false);
 
   const asideRef = useRef<HTMLDivElement>(null);
   const linksContainerRef = useRef<HTMLDivElement>(null);
   const desktopLinksRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
+  const loadedSponsorshipUserId = useRef<string | null>(null);
 
   const closeSidebar = () => {
     const panel = asideRef.current;
@@ -112,24 +116,49 @@ const Navbar = forwardRef<
 
     let isMounted = true;
 
-    const loadSession = async () => {
-      const {
-        data: { session },
-      } = await client.auth.getSession();
-
-      if (isMounted) {
-        setUser(session?.user ?? null);
+    const loadUser = async (currentUser: User | null) => {
+      if (!currentUser) {
+        if (isMounted) {
+          setUser(null);
+          setIsSponsored(false);
+          loadedSponsorshipUserId.current = null;
+        }
+        return;
       }
+
+      setUser(currentUser);
+
+      if (loadedSponsorshipUserId.current === currentUser.id) return;
+
+      loadedSponsorshipUserId.current = currentUser.id;
+
+      const { data, error } = await client
+        .from("sponsorship_payments")
+        .select("paid_at")
+        .eq("user_id", currentUser.id)
+        .eq("status", "paid")
+        .order("paid_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!isMounted) return;
+
+      const paidAt = data?.paid_at ? Date.parse(data.paid_at) : NaN;
+      setIsSponsored(
+        !error &&
+          Number.isFinite(paidAt) &&
+          Date.now() - paidAt <= SPONSORSHIP_TTL_MS,
+      );
     };
 
-    loadSession();
+    void client.auth.getSession().then(({ data: { session } }) => {
+      void loadUser(session?.user ?? null);
+    });
 
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange((_event, session) => {
-      if (isMounted) {
-        setUser(session?.user ?? null);
-      }
+      void loadUser(session?.user ?? null);
     });
 
     return () => {
@@ -340,10 +369,78 @@ const Navbar = forwardRef<
                   href="/profile"
                   aria-label={`View profile for ${user?.email ?? "your account"}`}
                   title={user?.email ?? "Your profile"}
-                  className="hover:bg-[#1c40f2] transition-colors duration-300 cursor-pointer rounded-full p-0.5 "
+                  className={`hover:bg-[#1c40f2] transition-colors duration-300 cursor-pointer rounded-full p-0.5 ${isSponsored ? "bg-[#1c40f2]" : ""}`}
                 >
-                  <span className="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[#dfbf00] text-xs font-bold uppercase text-black">
-                    <span aria-hidden>{avatarInitial}</span>
+                  <span className="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white text-xs font-bold uppercase text-black">
+                    <span
+                      aria-hidden
+                      className="relative animate-spin [animation-duration:10s] block w-4 h-4"
+                    >
+                      <div
+                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
+                        style={{
+                          top: "5%",
+                          left: "50%",
+                          transform: "translate(-50%, -50%)",
+                        }}
+                      />
+                      <div
+                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
+                        style={{
+                          top: "18.2%",
+                          left: "81.8%",
+                          transform: "translate(-50%, -50%)",
+                        }}
+                      />
+                      <div
+                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
+                        style={{
+                          top: "50%",
+                          left: "95%",
+                          transform: "translate(-50%, -50%)",
+                        }}
+                      />
+                      <div
+                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
+                        style={{
+                          top: "81.8%",
+                          left: "81.8%",
+                          transform: "translate(-50%, -50%)",
+                        }}
+                      />
+                      <div
+                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
+                        style={{
+                          top: "95%",
+                          left: "50%",
+                          transform: "translate(-50%, -50%)",
+                        }}
+                      />
+                      <div
+                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
+                        style={{
+                          top: "81.8%",
+                          left: "18.2%",
+                          transform: "translate(-50%, -50%)",
+                        }}
+                      />
+                      <div
+                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
+                        style={{
+                          top: "50%",
+                          left: "5%",
+                          transform: "translate(-50%, -50%)",
+                        }}
+                      />
+                      <div
+                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
+                        style={{
+                          top: "18.2%",
+                          left: "18.2%",
+                          transform: "translate(-50%, -50%)",
+                        }}
+                      />
+                    </span>
                     {avatarUrl ? (
                       <img
                         src={avatarUrl}
@@ -454,15 +551,15 @@ const Navbar = forwardRef<
       {isLogoutConfirmOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-md">
           <div className="relative w-full max-w-md rounded-2xl border border-black/10 bg-white p-4 shadow-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#999]">
+            <p className="text-xs font-medium uppercase tr mono text-[#999]">
               Confirm logout
             </p>
 
-            <h2 className="mt-3 text-3xl font-bold tracking-tighter text-black">
-              Are you sure you want to log out?
+            <h2 className="mt-3 geist text-3xl font-semibold tracking-tighter text-black">
+              Sure you want to log out?
             </h2>
 
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 mono flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={async () => {
@@ -478,7 +575,7 @@ const Navbar = forwardRef<
                   setIsLogoutConfirmOpen(false);
                   router.push("/");
                 }}
-                className="cursor-pointer rounded-full bg-black px-3 py-1 text-sm font-semibold text-white transition hover:bg-[#1c40f2]"
+                className="cursor-pointer rounded-full bg-black px-3 py-1 text-sm font-semibold tracking-tight text-white transition hover:bg-black/60"
               >
                 Yes, log out
               </button>
@@ -486,7 +583,7 @@ const Navbar = forwardRef<
               <button
                 type="button"
                 onClick={() => setIsLogoutConfirmOpen(false)}
-                className="cursor-pointer rounded-full border border-black/20 px-3 py-1 text-sm font-semibold text-black transition hover:border-black"
+                className="cursor-pointer rounded-full border border-black/20 px-3 py-1 text-sm font-semibold tracking-tight text-black transition hover:border-black"
               >
                 Cancel
               </button>

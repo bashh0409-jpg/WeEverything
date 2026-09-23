@@ -24,7 +24,8 @@ begin
       and s.status = 'paid'
       and s.paid_at is not null
       and s.paid_at >= now() - interval '30 days'
-  );
+  )
+  where p.id is not null;
 end;
 $$;
 

@@ -255,7 +255,7 @@ const Page = () => {
       <Navbar />
 
       <main className="flex min-h-screen flex-col items-center justify-center px-6 py-2">
-        <section className="mt-60 text-lg leading-tight flex max-w-xl flex-col items-center justify-center text-center uppercase">
+        <section className="mt-60 geist leading-8 text-4xl font-bold tracking-tighter capitalize text-[#1c40f2] flex max-w-xl flex-col items-center justify-center text-center uppercas ">
           Find the best developers, photographers, illustrators, stylists and
           designers for your project.
         </section>
@@ -285,9 +285,9 @@ const Page = () => {
               All Profiles ({profiles.length})
             </button>
 
-            <div className="mt-8 flex flex-wrap  flex-col  justify-between gap-4">
+            <div className="mt-8 flex geist flex-wrap  flex-col  justify-between gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-xs  font-semibold uppercase tracking-tighter text-[#999]">
+                <span className="text-xs  font-semibold uppercase tracking-tight text-[#999]">
                   View
                 </span>
                 <button
@@ -351,7 +351,7 @@ const Page = () => {
                     }}
                     className={
                       roleFilter === role
-                        ? "cursor-pointer text-black transition-all duration-500"
+                        ? "cursor-pointer tracking-tight text-black transition-all duration-500"
                         : "cursor-pointer transition-all duration-400 hover:text-black"
                     }
                   >
@@ -365,7 +365,7 @@ const Page = () => {
         <section className="mt-10 grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {loading ? (
             <p className="text-xs font-semibold uppercase text-[#999]">
-              Loading profiles...
+            Loading profiles...
             </p>
           ) : error ? (
             <p className="text-xs font-semibold uppercase text-[#999]">

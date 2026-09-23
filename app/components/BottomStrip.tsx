@@ -151,7 +151,7 @@ const BottomStrip = () => {
               </div>
 
               <div className="relative z-10 ml-9 flex flex-1 flex-col justify-between">
-                <span className="tracking-tighter leading-tight line-clamp-4 font-medium text-x geist text-white">
+                <span className="tracking-tighter leading-tight line-clamp-5 font-medium text-sm geist text-white">
                   {event?.description ?? ""}
                 </span>
 

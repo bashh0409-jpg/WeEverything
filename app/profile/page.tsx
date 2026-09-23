@@ -1489,7 +1489,7 @@ const ProfilePage = () => {
           <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-20">
             <div>
               <div className="flex flex-col gap-7 sm:flex-row sm:items-center">
-                <div className="relative flex mono uppercase h-32 w-32 shrink-0 items-center justify-center overflow-hidden rounded-full bg-black/5 text-4xl font-semibold uppercase text-black">
+                <div className="relative flex h-32 w-32 shrink-0 items-center justify-center overflow-hidden rounded-full bg-black/5 text-4xl font-semibold uppercase text-black">
                   <span
                     aria-hidden
                     className="relative animate-spin [animation-duration:10s] block w-8 h-8"

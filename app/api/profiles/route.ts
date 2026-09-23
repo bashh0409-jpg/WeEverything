@@ -74,20 +74,12 @@ export async function GET(request: Request) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const { error: sponsorshipExpiryError } = await admin.rpc(
-    "expire_stale_sponsorships",
-  );
-
-  if (sponsorshipExpiryError) {
-    console.error("Could not expire stale sponsorships", sponsorshipExpiryError);
-  }
-
   let profilesQuery = admin
-    .from("profiles")
+    .from("published_profiles")
     .select(
       "id, handle, name, bio, avatar_url, role, location, awards, is_sponsored",
     )
-    .eq("is_published", true)
+    .order("is_sponsored", { ascending: false })
     .order("created_at", { ascending: false });
 
   if (profileId) {
