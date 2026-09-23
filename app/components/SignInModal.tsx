@@ -133,7 +133,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
           Welcome to WeEverything
         </p>
 
-        <h2 className="mt-3 geist text-3xl font-semibold tracking-tight text-black">
+        <h2 className="mt-3 geist text-3xl font-semibold tracking-tighter text-black">
           {user ? "You are signed in" : "Sign in or create your profile"}
         </h2>
 

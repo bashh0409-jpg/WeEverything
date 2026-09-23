@@ -20,14 +20,14 @@ const platformConfig: Record<
   Exclude<SocialPlatform, "portfolio" | "email">,
   { hosts: string[]; prefix: string }
 > = {
-  github: { hosts: ["github.com", "www.github.com"], prefix: "" },
+  github: { hosts: ["github.com", "www.github.com"], prefix: "/" },
   linkedin: {
     hosts: ["linkedin.com", "www.linkedin.com"],
     prefix: "/in/",
   },
-  instagram: { hosts: ["instagram.com", "www.instagram.com"], prefix: "" },
-  dribbble: { hosts: ["dribbble.com", "www.dribbble.com"], prefix: "" },
-  behance: { hosts: ["behance.net", "www.behance.net"], prefix: "" },
+  instagram: { hosts: ["instagram.com", "www.instagram.com"], prefix: "/" },
+  dribbble: { hosts: ["dribbble.com", "www.dribbble.com"], prefix: "/" },
+  behance: { hosts: ["behance.net", "www.behance.net"], prefix: "/" },
   awwwards: { hosts: ["awwwards.com", "www.awwwards.com"], prefix: "/" },
   discord: { hosts: ["discord.com", "www.discord.com"], prefix: "/users/" },
   facebook: { hosts: ["facebook.com", "www.facebook.com"], prefix: "" },
