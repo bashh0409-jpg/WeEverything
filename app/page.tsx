@@ -487,17 +487,17 @@ const Page = () => {
             </div>
           </div>{" "}
         </section>
-        <section className="mt-10 grid w-full grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <section className="mt-10 grid w-full  grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {loading ? (
-            <p className="text-xs font-semibold uppercase text-[#999]">
+            <p className="text-sm mono w-full text-center font-medium tracking-tight uppercase text-[#999]">
               Loading profiles...
             </p>
           ) : error ? (
-            <p className="text-xs font-semibold uppercase text-[#999]">
+            <p className="text-sm mono w-full text-center font-medium tracking-tight uppercase text-[#999]">
               {error}
             </p>
           ) : filteredProfiles.length === 0 ? (
-            <p className="text-xs font-semibold uppercase text-[#999]">
+            <p className="text-sm mono w-full text-center font-medium tracking-tight uppercase text-[#999]">
               {showSavedProfiles
                 ? "No saved profiles yet."
                 : "No published profiles yet."}
