@@ -3,7 +3,14 @@
 import { gsap } from "gsap";
 import { useLayoutEffect, useRef } from "react";
 
-const tickerTexts = ["DEVELOPER", "DESIGNER", "PHOTOGRAPHER", "ILLUSTRATOR"];
+const tickerTexts = [
+  "DEVELOPER",
+  "DESIGNER",
+  "PHOTOGRAPHER",
+  "ILLUSTRATOR",
+  "ILLUSTRATOR",
+  "STYLIST"
+];
 
 const tickerItems = Array.from({ length: 16 }, (_, index) => (
   <span key={index}>{tickerTexts[index % tickerTexts.length]}</span>

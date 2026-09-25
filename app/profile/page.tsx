@@ -806,6 +806,11 @@ const ProfilePage = () => {
   const handleShareProfile = async () => {
     if (!user) return;
 
+    if (!profile?.is_published) {
+      setMessage("You cannot share a draft profile. Publish it first.");
+      return;
+    }
+
     const profileHandle = profile?.handle ?? getProfileHandle(getHandle(user));
     const shareUrl = `${window.location.origin}/?profile=${encodeURIComponent(profileHandle)}`;
     setShareLabel("Copying...");
@@ -1427,7 +1432,7 @@ const ProfilePage = () => {
                 className={`rounded-full  uppercase cursor-pointer px-3 py-1 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 ${profile?.is_published ? "bg-black" : "bg-[#1c40f2]"}`}
               >
                 {publishing
-                  ? "Saving..."
+                  ? "Working..."
                   : profile?.is_published
                     ? "Unpublish"
                     : "Publish"}
@@ -1481,7 +1486,7 @@ const ProfilePage = () => {
           </div>
 
           {message ? (
-            <p className="mt-6 border geist uppercas rounded-md font-medium border-[#1c40f2]/20 bg-[#1c40f2]/5 px-3 py-1 text-xs text-[#1734a9]">
+            <p className="mt-6 border geist uppercas tracking-tight rounded-md font-medium border-[#1c40f2]/20 bg-[#1c40f2]/5 px-3 py-1 text-sm text-[#1734a9]">
               {message}
             </p>
           ) : null}
@@ -2145,7 +2150,7 @@ const ProfilePage = () => {
                                   >
                                     <path d="M170-228q-38-45-61-99T80-440h82q6 43 22 82.5t42 73.5l-56 56ZM80-520q8-59 30-113t60-99l56 56q-26 34-42 73.5T162-520H80ZM438-82q-59-6-112.5-28.5T226-170l56-58q35 26 74 43t82 23v80ZM284-732l-58-58q47-37 101-59.5T440-878v80q-43 6-82.5 23T284-732ZM518-82v-80q44-6 83.5-22.5T676-228l58 58q-47 38-101.5 60T518-82Zm160-650q-35-26-75-43t-83-23v-80q59 6 113.5 28.5T734-790l-56 58Zm112 504-56-56q26-34 42-73.5t22-82.5h82q-8 59-30 113t-60 99Zm8-292q-6-43-22-82.5T734-676l56-56q38 45 61 99t29 113h-82ZM441-280v-247L337-423l-56-57 200-200 200 200-57 56-103-103v247h-80Z" />
                                   </svg>
-                                  <span className="mono text-center text-xs font-medium uppercase tracking-tight text-black">
+                                  <span className="mono text-center animate-pulse text-xs font-medium uppercase tracking-tight text-black">
                                     {isUploading
                                       ? "Uploading..."
                                       : position === 0
@@ -2312,31 +2317,31 @@ const ProfilePage = () => {
             </p>
             <h2
               id="sponsor-profile-title"
-              className="mt-3 text-3xl font-bold tracking-tighter text-black"
+              className="mt-3 text-3xl mono uppercase font-semibold tracking-tighter text-black"
             >
               Put your work in front.
             </h2>
-            <p className="mt-3 text-sm leading-tighter text-[#666]">
+            <p className="mt-3 text-sm geist leading-4 font-medium tracking-tight text-[#999]">
               Choose a one-time sponsorship amount to support the directory.
               Payments are securely handled by Polar.
             </p>
-            <div className="mt-6 grid grid-cols-4 gap-2">
+            <div className="mt-6  grid grid-cols-4 gap-2">
               {[500, 1500, 3000, 5000].map((amount) => (
                 <button
                   key={amount}
                   type="button"
                   onClick={() => setSponsorshipAmount(amount)}
-                  className={`rounded-full border px-3 py-2 text-sm font-semibold transition ${
+                  className={`rounded-full border px-2 cursor-pointer py-1 geist tracking-tight text-sm font-semibold transition ${
                     sponsorshipAmount === amount
-                      ? "border-[#1c40f2] bg-[#1c40f2] text-white"
-                      : "border-black/20 text-black hover:border-black"
+                      ? "border-[#1c40f2]/40 bg-[#1c40f2]/30 "
+                      : "border-black/20 text-black hover:bg-[#1c40f2]/30 hover:border-[#1c40f2]/40"
                   }`}
                 >
                   ${(amount / 100).toFixed(0)}
                 </button>
               ))}
             </div>
-            <label className="mt-5 block mono uppercase tracking-tight text-xs font-medium text-black">
+            <label className="mt-5 hidden block mono uppercase tracking-tight text-xs font-medium text-black">
               Or choose your amount
               <div className="mt-2 flex items-center rounded-full border border-black/20 px-4 py-2 focus-within:border-[#1c40f2]">
                 <span className="text-[#666]">$</span>
@@ -2366,7 +2371,7 @@ const ProfilePage = () => {
               <button
                 type="button"
                 onClick={() => setIsSponsorModalOpen(false)}
-                className="rounded-full mono uppercase tracking-tighter border border-black/20 px-2 py-1 text-sm font-medium text-black transition hover:border-black"
+                className="rounded-full mono uppercase tracking-tighter border border-black/20 px-2 py-1 text-xs font-medium text-black transition hover:border-black"
               >
                 Cancel
               </button>
@@ -2374,7 +2379,7 @@ const ProfilePage = () => {
                 type="button"
                 onClick={() => void handleSponsorCheckout()}
                 disabled={startingCheckout}
-                className="rounded-full mono uppercase tracking-tighter bg-black px-2 py-1 text-sm font-medium text-white transition hover:bg-[#1c40f2] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full mono uppercase tracking-tighter bg-black px-2 py-1 text-xs font-medium text-white transition hover:bg-[#1c40f2] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {startingCheckout ? "Opening checkout..." : "Checkout"}
               </button>

@@ -17,6 +17,7 @@ import SignInModal from "./SignInModal";
 const links = [
   { href: "/", label: "Home," },
   { href: "/about", label: "About," },
+  { href: "/events", label: "Events," },
   { href: "/legal", label: "Legal," },
 ];
 
