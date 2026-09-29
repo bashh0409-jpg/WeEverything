@@ -175,8 +175,8 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
             </div>
           </div>
         ) : (
-          <div className="mt-6 space-y-4">
-            <p className="text-xs mono tracking-tight font-medium uppercase text-[#999]">
+          <div className="mt-4 space-y-4">
+            <p className="text-sm mon leading-4 geist tracking-tight font-medium uppercas text-[#999]">
               Continue with Google or GitHub to sign in, or create your profile
               if this is your first visit.
             </p>

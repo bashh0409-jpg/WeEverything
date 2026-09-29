@@ -139,7 +139,7 @@ const PersonCard = ({
           <div className="relative mt-1">
             <p
               ref={bioRef}
-              className="mono line-clamp-4 overflow-hidden text-[11px] font-medium uppercase leading-3 tracking-tight text-[#999]"
+              className="mon geist text-justify line-clamp-4 overflow-hidden text-[12px] font-medium leading-3 tracking-tight text-[#999]"
             >
               {bio}
             </p>
@@ -148,7 +148,7 @@ const PersonCard = ({
                 <span></span>
                 <div className="pointer-events-none  bottom-0 flex max-w-30 w-full justify-end bg-gradient-to-r from-transparent via-[#ffffff]/90 to-[#ffffff] pl-4"><button
                   type="button"
-                  className="pointer-events-auto mono cursor-pointer text-[10px] font-semibold uppercase tracking-tight text-[#1c40f2] hover:underline"
+                  className="pointer-events-auto -mt-1 mon geist cursor-pointer text-[10px] font-semibold uppercas capitalize tracking-tight text-[#1c40f2] hover:underline"
                 >
                   See more
                 </button>

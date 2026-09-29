@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { Resend } from "resend";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -91,6 +92,32 @@ export async function GET(request: Request) {
             "Could not create profile for authenticated user",
             profileError,
           );
+        }
+
+        if (
+          !profileLookupError &&
+          !existingProfile &&
+          !profileError &&
+          user.email &&
+          process.env.RESEND_API_KEY &&
+          process.env.RESEND_FROM_EMAIL
+        ) {
+          try {
+            const { error: emailError } = await new Resend(
+              process.env.RESEND_API_KEY,
+            ).emails.send({
+              from: process.env.RESEND_FROM_EMAIL,
+              to: user.email,
+              subject: "Welcome to WeEverything",
+              text: `Hi ${name},\n\nWelcome to WeEverything! Your account is ready. Complete your profile and share your work with the community.\n\nVisit ${new URL("/profile", process.env.NEXT_PUBLIC_SITE_URL ?? "https://weeverything.xyz").toString()} to get started.\n\nThe WeEverything team`,
+            });
+
+            if (emailError) {
+              console.error("Could not send welcome email", emailError);
+            }
+          } catch (emailError) {
+            console.error("Could not send welcome email", emailError);
+          }
         }
 
         if (!profileLookupError && !existingProfile && next === "/profile") {

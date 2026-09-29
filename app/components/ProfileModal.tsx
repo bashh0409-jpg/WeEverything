@@ -402,7 +402,7 @@ const ProfileModal = ({
               About Me
             </span>
 
-            <span className="text-sm font-medium leading-4 tracking-tight">
+            <span className="whitespace-pre-line text-sm font-medium leading-4 tracking-tight">
               {formattedBio}
             </span>
           </div>

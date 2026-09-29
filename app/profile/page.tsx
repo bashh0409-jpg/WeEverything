@@ -502,6 +502,7 @@ const ProfilePage = () => {
   const [shareLabel, setShareLabel] = useState("Share profile");
   const bioInputRef = useRef<HTMLTextAreaElement>(null);
   const profileFormRef = useRef<HTMLFormElement>(null);
+  const loadedProfileUserId = useRef<string | null>(null);
   const [message, setMessage] = useState(() =>
     supabase
       ? ""
@@ -517,6 +518,7 @@ const ProfilePage = () => {
 
     const loadProfile = async (currentUser: User | null) => {
       if (!currentUser) {
+        loadedProfileUserId.current = null;
         if (!isMounted) return;
 
         setUser(null);
@@ -533,6 +535,9 @@ const ProfilePage = () => {
         setLoading(false);
         return;
       }
+
+      if (loadedProfileUserId.current === currentUser.id) return;
+      loadedProfileUserId.current = currentUser.id;
 
       setLoading(true);
       setUser(currentUser);
@@ -596,7 +601,7 @@ const ProfilePage = () => {
         ),
       );
 
-      if (!isMounted) return;
+      if (!isMounted || loadedProfileUserId.current !== currentUser.id) return;
 
       const errors = [
         profileResult.error,
@@ -1639,7 +1644,7 @@ const ProfilePage = () => {
                   </button>
                 </div>
 
-                <p className="mt-2 text-sm geist  leading-4 tracking-tight font-medium text-[#444] ">
+                <p className="mt-2 whitespace-pre-line text-sm geist leading-4 tracking-tight font-medium text-[#444]">
                   {activeForm.bio ||
                     "Add a short introduction so the community knows what you make and how you work."}
                 </p>
@@ -1923,7 +1928,7 @@ const ProfilePage = () => {
 
                   <div className="mt-8 grid gap-6 md:grid-cols-2">
                     <label className="text-sm mono uppercase tracking-tight text-[#999] font-medium">
-                      Name <span>*</span>
+                      Full Name <span>*</span>
                       <input
                         required
                         name="name"
@@ -2007,8 +2012,8 @@ const ProfilePage = () => {
                       placeholder="Tell people what you do in at least 20 words."
                       className="mt-2 w-full text-black geist resize-y border border-black/15 bg-transparent rounded p-3 outline-none transition placeholder:text-[#aaa] focus:border-[#1c40f2]/50  focus:border-2"
                     />
-                    <p className="mt-2 text-xs font-medium capitalize mono uppercase text-[#999]">
-                      {countWords(activeForm.bio)} / 20 words minimum
+                    <p className="mt-2 text-xs geist font-medium capitalize mon uppercase text-[#999]">
+                      {countWords(activeForm.bio)} / 20  <span className="text-[#999] mono"> words min</span>
                     </p>
                   </label>
 
@@ -2396,16 +2401,14 @@ const ProfilePage = () => {
           aria-labelledby="delete-account-title"
         >
           <div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-5 shadow-2xl">
-            <p className=" text-xs font-semibold uppercase tracking-[0.1em] text-red-500">
-              Delete account
-            </p>
+           
             <h2
               id="delete-account-title"
-              className="mt-3 text-3xl font-bold tracking-tighter text-black"
+              className="mt-3 text-3xl geist font-bold tracking-tighter text-black"
             >
-              Are you sure?
+              Are you sure you want to delete your account?
             </h2>
-            <p className="mt-3 text-sm mono leading-tight text-[#666]">
+            <p className="mt-3 text-xs uppercase mono  font-medium tracking-tight leading-tight text-[#666]">
               This permanently deletes your profile, uploaded media, links, and
               account. This action cannot be undone.
             </p>
@@ -2413,14 +2416,14 @@ const ProfilePage = () => {
               <button
                 type="button"
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="rounded-full border border-black/20 px-4 py-2 text-sm font-semibold text-black transition hover:border-black"
+                className="rounded-full mono border border-black/20 px-3 py-1 text-xs font-medium uppercase tracking-tight text-black transition hover:border-black"
               >
                 Keep account
               </button>
               <button
                 type="button"
                 onClick={() => void handleDeleteAccount()}
-                className="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full bg-red-600 px-3 py-1 mono text-xs font-medium uppercase tracking-tight text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={deletingAccount}
               >
                 Delete
