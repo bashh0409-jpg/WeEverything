@@ -127,9 +127,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
           </svg>
         </button>
 
-        
-
-        <p className="text-xs font-medium uppercase tr mono text-[#999]">
+        <p className="text-xs font-medium uppercase t mono text-[#999]">
           Welcome to WeEverything
         </p>
 
@@ -148,10 +146,10 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
         ) : user ? (
           <div className="mt-6 space-y-4">
             <div className="rounded border border-black/10 bg-[#f7f7f7] p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-[#999]">
+              <p className="text-sm mon leading-4 geist tracking-tight font-medium uppercas text-[#999]">
                 Signed in as
               </p>
-              <p className="mt-2 text-base font-semibold text-black">
+              <p className="text-sm mon leading-4 geist tracking-tight font-medium uppercas text-[#1c40f2]">
                 {user.email}
               </p>
             </div>
@@ -160,7 +158,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
               <Link
                 href="/submit"
                 onClick={onClose}
-                className="cursor-pointer rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1c40f2]"
+                className="cursor-pointer rounded-full bg-black px-3 py-1 mono text-sm font-medium text-white transition hover:bg-[#1c40f2]"
               >
                 Go to submit page
               </Link>
@@ -168,7 +166,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="cursor-pointer rounded-full border border-black/20 px-4 py-2 text-sm font-semibold text-black transition hover:border-black"
+                className="cursor-pointer rounded-full border border-black/20 px-3 py-1 text-sm font-medium text-black transition hover:border-black"
               >
                 Sign out
               </button>

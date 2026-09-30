@@ -2317,16 +2317,16 @@ const ProfilePage = () => {
           aria-labelledby="sponsor-profile-title"
         >
           <div className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-5 shadow-2xl">
-            <p className="mono text-xs font-semibold uppercase tracking-[0.1em] text-[#1c40f2]">
+            <p className="mono text-xs font-semibold uppercase tracking-tight text-[#1c40f2]">
               Sponsor profile
             </p>
             <h2
               id="sponsor-profile-title"
-              className="mt-3 text-3xl mono uppercase font-semibold tracking-tighter text-black"
+              className="mt-3 text-3xl geist  font-semibold tracking-tighter text-black"
             >
               Put your work in front.
             </h2>
-            <p className="mt-3 text-sm geist leading-4 font-medium tracking-tight text-[#999]">
+            <p className="mt-3 text-sm geist leading-5 font-medium tracking-tight text-[#999]">
               Choose a one-time sponsorship amount to support the directory.
               Payments are securely handled by Polar.
             </p>
@@ -2372,7 +2372,7 @@ const ProfilePage = () => {
                 <span className="geist">10,000 </span>USD.
               </span>
             </label>
-            <div className="mt-6 flex flex-wrap justify-end gap-3">
+            <div className="mt-6 flex flex-wrap justify- gap-3">
               <button
                 type="button"
                 onClick={() => setIsSponsorModalOpen(false)}

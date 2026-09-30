@@ -66,6 +66,37 @@ body::-webkit-scrollbar {
   color: #dfbf00;
 }
 
+.about-photo-enter {
+  animation: about-photo-enter 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.about-content-enter {
+  animation: about-content-enter 700ms 120ms cubic-bezier(0.16, 1, 0.3, 1)
+    both;
+}
+
+@keyframes about-photo-enter {
+  from {
+    opacity: 0.7;
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes about-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .geist {
   font-family: var(--font-geist-sans), sans-serif;
 }
@@ -113,36 +144,6 @@ body::-webkit-scrollbar {
 .startup-screen-year,
 .startup-screen-percentage {
   font-weight: 600;
-
-  text-transform: uppercase;
-}
-
-.startup-screen-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.startup-screen-name {
-  font-size: clamp(3.5rem, 12vw, 10rem);
-  font-weight: 600;
-  letter-spacing: -0.06em;
-  line-height: 0.9;
-}
-
-.startup-screen-progress {
-  position: absolute;
-  right: 24px;
-  bottom: 24px;
-  left: 24px;
-  height: 1px;
-  overflow: hidden;
-  background: rgb(255 255 255 / 35%);
-}
-
-.startup-screen-progress span {
-  display: block;
-  height: 100%;
   min-width: 0;
   background: #fff;
   transition: width 120ms linear;
@@ -177,6 +178,11 @@ body::-webkit-scrollbar {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .about-photo-enter,
+  .about-content-enter {
+    animation: none;
+  }
+
   .startup-screen,
   .startup-screen-leaving,
   .startup-screen-progress span {

@@ -410,8 +410,8 @@ const Page = () => {
               All Profiles ({profiles.length})
             </button>
 
-            <div className="mt-8 flex geist flex-wrap  flex-col  justify-between gap-4">
-              <div className="flex items-center gap-2">
+            <div className="mt-2 flex geist flex-wrap  flex-col  justify-between gap-4">
+              <div className="flex hidden items-center gap-2">
                 <span className="text-xs  font-semibold uppercase tracking-tight text-[#999]">
                   View
                 </span>
@@ -461,8 +461,8 @@ const Page = () => {
                   onClick={() => setShowSavedProfiles((current) => !current)}
                   className={
                     showSavedProfiles
-                      ? "cursor-pointer text-black transition-all duration-500"
-                      : "cursor-pointer transition-all duration-400 hover:text-black"
+                      ? "cursor-pointer hidden text-black transition-all duration-500"
+                      : "cursor-pointer hidden transition-all duration-400 hover:text-black"
                   }
                 >
                   Saved ({savedProfileIds.length})
@@ -476,7 +476,7 @@ const Page = () => {
                     }}
                     className={
                       roleFilter === role
-                        ? "cursor-pointer tracking-tight text-black transition-all duration-500"
+                        ? "cursor-pointer tracking-tight  text-black transition-all duration-500"
                         : "cursor-pointer transition-all duration-400 hover:text-black"
                     }
                   >
