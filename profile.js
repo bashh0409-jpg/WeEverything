@@ -1,5 +1,5 @@
 import http from "k6/http";
-import { check } from "k6";
+import { check, group } from "k6";
 
 const baseUrl = (__ENV.BASE_URL || "http://localhost:3000").replace(/\/$/, "");
 
@@ -20,18 +20,25 @@ export const options = {
   },
   thresholds: {
     http_req_failed: ["rate<0.01"],
-    http_req_duration: ["p(95)<800"],
+    "http_req_duration{name:home}": ["p(95)<300"],
+    "http_req_duration{name:profiles_api}": ["p(95)<1000"],
   },
 };
 
 export default function () {
-  const home = http.get(`${baseUrl}/`);
-  check(home, { "home returns 200": (response) => response.status === 200 });
+  group("homepage", () => {
+    const home = http.get(`${baseUrl}/`, { tags: { name: "home" } });
+    check(home, { "home returns 200": (r) => r.status === 200 });
+  });
 
-  const profiles = http.get(`${baseUrl}/api/profiles?offset=0`);
-  check(profiles, {
-    "profiles returns 200": (response) => response.status === 200,
-    "profiles returns JSON": (response) =>
-      response.headers["Content-Type"]?.includes("application/json"),
+  group("profiles API", () => {
+    const profiles = http.get(`${baseUrl}/api/profiles?offset=0`, {
+      tags: { name: "profiles_api" },
+    });
+    check(profiles, {
+      "profiles returns 200": (r) => r.status === 200,
+      "profiles returns JSON": (r) =>
+        r.headers["Content-Type"]?.includes("application/json"),
+    });
   });
 }

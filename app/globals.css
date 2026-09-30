@@ -55,6 +55,10 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.directory-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
 body::-webkit-scrollbar {
   display: none;
 }
@@ -138,7 +142,6 @@ body::-webkit-scrollbar {
   gap: 12px;
   max-width: 100%;
 }
-
 
 .startup-screen-name {
   color: #fff;

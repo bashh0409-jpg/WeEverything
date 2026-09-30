@@ -6,7 +6,6 @@ import {
   FaDribbble,
   FaFacebookF,
   FaGithub,
-  FaGlobe,
   FaInstagram,
   FaLinkedinIn,
   FaThreads,

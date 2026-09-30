@@ -1,0 +1,219 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+
+export interface DirectoryProfile {
+  id: string | number;
+  name: string;
+  role: string;
+  bio: string | null;
+  location?: string | null;
+  avatarUrl?: string;
+}
+
+interface DirectorySearchModalProps<TProfile extends DirectoryProfile> {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectProfile: (profile: TProfile) => void;
+  profiles: readonly TProfile[];
+  recentlyViewedProfileIds: readonly string[];
+}
+
+const MAX_RESULTS = 8;
+
+const getInitials = (name: string): string =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 1)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+
+export default function DirectorySearchModal<
+  TProfile extends DirectoryProfile,
+>({
+  isOpen,
+  onClose,
+  onSelectProfile,
+  profiles,
+  recentlyViewedProfileIds,
+}: DirectorySearchModalProps<TProfile>) {
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    inputRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  const needle = query.trim().toLowerCase();
+
+  const matchingProfiles = useMemo(() => {
+    if (!needle) return [];
+
+    return profiles
+      .filter((profile) =>
+        [profile.name, profile.role, profile.location ?? ""].some((field) =>
+          field.toLowerCase().includes(needle),
+        ),
+      )
+      .sort(
+        (a, b) =>
+          Number(!a.name.toLowerCase().startsWith(needle)) -
+          Number(!b.name.toLowerCase().startsWith(needle)),
+      );
+  }, [profiles, needle]);
+  const totalMatches = matchingProfiles.length;
+  const matches = matchingProfiles.slice(0, MAX_RESULTS);
+
+  const recentlyViewedProfiles = useMemo(() => {
+    const profilesById = new Map(
+      profiles.map((profile) => [String(profile.id), profile]),
+    );
+
+    return recentlyViewedProfileIds
+      .map((id) => profilesById.get(id))
+      .filter((profile): profile is TProfile => Boolean(profile))
+      .slice(0, MAX_RESULTS);
+  }, [profiles, recentlyViewedProfileIds]);
+
+  const displayedProfiles = needle ? matches : recentlyViewedProfiles;
+
+  if (!isOpen) return null;
+
+  return (
+    <section
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="directory-search-title"
+      className="fixed inset-0 geist z-50 min-h-dvh overflow-y-auto bg-[#999] px-6"
+    >
+      <h2 id="directory-search-title" className="sr-only">
+        Search profiles
+      </h2>
+
+      <button
+        type="button"
+        aria-label="Close search"
+        onClick={onClose}
+        className="fixed right-6 top-6 flex h-11 w-11 items-center justify-center text-white/70 transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="h-6 w-6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <path d="m6 6 12 12M18 6 6 18" />
+        </svg>
+      </button>
+
+      <div className="mx-auto min-h-dvh w-full max-w-xl pt-[30vh] pb-12">
+        {/* The input stays visually dominant while results remain close enough to scan quickly. */}
+        <div className="flex w-full items-center border-b-2 border-white/60 focus-within:border-white/70">
+          <input
+            ref={inputRef}
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search"
+            aria-label="Search profiles"
+            className="directory-search-input w-full min-w-0 border-0 bg-transparent px-0 text-lg font-medium tracking-tight text-white outline-none placeholder:text-white/30 sm:text-6xl"
+          />
+          {query && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={() => {
+                setQuery("");
+                inputRef.current?.focus();
+              }}
+              className="ml-4 flex h-11 w-11 shrink-0 items-center justify-center text-white transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 -960 960 960"
+                width="24px"
+                fill="currentColor"
+              >
+                <path d="m456-320 104-104 104 104 56-56-104-104 104-104-56-56-104 104-104-104-56 56 104 104-104 104 56 56Zm-96 160q-19 0-36-8.5T296-192L80-480l216-288q11-15 28-23.5t36-8.5h440q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H360ZM180-480l180 240h440v-480H360L180-480Zm400 0Z" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {(needle || recentlyViewedProfiles.length > 0) && (
+          <div className="mt-8">
+            {needle && (
+              <p
+                aria-live="polite"
+                className="mb-3 text-sm capitaliz font-medium tracking-tight text-white"
+              >
+                {totalMatches === 0
+                  ? "No results found. Try searching for a different name or role."
+                  : `${totalMatches} ${totalMatches === 1 ? "result" : "results"}${totalMatches > matches.length ? ` · Showing ${matches.length}` : ""}`}
+              </p>
+            )}
+            {!needle && (
+              <p className="mb-3 text-xs mono capitalize font-medium tracking-tight uppercase text-white">
+                Recently viewed
+              </p>
+            )}
+            {displayedProfiles.length > 0 ? (
+              <div className="divide-y divide-white/10">
+                {displayedProfiles.map((profile) => (
+                  <button
+                    key={profile.id}
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onSelectProfile(profile);
+                    }}
+                    className="group flex w-full gap-4 py-4 text-left "
+                  >
+                    {profile.avatarUrl ? (
+                      // Remote avatar hosts are intentionally rendered without next/image configuration.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={profile.avatarUrl}
+                        alt=""
+                        className="h-8 w-8 shrink-0 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-8 w-8  shrink-0 items-center justify-center rounded-full bg-white text-2xl font-semibold text-black">
+                        {getInitials(profile.name)}
+                      </span>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text- -mt-1 uppercase mono font-medium tracking-tight text-white">
+                        {profile.name}
+                      </p>
+
+                      <p className="mon geist text-justify line-clamp-3 overflow-hidden text-[12px] font-semibold leading-3 tracking-tight text-white">
+                        {profile.bio}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}

@@ -16,7 +16,6 @@ import {
   FaEnvelope,
   FaFacebookF,
   FaGithub,
-  FaGlobe,
   FaInstagram,
   FaLinkedinIn,
   FaThreads,
@@ -2484,7 +2483,7 @@ const ProfilePage = () => {
             >
               Are you sure you want to delete your account?
             </h2>
-            <p className="mt-3 text-xs uppercase mono  font-medium tracking-tight leading-tight text-[#666]">
+            <p className="mt-3 text-sm geist  font-medium tracking-tight leading-tight text-[#999]">
               This permanently deletes your profile, uploaded media, links, and
               account. This action cannot be undone.
             </p>

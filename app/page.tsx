@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { useEffect } from "react";
+import { useRef } from "react";
+import { FaMagnifyingGlass } from "react-icons/fa6";
 import Navbar from "./components/Navbar";
 import PersonCard from "./components/PersonCard";
 import ProfileModal from "./components/ProfileModal";
 import Footer from "./components/Footer";
 import { getProfileHandle } from "@/lib/profile-handle";
 import { readProfileCache, writeProfileCache } from "@/lib/profile-cache";
+import DirectorySearchModal from "./components/Directorysearchmodal";
 
 const roles = [
   "All",
@@ -19,6 +22,27 @@ const roles = [
 ] as const;
 
 type RoleFilter = (typeof roles)[number];
+
+type DirectoryFilters = {
+  query: string;
+  role: RoleFilter;
+  location: string;
+};
+
+const getDirectoryFilters = (): DirectoryFilters => {
+  if (typeof window === "undefined") {
+    return { query: "", role: "All", location: "" };
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const requestedRole = searchParams.get("role");
+
+  return {
+    query: searchParams.get("q") ?? "",
+    role: roles.find((role) => role === requestedRole) ?? "All",
+    location: searchParams.get("location") ?? "",
+  };
+};
 
 type Profile = {
   id: string;
@@ -57,6 +81,7 @@ const EMPTY_EVENT_SUGGESTION: EventSuggestion = {
 
 const PROFILE_PAGE_SIZE = 40;
 const SAVED_PROFILES_KEY = "weeverything:saved-profiles";
+const RECENTLY_VIEWED_PROFILES_KEY = "weeverything:recently-viewed-profiles";
 const STARTUP_DATA_READY_EVENT = "weeverything:data-ready";
 
 const signalStartupDataReady = () => {
@@ -82,17 +107,20 @@ const normalizeRole = (role: string): RoleFilter => {
 
 const Page = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("All");
-
-  const cachedProfiles = readProfileCache();
-  const hasCachedProfiles = Boolean(cachedProfiles?.length);
-
-  const [profiles, setProfiles] = useState<Profile[]>(() =>
-    hasCachedProfiles ? (cachedProfiles as Profile[]) : [],
-  );
-  const [loading, setLoading] = useState(!hasCachedProfiles);
+  const [locationFilter, setLocationFilter] = useState("");
+  const [filtersReady, setFiltersReady] = useState(false);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [recentlyViewedProfileIds, setRecentlyViewedProfileIds] = useState<
+    string[]
+  >([]);
+  const searchTriggerRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [savedProfileIds, setSavedProfileIds] = useState<string[]>([]);
   const [showSavedProfiles, setShowSavedProfiles] = useState(false);
   const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
@@ -104,6 +132,68 @@ const Page = () => {
     type: "success" | "error";
     message: string;
   } | null>(null);
+
+  useEffect(() => {
+    const syncFiltersFromUrl = () => {
+      const filters = getDirectoryFilters();
+      setSearchQuery(filters.query);
+      setRoleFilter(filters.role);
+      setLocationFilter(filters.location);
+      setFiltersReady(true);
+    };
+
+    window.addEventListener("popstate", syncFiltersFromUrl);
+    const initialSync = window.setTimeout(syncFiltersFromUrl, 0);
+    return () => {
+      window.clearTimeout(initialSync);
+      window.removeEventListener("popstate", syncFiltersFromUrl);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isSearchOpen) return;
+
+    const searchTrigger = searchTriggerRef.current;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    searchInputRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsSearchOpen(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+      searchTrigger?.focus();
+    };
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    if (!filtersReady) return;
+
+    const url = new URL(window.location.href);
+    const query = searchQuery.trim();
+
+    if (query) url.searchParams.set("q", query);
+    else url.searchParams.delete("q");
+
+    if (roleFilter !== "All") url.searchParams.set("role", roleFilter);
+    else url.searchParams.delete("role");
+
+    if (locationFilter) url.searchParams.set("location", locationFilter);
+    else url.searchParams.delete("location");
+
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+  }, [filtersReady, searchQuery, roleFilter, locationFilter]);
 
   const toggleSavedProfile = (profileId: string) => {
     setSavedProfileIds((currentIds) => {
@@ -117,13 +207,25 @@ const Page = () => {
   };
 
   const openProfile = (profile: Profile) => {
+    const nextRecentlyViewedIds = [
+      profile.id,
+      ...recentlyViewedProfileIds.filter((id) => id !== profile.id),
+    ].slice(0, 8);
+    window.localStorage.setItem(
+      RECENTLY_VIEWED_PROFILES_KEY,
+      JSON.stringify(nextRecentlyViewedIds),
+    );
+    setRecentlyViewedProfileIds(nextRecentlyViewedIds);
+
     setSelectedProfile(profile);
     const profileHandle =
       profile.handle || getProfileHandle(profile.name) || profile.id;
+    const profileUrl = new URL(window.location.href);
+    profileUrl.searchParams.set("profile", profileHandle);
     window.history.pushState(
-      {},
+      window.history.state,
       "",
-      `/?profile=${encodeURIComponent(profileHandle)}`,
+      `${profileUrl.pathname}${profileUrl.search}${profileUrl.hash}`,
     );
 
     void fetch(`/api/profiles?profile=${encodeURIComponent(profileHandle)}`, {
@@ -141,9 +243,42 @@ const Page = () => {
       .catch(() => undefined);
   };
 
+  useEffect(() => {
+    let timeoutId: number | undefined;
+
+    try {
+      const storedIds = window.localStorage.getItem(
+        RECENTLY_VIEWED_PROFILES_KEY,
+      );
+      const parsedIds: unknown = storedIds ? JSON.parse(storedIds) : [];
+
+      if (Array.isArray(parsedIds)) {
+        const recentIds = parsedIds
+          .filter((id): id is string => typeof id === "string")
+          .slice(0, 8);
+        timeoutId = window.setTimeout(
+          () => setRecentlyViewedProfileIds(recentIds),
+          0,
+        );
+      }
+    } catch {
+      window.localStorage.removeItem(RECENTLY_VIEWED_PROFILES_KEY);
+    }
+
+    return () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, []);
+
   const closeProfile = () => {
     setSelectedProfile(null);
-    window.history.replaceState({}, "", window.location.pathname);
+    const profileUrl = new URL(window.location.href);
+    profileUrl.searchParams.delete("profile");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${profileUrl.pathname}${profileUrl.search}${profileUrl.hash}`,
+    );
   };
 
   useEffect(() => {
@@ -197,6 +332,18 @@ const Page = () => {
 
   useEffect(() => {
     let isMounted = true;
+    let cacheSync: number | undefined;
+    const cachedProfiles = readProfileCache();
+    const hasCachedProfiles = Boolean(cachedProfiles?.length);
+
+    if (hasCachedProfiles) {
+      cacheSync = window.setTimeout(() => {
+        if (!isMounted) return;
+        setProfiles(cachedProfiles as Profile[]);
+        setLoading(false);
+        signalStartupDataReady();
+      }, 0);
+    }
 
     const fetchProfilePage = async (offset: number) => {
       const response = await fetch(`/api/profiles?offset=${offset}`, {
@@ -216,8 +363,6 @@ const Page = () => {
     };
 
     const loadProfiles = async () => {
-      if (hasCachedProfiles) signalStartupDataReady();
-
       try {
         const firstPage = await fetchProfilePage(0);
         if (!isMounted) return;
@@ -274,19 +419,48 @@ const Page = () => {
 
     return () => {
       isMounted = false;
+      if (cacheSync !== undefined) window.clearTimeout(cacheSync);
     };
-  }, [hasCachedProfiles]);
+  }, []);
+
+  const locations = Array.from(
+    new Map(
+      profiles
+        .map((profile) => profile.location?.trim())
+        .filter((location): location is string => Boolean(location))
+        .map((location) => [location.toLocaleLowerCase(), location] as const),
+    ).values(),
+  ).sort((firstLocation, secondLocation) =>
+    firstLocation.localeCompare(secondLocation),
+  );
+  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase();
 
   const filteredProfiles = [...profiles]
     .filter(
       (profile) =>
         (roleFilter === "All" || normalizeRole(profile.role) === roleFilter) &&
+        (!locationFilter ||
+          profile.location?.trim().toLocaleLowerCase() ===
+            locationFilter.toLocaleLowerCase()) &&
+        (!normalizedSearchQuery ||
+          [
+            profile.name,
+            profile.bio,
+            profile.role,
+            profile.location,
+            profile.awards,
+          ]
+            .filter(Boolean)
+            .some((value) =>
+              value!.toLocaleLowerCase().includes(normalizedSearchQuery),
+            )) &&
         (!showSavedProfiles || savedProfileIds.includes(profile.id)),
     )
     .sort(
       (firstProfile, secondProfile) =>
         Number(secondProfile.is_sponsored) - Number(firstProfile.is_sponsored),
     );
+  const searchResults = filteredProfiles.slice(0, 12);
 
   const handleSuggestionChange = (
     field: keyof EventSuggestion,
@@ -396,10 +570,12 @@ const Page = () => {
         </div>
 
         <section className="w-full">
-          <div className="mt-20 w-full max-w-lg">
+          <div className="mt-20 flex w-full max-w-lg items-center justify-between gap-4">
             <button
               onClick={() => {
                 setRoleFilter("All");
+                setSearchQuery("");
+                setLocationFilter("");
               }}
               className={
                 roleFilter === "All"
@@ -418,87 +594,75 @@ const Page = () => {
                   <path d="m560-120-57-57 144-143H200v-480h80v400h367L503-544l56-57 241 241-240 240Z" />
                 </svg>
               </span>
-              All Profiles ({profiles.length})
+              {searchQuery.trim() || locationFilter || roleFilter !== "All"
+                ? "Matching Profiles"
+                : "All Profiles"}{" "}
+              ({filteredProfiles.length})
             </button>
+          </div>
 
-            <div className="mt-2 flex geist flex-wrap  flex-col  justify-between gap-4">
-              <div className="flex hidden items-center gap-2">
-                <span className="text-xs  font-semibold uppercase tracking-tight text-[#999]">
-                  View
-                </span>
+          <div className="mt-4 flex geist flex-wrap  flex-col  justify-between gap-4">
+            <div className="flex flex-wrap gap-4 overflow-y-auto text-xs font-semibold uppercase tracking-tight text-[#999]">
+              <button
+                type="button"
+                onClick={() => setShowSavedProfiles((current) => !current)}
+                className={
+                  showSavedProfiles
+                    ? "cursor-pointer hidden text-black transition-all duration-500"
+                    : "cursor-pointer hidden transition-all duration-400 hover:text-black"
+                }
+              >
+                Saved ({savedProfileIds.length})
+              </button>
+              {roles.slice(1, 6).map((role) => (
                 <button
+                  key={role}
                   type="button"
-                  aria-label="Grid view"
-                  aria-pressed={viewMode === "grid"}
                   onClick={() => {
-                    setViewMode("grid");
+                    setRoleFilter(role);
                   }}
-                  className={`cursor-pointer rounded px-1 transition-all duration-400 ${viewMode === "grid" ? "text-black" : "text-[#999] hover:text-black"}`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    height="14px"
-                    viewBox="0 -960 960 960"
-                    width="14px"
-                    fill="currentColor"
-                  >
-                    <path d="M120-120v-720h720v720H120Zm640-80v-240H520v240h240Zm0-560H520v240h240v-240Zm-560 0v240h240v-240H200Zm0 560h240v-240H200v240Z" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  aria-label="List view"
-                  aria-pressed={viewMode === "list"}
-                  onClick={() => {
-                    setViewMode("list");
-                  }}
-                  className={`cursor-pointer rounded px-1 transition-all duration-400 ${viewMode === "list" ? "text-black" : "text-[#999] hover:text-black"}`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    height="14px"
-                    viewBox="0 -960 960 960"
-                    width="14px"
-                    fill="currentColor"
-                  >
-                    <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="flex flex-wrap gap-4 overflow-y-auto text-xs font-semibold uppercase tracking-tight text-[#999]">
-                <button
-                  type="button"
-                  onClick={() => setShowSavedProfiles((current) => !current)}
                   className={
-                    showSavedProfiles
-                      ? "cursor-pointer hidden text-black transition-all duration-500"
-                      : "cursor-pointer hidden transition-all duration-400 hover:text-black"
+                    roleFilter === role
+                      ? "cursor-pointer tracking-tight  text-black transition-all duration-500"
+                      : "cursor-pointer transition-all duration-400 hover:text-black"
                   }
                 >
-                  Saved ({savedProfileIds.length})
+                  {role}
                 </button>
-                {roles.slice(1, 6).map((role) => (
-                  <button
-                    key={role}
-                    type="button"
-                    onClick={() => {
-                      setRoleFilter(role);
-                    }}
-                    className={
-                      roleFilter === role
-                        ? "cursor-pointer tracking-tight  text-black transition-all duration-500"
-                        : "cursor-pointer transition-all duration-400 hover:text-black"
-                    }
-                  >
-                    {role}
-                  </button>
-                ))}
-              </div>
+              ))}
+            </div>{" "}
+            <div className="flex  items-center gap-2">
+              <button
+                ref={searchTriggerRef}
+                type="button"
+                aria-label="Search profiles"
+                title="Search profiles"
+                onClick={() => setIsSearchOpen(true)}
+                className={`cursor-pointer flex items-center gap-1 rounded px-1 transition-all duration-400 ${viewMode === "grid" ? "text-black" : "text-[#999] hover:text-black"}`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="size-4"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                  />
+                </svg>
+
+                <span className="text-xs  font-semibold uppercase tracking-tight text-[#999]">
+                  Search
+                </span>
+              </button>
             </div>
-          </div>{" "}
+          </div>
         </section>
-       
+
         <section className="mt-10 grid w-full  grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {loading ? (
             <div
@@ -531,9 +695,11 @@ const Page = () => {
             </p>
           ) : filteredProfiles.length === 0 ? (
             <p className="text-sm mono  font-medium tracking-tight uppercase text-[#999]">
-              {showSavedProfiles
-                ? "No saved profiles yet."
-                : "No published profiles yet."}
+              {searchQuery.trim() || locationFilter || roleFilter !== "All"
+                ? "No profiles match these filters."
+                : showSavedProfiles
+                  ? "No saved profiles yet."
+                  : "No published profiles yet."}
             </p>
           ) : (
             filteredProfiles.map((profile) => (
@@ -552,6 +718,15 @@ const Page = () => {
         </section>
       </main>
       <Footer />
+      {isSearchOpen ? (
+        <DirectorySearchModal
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          onSelectProfile={openProfile}
+          profiles={profiles}
+          recentlyViewedProfileIds={recentlyViewedProfileIds}
+        />
+      ) : null}
       {isSuggestionModalOpen ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-3xl rounded-[28px] bg-white p-6 shadow-2xl">
