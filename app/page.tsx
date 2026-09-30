@@ -120,7 +120,6 @@ const Page = () => {
     string[]
   >([]);
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const [savedProfileIds, setSavedProfileIds] = useState<string[]>([]);
   const [showSavedProfiles, setShowSavedProfiles] = useState(false);
   const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
@@ -158,17 +157,9 @@ const Page = () => {
     const previousHtmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
-    searchInputRef.current?.focus();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsSearchOpen(false);
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
     return () => {
       document.body.style.overflow = previousBodyOverflow;
       document.documentElement.style.overflow = previousHtmlOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
       searchTrigger?.focus();
     };
   }, [isSearchOpen]);

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { gsap } from "gsap";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 export interface DirectoryProfile {
   id: string | number;
@@ -41,6 +42,61 @@ export default function DirectorySearchModal<
 }: DirectorySearchModalProps<TProfile>) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const isClosingRef = useRef(false);
+  const closeHandlerRef = useRef<() => void>(() => {});
+
+  const closeModal = (afterClose?: () => void) => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+
+    const dialog = dialogRef.current;
+    const content = contentRef.current;
+    if (!dialog || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      onClose();
+      afterClose?.();
+      return;
+    }
+
+    gsap.set(dialog, { pointerEvents: "none" });
+    gsap
+      .timeline({
+        onComplete: () => {
+          onClose();
+          afterClose?.();
+        },
+      })
+      .to(content, { y: -12, autoAlpha: 0, duration: 0.2, ease: "power2.in" })
+      .to(dialog, { autoAlpha: 0, duration: 0.28, ease: "power2.in" }, 0);
+  };
+
+  useLayoutEffect(() => {
+    closeHandlerRef.current = () => closeModal();
+  });
+
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    const content = contentRef.current;
+    if (!dialog || !content) return;
+
+    const context = gsap.context(() => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      gsap.fromTo(
+        dialog,
+        { autoAlpha: 0 },
+        { autoAlpha: 1, duration: 0.32, ease: "power2.out" },
+      );
+      gsap.fromTo(
+        content,
+        { y: 18, autoAlpha: 0 },
+        { y: 0, autoAlpha: 1, duration: 0.48, ease: "power3.out" },
+      );
+    }, dialog);
+
+    return () => context.revert();
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -48,13 +104,13 @@ export default function DirectorySearchModal<
     inputRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") closeHandlerRef.current();
     };
 
     window.addEventListener("keydown", handleKeyDown);
 
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   const needle = query.trim().toLowerCase();
 
@@ -93,6 +149,7 @@ export default function DirectorySearchModal<
 
   return (
     <section
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="directory-search-title"
@@ -105,7 +162,7 @@ export default function DirectorySearchModal<
       <button
         type="button"
         aria-label="Close search"
-        onClick={onClose}
+        onClick={() => closeModal()}
         className="fixed right-6 top-6 flex h-11 w-11 items-center justify-center text-white/70 transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
       >
         <svg
@@ -120,7 +177,10 @@ export default function DirectorySearchModal<
         </svg>
       </button>
 
-      <div className="mx-auto min-h-dvh w-full max-w-xl pt-[30vh] pb-12">
+      <div
+        ref={contentRef}
+        className="mx-auto min-h-dvh w-full max-w-xl pt-[30vh] pb-12"
+      >
         {/* The input stays visually dominant while results remain close enough to scan quickly. */}
         <div className="flex w-full items-center border-b-2 border-white/60 focus-within:border-white/70">
           <input
@@ -179,8 +239,7 @@ export default function DirectorySearchModal<
                     key={profile.id}
                     type="button"
                     onClick={() => {
-                      onClose();
-                      onSelectProfile(profile);
+                      closeModal(() => onSelectProfile(profile));
                     }}
                     className="group flex w-full gap-4 py-4 text-left "
                   >
