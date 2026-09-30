@@ -57,6 +57,12 @@ const EMPTY_EVENT_SUGGESTION: EventSuggestion = {
 
 const PROFILE_PAGE_SIZE = 40;
 const SAVED_PROFILES_KEY = "weeverything:saved-profiles";
+const STARTUP_DATA_READY_EVENT = "weeverything:data-ready";
+
+const signalStartupDataReady = () => {
+  document.documentElement.dataset.startupDataReady = "true";
+  window.dispatchEvent(new Event(STARTUP_DATA_READY_EVENT));
+};
 
 const normalizeRole = (role: string): RoleFilter => {
   const roleLabels: Record<string, RoleFilter> = {
@@ -210,6 +216,8 @@ const Page = () => {
     };
 
     const loadProfiles = async () => {
+      if (hasCachedProfiles) signalStartupDataReady();
+
       try {
         const firstPage = await fetchProfilePage(0);
         if (!isMounted) return;
@@ -225,6 +233,7 @@ const Page = () => {
         setError("");
         setProfiles(loadedProfiles);
         setLoading(false);
+        signalStartupDataReady();
 
         let offset = PROFILE_PAGE_SIZE;
         let hasMore = firstPage.hasMore;
@@ -246,6 +255,7 @@ const Page = () => {
         if (!isMounted) return;
 
         if (hasCachedProfiles) {
+          signalStartupDataReady();
           return;
         }
 
@@ -256,6 +266,7 @@ const Page = () => {
         );
         setProfiles([]);
         setLoading(false);
+        signalStartupDataReady();
       }
     };
 
@@ -487,13 +498,35 @@ const Page = () => {
             </div>
           </div>{" "}
         </section>
+       
         <section className="mt-10 grid w-full  grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {loading ? (
-            <p className="text-sm mono w-full font-medium tracking-tight uppercase text-[#999]">
-              Loading profiles...
-            </p>
+            <div
+              role="status"
+              aria-live="polite"
+              className="fixed inset-0 z-[110] flex items-center justify-center bg-black/45 backdrop-blur-sm"
+            >
+              <div className="flex geist w-full h-full flex-col justify-center items-center gap-4 bg-white px-8 py-9 text-center shadow-2xl">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  height="24px"
+                  viewBox="0 -960 960 960"
+                  width="24px"
+                  fill="#999"
+                  className="animate-spin"
+                >
+                  <path d="M325-111.5q-73-31.5-127.5-86t-86-127.5Q80-398 80-480.5t31.5-155q31.5-72.5 86-127t127.5-86Q398-880 480-880q17 0 28.5 11.5T520-840q0 17-11.5 28.5T480-800q-133 0-226.5 93.5T160-480q0 133 93.5 226.5T480-160q133 0 226.5-93.5T800-480q0-17 11.5-28.5T840-520q17 0 28.5 11.5T880-480q0 82-31.5 155t-86 127.5q-54.5 54.5-127 86T480.5-80Q398-80 325-111.5Z" />
+                </svg>
+
+                <div className="flex flex-col gap-1">
+                  <h2 className="text-sm hidden font-medium tracking-tight text-[#999]">
+                    Loading...
+                  </h2>
+                </div>
+              </div>
+            </div>
           ) : error ? (
-            <p className="text-sm mono w-full text-center font-medium tracking-tight uppercase text-[#999]">
+            <p className="text-sm mono w-full font-medium tracking-tight uppercase text-[#999]">
               {error}
             </p>
           ) : filteredProfiles.length === 0 ? (

@@ -26,6 +26,7 @@ import {
 } from "react-icons/fa6";
 import type { User } from "@supabase/supabase-js";
 import Navbar from "../components/Navbar";
+import InputArea from "../components/InputArea";
 import { supabase } from "@/lib/supabase/client";
 import { getProfileHandle } from "@/lib/profile-handle";
 import { isSafeExternalUrl } from "@/lib/safe-url";
@@ -145,6 +146,7 @@ const roles = [
 ] as const;
 
 const ROLE_SEPARATOR = " | ";
+const MAX_BIO_WORDS = 350;
 const standardRoles = new Set<string>(roles.filter((role) => role !== "Other"));
 
 const parseRoles = (value: string) =>
@@ -171,6 +173,19 @@ const getCustomRole = (value: string) =>
 
 const countWords = (value: string) =>
   value.trim().split(/\s+/).filter(Boolean).length;
+
+const truncateToWordLimit = (value: string, maximum: number) => {
+  let wordCount = 0;
+
+  for (const match of value.matchAll(/\S+/g)) {
+    wordCount += 1;
+    if (wordCount > maximum) {
+      return value.slice(0, match.index).trimEnd();
+    }
+  }
+
+  return value;
+};
 
 const getDeviceTypeLabel = () => {
   if (typeof navigator === "undefined") return "Unknown device";
@@ -321,6 +336,77 @@ const getSocialIcon = (type: SocialType) => {
     default:
       return null;
   }
+};
+
+const getSocialInputIcon = (type: SocialType) => {
+  if (type === "email") return <FaEnvelope className="h-3 w-3" />;
+
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-3 w-3"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d={
+          type === "portfolio"
+            ? "M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+            : "M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+        }
+      />
+    </svg>
+  );
+};
+
+const getProfileFieldIcon = (
+  field: "name" | "location" | "award" | "discipline",
+) => {
+  const paths = {
+    name: (
+      <>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M5 21a7 7 0 0114 0" />
+      </>
+    ),
+    location: (
+      <>
+        <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1116 0Z" />
+        <circle cx="12" cy="10" r="2.5" />
+      </>
+    ),
+    award: (
+      <>
+        <circle cx="12" cy="8" r="5" />
+        <path d="m8.5 12-1 9 4.5-3 4.5 3-1-9" />
+      </>
+    ),
+    discipline: (
+      <>
+        <rect x="3" y="7" width="18" height="14" rx="2" />
+        <path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M3 12h18" />
+      </>
+    ),
+  };
+
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-3 w-3"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {paths[field]}
+    </svg>
+  );
 };
 
 const getHandle = (user: User) =>
@@ -708,6 +794,11 @@ const ProfilePage = () => {
     );
   };
 
+  const handleBioChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    const bio = truncateToWordLimit(event.target.value, MAX_BIO_WORDS);
+    setForm((current) => (current ? { ...current, bio } : current));
+  };
+
   const handleRoleToggle = (role: string) => {
     setForm((current) => {
       if (!current) return current;
@@ -869,6 +960,11 @@ const ProfilePage = () => {
       return;
     }
 
+    if (bioWordCount > MAX_BIO_WORDS) {
+      setMessage(`Your bio must be ${MAX_BIO_WORDS} words or fewer.`);
+      return;
+    }
+
     const hasPrimaryImage = media.some(
       (item) => item.position === 0 && item.media_type === "image",
     );
@@ -1006,6 +1102,11 @@ const ProfilePage = () => {
       setMessage(
         `Your bio must contain at least 20 words before publishing. It currently has ${bioWordCount}.`,
       );
+      return;
+    }
+
+    if (nextPublishedState && bioWordCount > MAX_BIO_WORDS) {
+      setMessage(`Your bio must be ${MAX_BIO_WORDS} words or fewer.`);
       return;
     }
 
@@ -1929,23 +2030,29 @@ const ProfilePage = () => {
                   <div className="mt-8 grid gap-6 md:grid-cols-2">
                     <label className="text-sm mono uppercase tracking-tight text-[#999] font-medium">
                       Full Name <span>*</span>
-                      <input
+                      <InputArea
+                        leadingIcon={getProfileFieldIcon("name")}
+                        wrapperClassName="mt-2 flex min-w-0 items-center gap-2 rounded bg-black/5 px-2"
+                        variant="plain"
                         required
                         name="name"
                         value={activeForm.name}
                         onChange={handleChange}
-                        className="mt-2 w-full border-b text-black geist border-black/20 bg-transparent px-0 py-1 outline-none transition focus:border-black"
+                        className="geist text-sm"
                       />
                     </label>
                     <label className="text-sm mono uppercase tracking-tight text-[#999] font-medium ">
                       Location <span>*</span>
-                      <input
+                      <InputArea
+                        leadingIcon={getProfileFieldIcon("location")}
+                        wrapperClassName="mt-2 flex min-w-0 items-center gap-2 rounded bg-black/5 px-2"
+                        variant="plain"
                         required
                         name="location"
                         value={activeForm.location}
                         onChange={handleChange}
                         placeholder="City, country"
-                        className="mt-2 w-full border-b geist text-black border-black/20 bg-transparent px-0 py-1 outline-none transition placeholder:text-[#aaa] focus:border-black"
+                        className="geist text-sm placeholder:text-[#aaa]"
                       />
                     </label>
                     <fieldset className="text-sm font-semibold">
@@ -1967,7 +2074,7 @@ const ProfilePage = () => {
                               type="button"
                               aria-pressed={checked}
                               onClick={() => handleRoleToggle(role)}
-                              className={`rounded-full border tracking-tight px-2 py-1 text-xs mono uppercase font-medium transition ${
+                              className={`rounded-full border tracking-tight px-3 py-1 text-sm  font-medium transition ${
                                 checked
                                   ? " bg-[#1c40f2] border-none transition-colors duration-500 text-white"
                                   : "border-none bg-black/5 transition-colors duration-500 hover:bg-black/10 text-[#999]"
@@ -1981,109 +2088,56 @@ const ProfilePage = () => {
                       {Boolean(getCustomRole(activeForm.role)) ||
                       parseRoles(activeForm.role).includes("Other") ? (
                         <div className="mt-4">
-                          <label className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
+                          <label
+                            htmlFor="custom-discipline"
+                            className="mono text-xs font-medium uppercase tracking-tight text-[#999]"
+                          >
                             Custom discipline
                           </label>
-                          <div className="mt-1 flex items-center gap-2">
-                            <input
-                              value={customRoleInput}
-                              onChange={(event) =>
-                                handleCustomRoleChange(event.target.value)
-                              }
-                              placeholder="Type your discipline"
-                              className="w-full border-b border-black/20 bg-transparent px-0 py-1 font-medium text-black outline-none transition placeholder:text-[#aaa] focus:border-black"
-                            />
-                          </div>
+                          <InputArea
+                            id="custom-discipline"
+                            leadingIcon={getProfileFieldIcon("discipline")}
+                            wrapperClassName="mt-1 flex min-w-0 items-center gap-2 rounded bg-black/5 px-2"
+                            variant="plain"
+                            value={customRoleInput}
+                            onChange={(event) =>
+                              handleCustomRoleChange(event.target.value)
+                            }
+                            placeholder="Type your discipline"
+                            className="geist text-sm placeholder:text-[#aaa]"
+                          />
                         </div>
                       ) : null}
                     </fieldset>
                   </div>
 
                   <label className="mt-8 block mono text-sm font-Medium uppercase tracking-tight text-[#999]">
-                    About Me <span>*</span>
+                    <div className="flex items-center justify-between">
+                      <span>About Me *</span>
+                      <span>
+                        <p
+                          id="bio-word-count"
+                          className="mt-2 text-xs geist tracking-tighter font-semibold capitalize mon uppercase text-[#999]"
+                        >
+                          {countWords(activeForm.bio)} / {MAX_BIO_WORDS}
+                        </p>
+                      </span>
+                    </div>{" "}
                     <textarea
                       ref={bioInputRef}
                       required
                       name="bio"
+                      aria-describedby="bio-word-count"
                       value={activeForm.bio}
-                      onChange={handleChange}
+                      onChange={handleBioChange}
                       rows={4}
                       minLength={20}
                       placeholder="Tell people what you do in at least 20 words."
-                      className="mt-2 w-full text-black geist resize-y border border-black/15 bg-transparent rounded p-3 outline-none transition placeholder:text-[#aaa] focus:border-[#1c40f2]/50  focus:border-2"
+                      className="mt-2 w-full text-justify  min-h-50 text-black geist resize-none scrollbar-none bg-black/5 rounded p-3 outline-none transition placeholder:text-[#aaa] focus:border-[#1c40f2]/50  focus:border-2"
                     />
-                    <p className="mt-2 text-xs geist font-medium capitalize mon uppercase text-[#999]">
-                      {countWords(activeForm.bio)} / 20  <span className="text-[#999] mono"> words min</span>
-                    </p>
                   </label>
 
-                  <section className="mt-8  w-full text-sm font-semibold">
-                    <div className="grid gap-6 lg:grid-cols-2">
-                      <div>
-                        <p className="mono uppercase tracking-tight text-[#999] font-medium">
-                          Awards & Recognitions
-                        </p>
-                        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
-                          <input
-                            value={newAward}
-                            onChange={(event) =>
-                              setNewAward(event.target.value)
-                            }
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter") {
-                                event.preventDefault();
-                                addAward();
-                              }
-                            }}
-                            placeholder="Award or recognition"
-                            className="min-w-0 flex-1 capitalize font-medium border-b border-black/20 bg-transparent px-0 py-2 outline-none transition placeholder:text-[#aaa] focus:border-black"
-                          />
-                          <button
-                            type="button"
-                            onClick={addAward}
-                            className="w-fit shrink-0 rounded-full mono uppercase border border-black px-3 py-1 text-xs font-medium transition hover:bg-black hover:text-white"
-                          >
-                            Add
-                          </button>
-                        </div>
-                        <p className="mt-3 mono uppercase text-xs font-medium text-[#999]">
-                          Optional. Add as many awards as you like.
-                        </p>
-                      </div>
-
-                      <div className="min-w-0">
-                        {parseAwards(activeForm.awards).length ? (
-                          <ul className="divide-y divide-black/10 border-y border-black/10">
-                            {parseAwards(activeForm.awards).map(
-                              (award, index) => (
-                                <li
-                                  key={`${award}-${index}`}
-                                  className="flex items-center justify-between gap-4 py-3 text-sm font-normal"
-                                >
-                                  <span className="min-w-0 font-medium break-words">
-                                    {award}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => removeAward(index)}
-                                    className="shrink-0 mono uppercase cursor-pointer rounded-full bg-black/5 px-2 py-1 text-xs font-medium text-[#777] transition hover:bg-black hover:text-white"
-                                  >
-                                    Remove
-                                  </button>
-                                </li>
-                              ),
-                            )}
-                          </ul>
-                        ) : (
-                          <div className="border-y border-dashed border-black/15 py-5 mono uppercase text-sm font-medium text-[#999]">
-                            No awards added yet.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </section>
-
-                  <section className="mt-10 border-t border-black/10 pt-5">
+                  <section className="mt-4 pt-5">
                     <p className="mono text-sm font-medium uppercase tracking-tight text-[#999]">
                       media<span>*</span>
                     </p>
@@ -2190,9 +2244,9 @@ const ProfilePage = () => {
                                   void handleMediaRemove(item);
                                 }}
                                 disabled={isUploading}
-                                className="mt-2 z-10 mono uppercase tracking-tight text-xs font-medium text-[#666] underline underline-offset-4 transition hover:text-black disabled:cursor-not-allowed"
+                                className="mt-2 z-10 giest tracking-tight text-xs font-semibold text-[#666]  transition hover:text-black disabled:cursor-not-allowed"
                               >
-                                Remove media
+                                Remove
                               </button>
                             ) : null}
                           </div>
@@ -2200,8 +2254,80 @@ const ProfilePage = () => {
                       })}
                     </div>
                   </section>
+                  <section className="mt-8  w-full text-sm font-semibold">
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <div>
+                        <p className="mono uppercase tracking-tight text-[#999] font-medium">
+                          Awards & Recognitions
+                        </p>
+                        <div className="mt-3 flex lg:items-center  gap-3 ">
+                          <InputArea
+                            leadingIcon={getProfileFieldIcon("award")}
+                            wrapperClassName="flex min-w-0 flex-1 items-center gap-1 rounded bg-black/5 px-2"
+                            variant="plain"
+                            value={newAward}
+                            onChange={(event) =>
+                              setNewAward(event.target.value)
+                            }
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                addAward();
+                              }
+                            }}
+                            placeholder="Award or recognition"
+                            className="min-w-0 capitalize text-sm placeholder:text-[#aaa]"
+                          />
+                          <button
+                            type="button"
+                            onClick={addAward}
+                            className="w-fit shrink-0  rounded mono uppercase border border-black px-2 py-1 text-xs font-medium transition hover:bg-black hover:text-white"
+                          >
+                            save
+                          </button>
+                        </div>
+                      </div>
 
-                  <section className="mt-10 border-t border-black/10 pt-5">
+                      <div className="min-w-0">
+                        {parseAwards(activeForm.awards).length ? (
+                          <ul className="mt-8  ">
+                            {parseAwards(activeForm.awards).map(
+                              (award, index) => (
+                                <li
+                                  key={`${award}-${index}`}
+                                  className="flex items-center mb-1  bg-black/0 rounded justify-between gap-4 py-1 px-2  text-sm font-normal"
+                                >
+                                  <span className="min-w-0 font-medium break-words">
+                                    {award}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeAward(index)}
+                                    className="shrink-0 mono uppercase cursor-pointer rounded-full bg-black/ px-1 py-1 text-xs font-medium text-[#777] transition hover:bg-black hover:text-white"
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      height="18px"
+                                      viewBox="0 -960 960 960"
+                                      width="18px"
+                                      fill="currentColor"
+                                    >
+                                      <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
+                                    </svg>
+                                  </button>
+                                </li>
+                              ),
+                            )}
+                          </ul>
+                        ) : (
+                          <div className="border-y border-dashed border-black/15 py-5 mono uppercase text-sm font-medium text-[#999]">
+                            No awards added yet.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+                  <section className="mt-10 pt-5">
                     <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
                       Portfolio & social links
                     </p>
@@ -2226,77 +2352,28 @@ const ProfilePage = () => {
                               </span>
                               <span className="sr-only">{label}</span>
                             </span>
-                            <div className="relative border-b border-black/20 flex items-center gap-1">
-                              <span className="flex hidde h-3 w-3 items-center justify-center text-sm font-semibold text-black">
-                                {type === "email" ? (
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-3 w-3"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth={2}
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                                    />
-                                  </svg>
-                                ) : type === "portfolio" ? (
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-3 w-3"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth={2}
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                                    />
-                                  </svg>
-                                ) : (
-                                  <span aria-hidden="true">
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      className="h-3 w-3"
-                                      fill="none"
-                                      viewBox="0 0 24 24"
-                                      stroke="currentColor"
-                                      strokeWidth={2}
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
-                                      />
-                                    </svg>
-                                  </span>
-                                )}
-                              </span>
-                              <input
-                                aria-label={label}
-                                title={label}
-                                value={socials[type]}
-                                onChange={(event) =>
-                                  handleSocialChange(type, event)
-                                }
-                                placeholder={
-                                  type === "portfolio"
-                                    ? "https://yourportfolio.com"
-                                    : type === "email"
-                                      ? "you@example.com"
-                                      : type === "discord"
-                                        ? "Username/ User ID"
-                                        : "Username"
-                                }
-                                type={type === "portfolio" ? "url" : "text"}
-                                className="mt-0 w-full geist tracking-tight bg-transparent px-0 py-1 text-sm font-medium outline-none transition placeholder:text-[#aaa] focus:border-black"
-                              />
-                            </div>
+                            <InputArea
+                              leadingIcon={getSocialInputIcon(type)}
+                              wrapperClassName="relative flex min-w-0 items-center gap-1 rounded bg-black/5 px-2"
+                              variant="plain"
+                              className="mt-0 min-w-0 geist tracking-tight text-sm font-medium transition placeholder:text-[#aaa] focus:border-black"
+                              aria-label={label}
+                              title={label}
+                              value={socials[type]}
+                              onChange={(event) =>
+                                handleSocialChange(type, event)
+                              }
+                              placeholder={
+                                type === "portfolio"
+                                  ? "https://yourportfolio.com"
+                                  : type === "email"
+                                    ? "you@example.com"
+                                    : type === "discord"
+                                      ? "Username/ User ID"
+                                      : "Username"
+                              }
+                              type={type === "portfolio" ? "url" : "text"}
+                            />
                           </label>
                         ) : null;
                       })}
@@ -2401,7 +2478,6 @@ const ProfilePage = () => {
           aria-labelledby="delete-account-title"
         >
           <div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-5 shadow-2xl">
-           
             <h2
               id="delete-account-title"
               className="mt-3 text-3xl geist font-bold tracking-tighter text-black"

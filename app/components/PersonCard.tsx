@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useEffect, useRef, useState } from "react";
+import CachedImage from "./CachedImage";
 
 type PersonCardProps = {
   name: string;
@@ -89,7 +90,7 @@ const PersonCard = ({
         >
           <div className="h-15 absolute  bottom-0 bg-[linear-gradient(to_top,_rgba(28,64,242,0.3)_0%,_rgba(28,64,242,0.15)_50%,_transparent_100%)] w-full "></div>
           {image ? (
-            <img
+            <CachedImage
               src={image}
               alt={name}
               className="h-full w-full cursor-pointer object-cover"
@@ -119,7 +120,7 @@ const PersonCard = ({
                 className="absolute inset-0 cursor-pointer h-full w-full object-cover"
               />
             ) : (
-              <img
+              <CachedImage
                 src={hoverMedia.url}
                 alt={`${name} second view`}
                 className="absolute inset-0 h-full w-full object-cover"
@@ -139,20 +140,21 @@ const PersonCard = ({
           <div className="relative mt-1">
             <p
               ref={bioRef}
-              className="mon geist text-justify line-clamp-5 overflow-hidden text-[12px] font-medium leading-3.5 tracking-tight text-[#999]"
+              className="mon geist text-justify line-clamp-4 overflow-hidden text-[12px] font-semibold leading-3 tracking-tight text-[#999]"
             >
               {bio}
             </p>
             {showSeeMore ? (
               <div className="pointer-events-none absolute  bottom-0 flex w-full flex justify-between pl-4">
                 <span></span>
-                <div className="pointer-events-none  h-4 flex max-w-30 w-full justify-end bg-gradient-to-r from-transparent via-[#ffffff]/90 to-[#ffffff] pl-4"><button
-                  type="button"
-                  className="pointer-events-auto geist cursor-pointer text-[11px] font-semibold uppercas items-end capitalize tracking-tight text-[#1c40f2] hover:underline"
-                >
-                  See more
-                </button>
-              </div>
+                <div className="pointer-events-none  h-3.5 flex max-w-30 w-full justify-end bg-gradient-to-r from-transparent via-[#ffffff]/90 to-[#ffffff] pl-4">
+                  <button
+                    type="button"
+                    className="pointer-events-auto geist cursor-pointer text-[11px] font-semibold uppercas items-end capitalize tracking-tight text-[#1c40f2] hover:underline"
+                  >
+                    See more
+                  </button>
+                </div>
               </div>
             ) : null}
           </div>

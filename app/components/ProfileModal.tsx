@@ -15,6 +15,7 @@ import {
   FaYoutube,
 } from "react-icons/fa6";
 import { useCallback, useEffect, useRef, useState } from "react";
+import CachedImage from "./CachedImage";
 import {
   getCountries,
   getCountryCallingCode,
@@ -316,18 +317,18 @@ const ProfileModal = ({
         type="button"
         aria-label="Close profile modal"
         onClick={closeModal}
-        className={`profile-modal-close w-10 h-10 flex items-center justify-center fixed right-1/2 bottom-[calc(90vh+0px)] z-50 translate-x-1/2 cursor-pointer rounded-full  text-white ${
+        className={`profile-modal-close w-8 p-1 bg-white h-8 flex items-center justify-center fixed right-1/2 bottom-[calc(90vh+8px)] z-50 translate-x-1/2 cursor-pointer rounded-full  text-white ${
           isClosing ? "profile-modal-close-exit" : ""
         }`}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          height="40px"
+          height="24px"
           viewBox="0 -960 960 960"
-          width="40px"
-          fill="currentColor"
+          width="24px"
+          fill="#000"
         >
-          <path d="M160-380v-66.67h640V-380H160Zm0-133.33V-580h640v66.67H160Z" />
+          <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
         </svg>
       </button>
 
@@ -416,9 +417,9 @@ const ProfileModal = ({
               </span>
             </div>
           ) : null}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-5">
             <span className="text-sm font-medium tracking-tight text-[#999]">
-              Post
+              Media
             </span>
 
             {hoverMedia?.type === "video" ? (
@@ -433,7 +434,7 @@ const ProfileModal = ({
                 className="aspect-[4/5] w-80 object-cover"
               />
             ) : image ? (
-              <img
+              <CachedImage
                 src={image}
                 alt={`${name} profile`}
                 className="aspect-[4/5] w-80 object-cover"
@@ -483,7 +484,7 @@ const ProfileModal = ({
               <button
                 type="button"
                 onClick={() => void handleShare()}
-                className="w-fit cursor-pointer text-xs mono text-white   font-semibold uppercase tracking-tight  bg-black p-1 rounded-full px-2 transition hover:bg-black/50 "
+                className="w-fit cursor-pointer text-xs mono text-white   font-semibold uppercase tracking-tight  bg-black p-1 rounded-full px-3 transition hover:bg-black/50 "
               >
                 {shareLabel === "Share profile" ? "Share" : shareLabel}
               </button>
@@ -494,7 +495,7 @@ const ProfileModal = ({
                   setInquiryStatus("idle");
                   setInquiryMessage("");
                 }}
-                className="w-fit cursor-pointer rounded-full bg-[#1c40f2] p-1 px-2 mono text-xs font-semibold uppercase tracking-tight text-white transition hover:bg-[#1c40f2]/50"
+                className="w-fit cursor-pointer rounded-full bg-[#1c40f2] p-1 px-3 mono text-xs font-semibold uppercase tracking-tight text-white transition hover:bg-[#1c40f2]/50"
               >
                 Contact
               </button>
