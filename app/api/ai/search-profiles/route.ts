@@ -61,6 +61,13 @@ export async function POST(request: Request) {
             typeof value.location === "string"
           );
         })
+        .map((candidate) => ({
+          id: candidate.id.slice(0, 64),
+          name: candidate.name.slice(0, 100),
+          role: candidate.role.slice(0, 100),
+          bio: candidate.bio.slice(0, 320),
+          location: candidate.location.slice(0, 100),
+        }))
     : [];
 
   if (!query || query.length > MAX_QUERY_LENGTH || !candidates.length) {
@@ -75,10 +82,11 @@ export async function POST(request: Request) {
         Authorization: `Bearer ${aiApiKey}`,
         "Content-Type": "application/json",
       },
+      signal: request.signal,
       body: JSON.stringify({
         model: AI_MODEL,
         temperature: 0.1,
-        max_tokens: 500,
+        max_tokens: 180,
         messages: [
           {
             role: "system",
@@ -101,9 +109,38 @@ export async function POST(request: Request) {
   }
 
   if (!aiResponse.ok) {
+    const errorBody = (await aiResponse.json().catch(() => null)) as {
+      error?: {
+        code?: number | string;
+        message?: string;
+        metadata?: { provider_name?: string };
+      };
+    } | null;
+    const retryAfterHeader = aiResponse.headers.get("retry-after");
+    const parsedRetryAfter = Number(retryAfterHeader);
+    const retryAfterSeconds =
+      Number.isFinite(parsedRetryAfter) && parsedRetryAfter > 0
+        ? Math.ceil(parsedRetryAfter)
+        : 30;
     console.error("Profile search provider returned an error", {
       status: aiResponse.status,
+      code: errorBody?.error?.code,
+      message: errorBody?.error?.message?.slice(0, 300),
+      provider: errorBody?.error?.metadata?.provider_name,
+      requestId: aiResponse.headers.get("x-request-id"),
     });
+    if (aiResponse.status === 429) {
+      return NextResponse.json(
+        {
+          error: "Intelligent search is temporarily rate-limited.",
+          retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(retryAfterSeconds) },
+        },
+      );
+    }
     return NextResponse.json(
       { error: "The intelligent search service could not process this request." },
       { status: 502 },

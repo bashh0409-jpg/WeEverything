@@ -77,6 +77,8 @@ type ProfileInquiry = {
   sender_name: string;
   sender_email: string;
   sender_phone: string | null;
+  project_type: string | null;
+  company_name: string | null;
   project_brief: string;
   budget: string | null;
   timeline: string | null;
@@ -145,6 +147,7 @@ const roles = [
 ] as const;
 
 const ROLE_SEPARATOR = " | ";
+const MIN_BIO_WORDS = 20;
 const MAX_BIO_WORDS = 350;
 const standardRoles = new Set<string>(roles.filter((role) => role !== "Other"));
 
@@ -675,7 +678,7 @@ const ProfilePage = () => {
         client
           .from("profile_inquiries")
           .select(
-            "id, sender_name, sender_email, sender_phone, project_brief, budget, timeline, created_at, archived_at",
+            "id, sender_name, sender_email, sender_phone, project_type, company_name, project_brief, budget, timeline, created_at, archived_at",
           )
           .eq("profile_id", currentUser.id)
           .order("created_at", { ascending: false }),
@@ -805,7 +808,15 @@ const ProfilePage = () => {
   };
 
   const handleEnhanceBio = async () => {
-    if (!form?.bio.trim() || enhancingBio) return;
+    if (!form || enhancingBio) return;
+
+    const bioWordCount = countWords(form.bio);
+    if (bioWordCount < MIN_BIO_WORDS) {
+      setMessage(
+        `Write at least ${MIN_BIO_WORDS} words before enhancing your bio.`,
+      );
+      return;
+    }
 
     setEnhancingBio(true);
     setMessage("");
@@ -1008,9 +1019,9 @@ const ProfilePage = () => {
 
     const bioWordCount = countWords(form.bio);
 
-    if (bioWordCount < 20) {
+    if (bioWordCount < MIN_BIO_WORDS) {
       setMessage(
-        `Your bio is required and must contain at least 20 words. It currently has ${bioWordCount}.`,
+        `Your bio is required and must contain at least ${MIN_BIO_WORDS} words. It currently has ${bioWordCount}.`,
       );
       return;
     }
@@ -1153,9 +1164,9 @@ const ProfilePage = () => {
       (item) => item.position === 0 && item.media_type === "image",
     );
 
-    if (nextPublishedState && bioWordCount < 20) {
+    if (nextPublishedState && bioWordCount < MIN_BIO_WORDS) {
       setMessage(
-        `Your bio must contain at least 20 words before publishing. It currently has ${bioWordCount}.`,
+        `Your bio must contain at least ${MIN_BIO_WORDS} words before publishing. It currently has ${bioWordCount}.`,
       );
       return;
     }
@@ -2196,7 +2207,10 @@ const ProfilePage = () => {
                       <button
                         type="button"
                         onClick={() => void handleEnhanceBio()}
-                        disabled={enhancingBio || !activeForm.bio.trim()}
+                        disabled={
+                          enhancingBio ||
+                          countWords(activeForm.bio) < MIN_BIO_WORDS
+                        }
                         className="rounded-full border border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {enhancingBio ? "Enhancing..." : "Enhance bio"}
@@ -2676,7 +2690,7 @@ const ProfilePage = () => {
                 <button
                   type="button"
                   onClick={markAllInquiriesAsRead}
-                  className="mt-4 w-fit cursor-pointer text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:text-black"
+                  className="mt-4 w-fit mono cursor-pointer text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:text-black"
                 >
                   Mark all as read
                 </button>
@@ -2715,6 +2729,16 @@ const ProfilePage = () => {
                     >
                       {inquiry.sender_email}
                     </a>
+                    {inquiry.project_type || inquiry.company_name ? (
+                      <div className="mt-2 flex geist tracking-tight flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-[#666]">
+                        {inquiry.project_type ? (
+                          <span>Project type: {inquiry.project_type}</span>
+                        ) : null}
+                        {inquiry.company_name ? (
+                          <span>Company: {inquiry.company_name}</span>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <p className="mt-3 whitespace-pre-wrap  text-xs font-medium leading-tight geist tracking-tight">
                       {inquiry.project_brief}
                     </p>

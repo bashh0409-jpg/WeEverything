@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 const MAX_BIO_LENGTH = 2_000;
+const MIN_BIO_WORDS = 20;
 const AI_MODEL = process.env.AI_MODEL ?? "Qwen/Qwen3-8B";
 
 export async function POST(request: Request) {
@@ -59,10 +60,13 @@ export async function POST(request: Request) {
   }
 
   const bio = typeof body.bio === "string" ? body.bio.trim() : "";
+  const wordCount = bio.split(/\s+/).filter(Boolean).length;
 
-  if (!bio || bio.length > MAX_BIO_LENGTH) {
+  if (wordCount < MIN_BIO_WORDS || bio.length > MAX_BIO_LENGTH) {
     return NextResponse.json(
-      { error: "Enter a bio of 1 to 2,000 characters first." },
+      {
+        error: `Enter a bio of at least ${MIN_BIO_WORDS} words and no more than ${MAX_BIO_LENGTH} characters.`,
+      },
       { status: 400 },
     );
   }

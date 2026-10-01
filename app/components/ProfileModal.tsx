@@ -207,6 +207,8 @@ const ProfileModal = ({
         senderCountry: phoneCountry,
         senderPhone: formData.get("senderPhone"),
         captchaToken,
+        projectType: formData.get("projectType"),
+        companyName: formData.get("companyName"),
         project: formData.get("project"),
         budget: formData.get("budget"),
         timeline: formData.get("timeline"),
@@ -542,7 +544,7 @@ const ProfileModal = ({
                   setInquiryStatus("idle");
                   setInquiryMessage("");
                 }}
-                className="w-fit mono cursor-pointer rounded-full bg-black p-1 px-2 mono text-xs font-semibold uppercase tracking-tight text-white transition hover:bg-[#1c40f2]/50"
+                className="w-fit mono hidden cursor-pointer rounded-full bg-black p-1 px-2 mono text-xs font-semibold uppercase tracking-tight text-white transition hover:bg-[#1c40f2]/50"
               >
                 Close
               </button>
@@ -640,6 +642,21 @@ const ProfileModal = ({
                   type="tel"
                   placeholder="Phone number"
                   className="border-0 text-sm outline-none focus:border-black"
+                />
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                <InputArea
+                  name="projectType"
+                  maxLength={120}
+                  placeholder="Project type (optional)"
+                  className="text-sm outline-none focus:border-black"
+                />
+                <InputArea
+                  name="companyName"
+                  maxLength={200}
+                  placeholder="Company name (optional)"
+                  className="text-sm outline-none focus:border-black"
                 />
               </div>
               <InputArea

@@ -34,71 +34,79 @@ const Page = () => {
         </div>
         <div>
           <span className="text-[#999] font-medium tracking-tight ">
-            Last Update: Sep 17, 2026
+            Last Update: Oct 1, 2026
           </span>
 
           <div className="lg:grid-cols-2 grid-cols-1 grid mt-8 gap-4">
             <p className="  text-sm mb-2 font-medium tracking-tight ">
-              Welcome to WeEverything.xyz, a directory for discovering creative
-              professionals and sharing public creative profiles. These Terms
-              govern your use of the directory, profile tools, and related
-              services. By using the site, you agree to these Terms. If you do
-              not agree, please do not use the site.
+              WeEverything.xyz provides a directory for discovering creative
+              professionals, public profiles, profile tools, event listings,
+              inquiries, AI-assisted features, and sponsorship checkout. These
+              Terms describe use of the service; this page also explains how
+              personal information is handled. If you do not agree, do not use
+              the service. Mandatory rights under applicable law are not waived
+              by these Terms.
             </p>
             <div>
               <span className="flex flex-col  px-4">
                 <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
-                  1. Acceptance of Terms.
+                  1. Accounts, content, and public listings.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  You must provide accurate information when creating an account
-                  and are responsible for activity carried out through it. You
-                  may use WeEverything to create, manage, and publish a profile
-                  for yourself, including a biography, role, location, profile
-                  image, work media, and links to external social or portfolio
-                  pages.
+                  Sign-in is provided through Google or GitHub. You are
+                  responsible for activity through your account and for keeping
+                  access to your sign-in method secure. We receive the account
+                  information those providers make available, which may include
+                  your email address, name, and avatar. Keep account and profile
+                  information accurate and current.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  Do not upload or link to content that you do not have the
-                  right to share, that impersonates another person, or that is
-                  unlawful, misleading, abusive, invasive of privacy, or
-                  harmful. Do not attempt to access another account, disrupt the
-                  site, scrape it abusively, or upload malicious code.
+                  You keep ownership of content you submit. You grant us a
+                  non-exclusive, royalty-free permission to host, store,
+                  process, format, and display that content only as needed to
+                  provide and operate the service, including displaying it
+                  publicly when you publish a profile. Submit only content you
+                  own or are authorized to use, and do not include information
+                  about another person without a lawful basis or their
+                  permission.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  You control whether your profile is published. Published
-                  profiles, profile media, and social links may be visible to
-                  anyone who visits the directory. We may remove content or
-                  restrict an account when reasonably necessary to protect the
-                  site, its users, or the rights of others. We may also update
-                  these Terms by posting a revised version here.
+                  Published profile information, media, and social links are
+                  visible to the public and may be copied or cached by others.
+                  Event suggestions may be added to the event listing. You are
+                  responsible for the accuracy and rights for anything you
+                  submit. We may remove content or restrict access where
+                  reasonably needed for safety, legal compliance, or operation
+                  of the service.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
                 <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
-                  2. User responsibilities.
+                  2. Acceptable use and directory disclaimer.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  You agree to use this website only for lawful purposes. You
-                  must not attempt to gain unauthorized access to the site, its
-                  underlying code, or any systems it connects to, and you must
-                  not use the site in a way that could damage, disrupt, or
-                  overload it.
+                  Use the service lawfully. Do not access another account or
+                  system without permission, disrupt or overload the service,
+                  evade security controls, scrape abusively, send spam, upload
+                  malicious code, impersonate others, or submit unlawful,
+                  infringing, deceptive, harassing, or privacy-invasive
+                  material.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  You retain responsibility for the content you submit. You give
-                  WeEverything permission to host, store, display, and format
-                  that content as needed to operate the directory. You retain
-                  ownership of your content, while WeEverything retains rights
-                  in its software, branding, and original site content.
+                  WeEverything is a directory and does not verify or endorse
+                  every profile, event, link, or statement. We do not guarantee
+                  a listed person&apos;s identity, qualifications, availability,
+                  or suitability. You are responsible for evaluating people and
+                  services; communications, work, and agreements are between the
+                  people involved.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  WeEverything is a directory and does not guarantee the
-                  quality, availability, identity, or suitability of any listed
-                  professional. Any work, communication, or agreement you make
-                  with a listed person is between you and that person.
+                  You access external links and third-party services at your own
+                  discretion. Their operators control their own services, terms,
+                  and privacy practices; WeEverything does not control or take
+                  responsibility for them.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
@@ -107,34 +115,35 @@ const Page = () => {
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  This website uses Vercel Speed Insights to measure site
-                  performance, such as page load times. It may process technical
-                  information about your visit, such as the page URL, referrer,
-                  approximate country, device or browser type, and connection
-                  information. It is used to improve reliability and does not
-                  use advertising cookies or create an advertising profile for
-                  you.
+                  Vercel Speed Insights is loaded whenever the site is used to
+                  measure performance. Vercel may process technical and
+                  performance information such as page or route, referrer,
+                  device or browser characteristics, approximate location, and
+                  connection or performance measurements under its own privacy
+                  terms. This runs independently of the optional analytics
+                  choice described below.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  We use necessary cookies for authentication and account
-                  sessions. Optional Vercel Analytics is enabled only after you
-                  accept analytics in the cookie notice. Your choice is saved in
-                  your browser so the notice does not appear on every visit.
+                  Authentication uses session cookies. Vercel Analytics is
+                  enabled only if you accept it in the consent notice; the
+                  choice is stored in your browser. Rejecting optional analytics
+                  does not disable Vercel Speed Insights. You can clear the
+                  saved choice in browser storage to be asked again.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  When enabled for an inquiry form, Cloudflare Turnstile helps
-                  us prevent abuse. Cloudflare may process technical and device
-                  information to verify that the request is legitimate under its
-                  own privacy policy.
+                  Cloudflare Turnstile may be used on inquiry forms to reduce
+                  abuse and may process technical or device information for
+                  verification. Inquiry rate limiting uses the available
+                  forwarded IP address and a hash of the sender email in Upstash
+                  keys that expire after about one hour. Cloudflare and other
+                  external sites have their own privacy terms.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  External websites linked from a profile, including social
-                  networks and portfolio sites, operate under their own terms
-                  and privacy policies. WeEverything is not responsible for how
-                  those external services process information.
+                  External websites linked from profiles operate under their own
+                  terms and privacy practices. We do not control those services.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
@@ -143,49 +152,81 @@ const Page = () => {
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  We collect information needed to provide the directory and
-                  account features. This can include your email address and
-                  authentication details, profile name, role, biography,
-                  location, avatar, uploaded images or videos, social links,
-                  profile publication settings, profile views, sponsorship
-                  status, account deletion status, and inquiry details such as a
-                  sender name, email address, phone number, project brief,
-                  budget, and timeline.
+                  Depending on how you use the service, we process account
+                  identifiers and email, name and avatar provided by your
+                  sign-in provider; profile details such as handle, role, bio,
+                  location, awards, media, and social links; event details you
+                  submit; inquiry sender name, email, optional phone, project
+                  type, company name, project brief, budget, and timeline; and
+                  sponsorship checkout and status information. Do not put
+                  sensitive personal information in a public profile or inquiry
+                  unless it is necessary and you are entitled to share it.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  We use this information to authenticate users, create and
-                  display profiles when publication is enabled, store uploaded
-                  media, show profile view counts, process sponsorships, prevent
-                  misuse, respond to requests, and operate and secure the site.
-                  We do not sell your personal information for advertising.
+                  Published profiles and event listings are public. Inquiry
+                  details are stored for delivery and are available to the
+                  recipient profile owner; when email is configured, we use
+                  Resend to notify that owner and send account welcome emails.
+                  Profile owners can archive or delete inquiries. We use
+                  information to provide the requested features, secure the
+                  service, prevent abuse, and meet legal obligations. We do not
+                  sell personal information for targeted advertising.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  Account and profile data is stored using Supabase. Sponsorship
-                  payments are handled by Polar; we do not receive or store your
-                  full payment card details. We may share information with these
-                  service providers only as needed to provide their services,
-                  and we may disclose information when required by law or to
-                  protect the site and its users.
+                  We use Supabase for authentication, database, and media
+                  storage; Google or GitHub for sign-in; Vercel for hosting,
+                  performance measurement, and optional analytics; Cloudflare
+                  for Turnstile; Upstash for inquiry rate limits; Resend for
+                  email; Polar for checkout and payment processing; and
+                  OpenRouter for AI-assisted features. These providers receive
+                  information needed for their services and may process it in
+                  other countries under their own terms. We may also disclose
+                  information when required by law or needed to protect users,
+                  the service, or our rights.
+                </span>
+                <span className="text-[#999] text-sm mb-2 font-medium tracking-tight ">
+                  5. AI-assisted features.
+                </span>
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  If you use bio enhancement, the bio you submit is sent through
+                  OpenRouter using the currently configured Qwen/Qwen3-8B model.
+                  Intelligent search sends your query and public candidate
+                  profile details (name, role, bio, and location) through
+                  OpenRouter for ranking. OpenRouter may route inputs to an
+                  underlying model provider, whose data handling and model
+                  training practices can vary. Review the{" "}
+                  <a
+                    href="https://openrouter.ai/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 underline"
+                  >
+                    OpenRouter Privacy Policy
+                  </a>{" "}
+                  and the applicable model provider&apos;s data terms. AI output
+                  can be inaccurate; review it before using or publishing it,
+                  and do not submit confidential information.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
                 <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
-                  5. Your rights (POPIA)
+                  6. Privacy rights.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  Where applicable, the Protection of Personal Information Act
-                  (POPIA) governs our handling of personal information. You may
-                  request access to, correction of, or deletion of personal
-                  information we hold about you, and you may object to certain
-                  processing or ask questions about how your information is
-                  used.
+                  Depending on the law that applies, including South
+                  Africa&apos;s Protection of Personal Information Act (POPIA),
+                  you may have rights to request access to, correction or
+                  deletion of your personal information, object to certain
+                  processing, or lodge a complaint. We will handle requests
+                  subject to identity checks, applicable exceptions, and legal
+                  requirements.
                 </span>
                 <span className="font-medium indent-8 text-sm leading-4 tracking-tight ">
-                  Send privacy or account requests to the contact address used
-                  by the WeEverything operator, including the email address
-                  associated with your account. We may need to verify your
-                  identity before completing a request.
+                  Use the contact email in section 7 for privacy requests.
+                  Account deletion can also be started from your signed-in
+                  profile. We may need to verify your identity before
+                  responding.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
                   If POPIA applies to you and you believe your information has
@@ -204,132 +245,135 @@ const Page = () => {
               </span>
               <span className="flex flex-col mt-4  px-4">
                 <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
-                  6. Contact us?
+                  7. Operator and contact.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  If you have questions about these Terms or this Privacy
-                  Policy, contact the WeEverything operator through the support
-                  contact associated with the site or your account. Requests
-                  about account deletion can be started from your profile. When
-                  deletion is requested, the profile is unpublished and the
-                  account is scheduled for permanent deletion after 30 days.
+                  WeEverything is operated by Wandile Langa in Pietermaritzburg,
+                  South Africa. For privacy, legal, payment, or support
+                  requests, email{" "}
+                  <a
+                    href="mailto:info@weeverything.xyz"
+                    className="text-blue-500 underline"
+                  >
+                    info@weeverything.xyz
+                  </a>
+                  . The governing law and dispute forum have not been selected
+                  yet and should be completed after legal review.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
                 <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
-                  7. Sponsorships and payments.
+                  8. Sponsorships and payments.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  A profile owner may choose a one-time sponsorship amount
-                  between USD 1 and USD 10,000. Sponsorship is an optional paid
-                  feature that may give the sponsored profile priority in the
-                  directory; it does not guarantee a particular position, number
-                  of views, enquiries, or work opportunities.
+                  A signed-in profile owner may start a one-time sponsorship
+                  checkout for an amount from USD 1 to USD 10,000. A paid
+                  sponsorship may give the profile priority in the directory for
+                  up to 30 days from payment. It does not guarantee a particular
+                  position, views, inquiries, or work opportunities.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  Checkout and payment processing are provided by Polar. The
-                  payment amount, currency, checkout terms, taxes where
-                  applicable, and available payment methods may be shown by
-                  Polar at checkout. We do not store your complete card number
-                  or payment security code.
+                  Polar provides checkout and payment processing. The checkout
+                  page states the amount, currency, applicable taxes, payment
+                  methods, and Polar&apos;s terms. We store checkout identifiers
+                  and payment status information, but do not receive or store
+                  your complete payment card number or security code.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  A checkout request may be retried safely. We use a unique
-                  request key so that a retry returns the same pending checkout
-                  instead of intentionally creating a second checkout for the
-                  same request. Completed, expired, or refunded sponsorships may
-                  be recorded so that payment status can be reconciled.
+                  A checkout request uses an idempotency key so that a retry can
+                  return the same pending checkout. Payment status may be
+                  updated when Polar reports a paid, refunded, or expired
+                  checkout.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  Questions about a charge, refund, or duplicate payment should
-                  be raised with the WeEverything operator and may also need to
-                  be handled through Polar according to the payment terms shown
-                  at checkout. Sponsorship payments are generally non-refundable
-                  because they are one-time payments for an optional promotion.
-                  We may consider a refund for a duplicate charge, an
-                  unauthorized payment, a material technical error, or another
-                  circumstance where a refund is required by applicable law.
-                  Refund requests should be submitted promptly with the account
-                  email, payment date, amount, and reason. Approved refunds are
-                  issued through Polar to the original payment method and may
-                  take time to appear according to the payment provider&apos;s
-                  processing times. A refunded sponsorship is no longer active.
+                  Cancellation, withdrawal, and refund rights depend on the
+                  checkout terms and applicable law. Nothing here excludes a
+                  refund or other right that the law requires. For a payment
+                  issue, contact the operator and Polar using their applicable
+                  support channels. A refunded sponsorship is no longer active.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
                 <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
-                  8. Account deletion and data retention.
+                  9. Account deletion and retention.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  You can request deletion from your signed-in profile. When a
-                  request is accepted, your profile is unpublished immediately
-                  and scheduled for permanent deletion after 30 days. During
-                  that period, you may be able to contact the operator to cancel
-                  the request or restore the account, subject to the
-                  operator&apos;s ability to do so.
+                  You can request deletion from your signed-in profile. The
+                  profile is unpublished immediately and scheduled for deletion
+                  after 30 days. A scheduled daily job processes due requests,
+                  so final deletion may occur later if processing or a provider
+                  is unavailable. The app does not currently provide a
+                  self-service cancellation or restore option during this
+                  period.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  At permanent deletion, the account and associated profile
-                  records are removed through the account deletion process, and
-                  uploaded profile media is removed from the profile media
-                  storage area where the system can do so. We may retain limited
-                  information where necessary for legal compliance, fraud
-                  prevention, payment reconciliation, dispute handling, or
-                  legitimate operational records.
+                  When the deletion job succeeds, it deletes the account and
+                  associated profile data and attempts to remove uploaded
+                  profile media. Some information may remain in provider
+                  backups, independent provider records, or our records where
+                  retention is required or permitted for legal compliance,
+                  security, payment disputes, or accounting. Public copies or
+                  browser caches held by others may not be retrievable by us.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
                 <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
-                  9. Cookies and browser storage.
+                  10. Cookies and browser storage.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  We use browser cookies or similar session technology where it
-                  is needed for authentication and account sessions. The site
-                  also uses local browser storage for your cookie choice, saved
-                  profiles, and inquiry read status, and to support profile view
-                  tracking. These technologies are used to operate the site, not
-                  to sell advertising profiles.
+                  The site uses authentication session cookies and browser
+                  storage for your analytics choice, saved and recently viewed
+                  profile IDs, inquiry read status, and a short-lived cache of
+                  published profiles. These items are stored on your device;
+                  clear browser storage to remove them. The app does not
+                  currently write individual profile-view records, even though
+                  profile-view totals may be displayed in the account area.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  You can control cookies and browser storage through your
-                  browser settings, but disabling them may prevent sign-in or
-                  make parts of the site unavailable.
+                  Blocking session cookies or browser storage may prevent
+                  sign-in or make saved profiles, inquiry read status, or other
+                  features unavailable. Rejecting optional Vercel Analytics does
+                  not disable Vercel Speed Insights as currently implemented.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
                 <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
-                  10. Availability and security.
+                  11. Availability, warranties, and liability.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  We work to keep WeEverything available and to protect account
-                  and profile information, but no online service can guarantee
-                  uninterrupted availability or absolute security. The site may
-                  be changed, suspended, or unavailable for maintenance,
-                  upgrades, provider outages, or circumstances outside our
-                  reasonable control.
+                  The service is provided as available. We do not promise that
+                  it will be uninterrupted, error-free, secure in every
+                  circumstance, or that directory information is complete or
+                  current. No online service can guarantee absolute security. We
+                  may change or suspend features for maintenance, safety, legal
+                  compliance, or provider outages.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  You are responsible for keeping access to your email account
-                  and sign-in method secure. Tell us promptly if you believe
-                  that your account has been accessed without permission.
+                  To the extent permitted by applicable law, WeEverything is not
+                  liable for indirect or consequential loss arising from use of
+                  the service, third-party services, or user-submitted content.
+                  Nothing in these Terms limits liability or consumer rights
+                  that cannot legally be excluded or limited. You remain
+                  responsible for your account security and your use of the
+                  service.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
                 <span className="text-[#999]  text-sm mb-2 font-medium tracking-tight ">
-                  11. Changes to these policies.
+                  12. Changes to these terms and privacy notice.
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  We may update these Terms and this Privacy Policy when the
-                  site, its providers, or applicable law changes. The date at
-                  the top of this page identifies the latest update. Continued
-                  use of WeEverything after an update means that you accept the
-                  updated terms to the extent permitted by law.
+                  We may revise these Terms and this Privacy Notice as the
+                  service or law changes. The date above identifies the latest
+                  revision. Where notice or consent is required by law, we will
+                  provide it; continued use alone does not remove any rights
+                  that applicable law gives you.
                 </span>
               </span>
             </div>

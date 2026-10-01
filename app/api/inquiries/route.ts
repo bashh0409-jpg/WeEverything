@@ -16,6 +16,8 @@ const MAX_INQUIRIES_PER_SENDER_PER_HOUR = 5;
 const MAX_INQUIRIES_PER_SENDER_PER_PROFILE_PER_HOUR = 2;
 const MAX_BUDGET_LENGTH = 200;
 const MAX_TIMELINE_LENGTH = 100;
+const MAX_PROJECT_TYPE_LENGTH = 120;
+const MAX_COMPANY_NAME_LENGTH = 200;
 
 const getRedis = () => {
   if (
@@ -70,6 +72,8 @@ const notifyProfileOwner = async ({
   senderName,
   senderEmail,
   senderPhone,
+  projectType,
+  companyName,
   project,
   budget,
   timeline,
@@ -78,6 +82,8 @@ const notifyProfileOwner = async ({
   senderName: string;
   senderEmail: string;
   senderPhone: string;
+  projectType: string;
+  companyName: string;
   project: string;
   budget: string;
   timeline: string;
@@ -110,6 +116,8 @@ const notifyProfileOwner = async ({
     `Name: ${senderName}`,
     `Email: ${senderEmail}`,
     senderPhone ? `Phone: ${senderPhone}` : "",
+    projectType ? `Project type: ${projectType}` : "",
+    companyName ? `Company: ${companyName}` : "",
     budget ? `Budget: ${budget}` : "",
     timeline ? `Timeline: ${timeline}` : "",
     "",
@@ -166,6 +174,8 @@ export async function POST(request: Request) {
     senderCountry?: unknown;
     senderPhone?: unknown;
     captchaToken?: unknown;
+    projectType?: unknown;
+    companyName?: unknown;
     project?: unknown;
     budget?: unknown;
     timeline?: unknown;
@@ -173,7 +183,10 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as typeof body;
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body." },
+      { status: 400 },
+    );
   }
 
   const profileId = typeof body.profileId === "string" ? body.profileId : "";
@@ -198,6 +211,10 @@ export async function POST(request: Request) {
       )
     : null;
   const normalizedPhone = parsedPhone?.number ?? "";
+  const projectType =
+    typeof body.projectType === "string" ? body.projectType.trim() : "";
+  const companyName =
+    typeof body.companyName === "string" ? body.companyName.trim() : "";
   const project = typeof body.project === "string" ? body.project.trim() : "";
   const budget = typeof body.budget === "string" ? body.budget.trim() : "";
   const timeline =
@@ -251,6 +268,8 @@ export async function POST(request: Request) {
     senderName.length > 120 ||
     senderEmail.length > 254 ||
     normalizedPhone.length > 40 ||
+    projectType.length > MAX_PROJECT_TYPE_LENGTH ||
+    companyName.length > MAX_COMPANY_NAME_LENGTH ||
     project.length > 5000 ||
     budget.length > MAX_BUDGET_LENGTH ||
     timeline.length > MAX_TIMELINE_LENGTH
@@ -334,6 +353,8 @@ export async function POST(request: Request) {
     sender_name: senderName,
     sender_email: senderEmail,
     sender_phone: normalizedPhone || null,
+    project_type: projectType || null,
+    company_name: companyName || null,
     project_brief: project,
     budget: budget || null,
     timeline: timeline || null,
@@ -352,6 +373,8 @@ export async function POST(request: Request) {
     senderName,
     senderEmail,
     senderPhone: normalizedPhone,
+    projectType,
+    companyName,
     project,
     budget,
     timeline,
