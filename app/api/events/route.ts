@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { isSafeExternalUrl } from "@/lib/safe-url";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const MAX_TITLE_LENGTH = 200;
 const MAX_COMPANY_LENGTH = 200;
@@ -32,6 +33,14 @@ export async function POST(request: Request) {
       { status: 503 },
     );
   }
+
+  const rateLimitResponse = await enforceRateLimit(
+    request,
+    "event-submissions",
+    5,
+    60 * 60,
+  );
+  if (rateLimitResponse) return rateLimitResponse;
 
   let body: EventSuggestionBody;
   try {

@@ -151,8 +151,12 @@ export default function DirectorySearchModal<
           })),
         }),
       });
-      const result = (await response.json()) as { ids?: string[]; error?: string };
-      if (!response.ok) throw new Error(result.error ?? "Intelligent search failed.");
+      const result = (await response.json()) as {
+        ids?: string[];
+        error?: string;
+      };
+      if (!response.ok)
+        throw new Error(result.error ?? "Intelligent search failed.");
 
       const profilesById = new Map(
         profiles.map((profile) => [String(profile.id), profile]),

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { Polar } from "@polar-sh/sdk";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const minimumSponsorshipAmount = 100;
 const maximumSponsorshipAmount = 1_000_000;
@@ -64,7 +65,10 @@ export async function POST(request: Request) {
       idempotencyKey?: unknown;
     };
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body." },
+      { status: 400 },
+    );
   }
   const amount = body.amount;
   const idempotencyKey = body.idempotencyKey;
@@ -111,6 +115,15 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
+
+  const rateLimitResponse = await enforceRateLimit(
+    request,
+    "sponsorship-checkout",
+    5,
+    60 * 60,
+    user.id,
+  );
+  if (rateLimitResponse) return rateLimitResponse;
 
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },

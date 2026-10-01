@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const purgeAccounts = async () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -46,7 +47,10 @@ const purgeAccounts = async () => {
         .remove(media.map((item) => item.storage_path));
 
       if (storageError) {
-        console.error("Could not delete account media during purge", storageError);
+        console.error(
+          "Could not delete account media during purge",
+          storageError,
+        );
         failed += 1;
         continue;
       }
@@ -80,6 +84,15 @@ export async function GET(request: Request) {
   ) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
+
+  const rateLimitResponse = await enforceRateLimit(
+    request,
+    "account-purge",
+    2,
+    60,
+    "scheduled-job",
+  );
+  if (rateLimitResponse) return rateLimitResponse;
 
   return purgeAccounts();
 }

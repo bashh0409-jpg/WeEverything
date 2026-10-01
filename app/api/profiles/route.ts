@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { isSafeExternalUrl } from "@/lib/safe-url";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,14 @@ export async function GET(request: Request) {
       { status: 400, headers: noStoreHeaders },
     );
   }
+
+  const rateLimitResponse = await enforceRateLimit(
+    request,
+    "profiles",
+    120,
+    60,
+  );
+  if (rateLimitResponse) return rateLimitResponse;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

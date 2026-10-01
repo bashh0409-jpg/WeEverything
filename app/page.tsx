@@ -598,7 +598,8 @@ const Page = () => {
           </div>
 
           <div className="mt-4 flex geist flex-wrap  flex-col  justify-between gap-4">
-            <div className="flex flex-wrap gap-4 overflow-y-auto text-xs font-semibold uppercase tracking-tight text-[#999]">
+            <div className="flex flex-wrap items-center gap-4 overflow-y-auto text-xs font-semibold uppercase tracking-tight text-[#999]">
+             
               <button
                 type="button"
                 onClick={() => setShowSavedProfiles((current) => !current)}
@@ -619,8 +620,8 @@ const Page = () => {
                   }}
                   className={
                     roleFilter === role
-                      ? "cursor-pointer tracking-tight  text-black transition-all duration-500"
-                      : "cursor-pointer transition-all duration-400 hover:text-black"
+                      ? "cursor-pointer uppercas text-sm  tracking-tighter  text-black transition-all duration-500"
+                      : "cursor-pointer uppercas text-sm  tracking-tighter text-[#999] transition-all duration-400 hover:text-black"
                   }
                 >
                   {role}
@@ -634,7 +635,7 @@ const Page = () => {
                 aria-label="Search profiles"
                 title="Search profiles"
                 onClick={() => setIsSearchOpen(true)}
-                className={`cursor-pointer flex items-center gap-1 rounded px-1 transition-all duration-400 ${viewMode === "grid" ? "text-black" : "text-[#999] hover:text-black"}`}
+                className={`cursor-pointer flex items-center gap-1 rounded px- transition-all duration-400 ${viewMode === "grid" ? "text-black" : "text-[#999] hover:text-black"}`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -642,7 +643,7 @@ const Page = () => {
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
                   stroke="currentColor"
-                  className="size-4"
+                  className="size-4 "
                 >
                   <path
                     strokeLinecap="round"

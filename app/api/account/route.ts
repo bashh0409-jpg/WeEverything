@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export async function DELETE(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -39,6 +40,15 @@ export async function DELETE(request: Request) {
       { status: 401 },
     );
   }
+
+  const rateLimitResponse = await enforceRateLimit(
+    request,
+    "account-deletion",
+    3,
+    24 * 60 * 60,
+    user.id,
+  );
+  if (rateLimitResponse) return rateLimitResponse;
 
   const deletionScheduledAt = new Date();
   deletionScheduledAt.setDate(deletionScheduledAt.getDate() + 30);

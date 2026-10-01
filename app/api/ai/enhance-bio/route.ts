@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const MAX_BIO_LENGTH = 2_000;
 const MIN_BIO_WORDS = 20;
@@ -48,6 +49,15 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
+
+  const rateLimitResponse = await enforceRateLimit(
+    request,
+    "bio-enhancement",
+    10,
+    60 * 60,
+    user.id,
+  );
+  if (rateLimitResponse) return rateLimitResponse;
 
   let body: { bio?: unknown };
   try {

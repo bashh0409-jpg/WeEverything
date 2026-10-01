@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { validateEvent } from "@polar-sh/sdk/webhooks";
 import { createClient } from "@supabase/supabase-js";
 import { Webhook } from "standardwebhooks";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -38,6 +39,14 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
+
+  const rateLimitResponse = await enforceRateLimit(
+    request,
+    "polar-webhook",
+    300,
+    60,
+  );
+  if (rateLimitResponse) return rateLimitResponse;
 
   const paymentStatus =
     event.type === "order.paid"
@@ -101,7 +110,10 @@ export async function POST(request: Request) {
 
   if (error) {
     console.error("Could not apply sponsorship event", error);
-    return NextResponse.json({ error: "Could not process webhook." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Could not process webhook." },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ received: true });

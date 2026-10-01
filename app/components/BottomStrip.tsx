@@ -113,7 +113,7 @@ const BottomStrip = () => {
                   eventObject.preventDefault();
                 }
               }}
-              className="group relative flex h-full aspect-[16/9] cursor-pointer flex-col justify-between overflow-hidden p-2"
+              className="group relative flex h-full aspect-[16/9] cursor-pointer flex-col justify-between p-2"
             >
               <div className="absolute inset-0 bg-[linear-gradient(to_top,_rgba(28,64,242,0.5)_40%,_transparent_100%)] opacity-100 transition-opacity duration-500 group-hover:opacity-0" />
               <div className="absolute inset-0 bg-[linear-gradient(to_top,_rgba(28,64,242,0.5)_20%,_transparent_100%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />

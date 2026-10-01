@@ -15,10 +15,11 @@ const THINK_TIME_S = Number(__ENV.THINK_TIME_S || 0);
 const ALLOW_503 = __ENV.ALLOW_503 === "true";
 
 const withOutage = (statuses) => (ALLOW_503 ? [...statuses, 503] : statuses);
+const withRateLimit = (statuses) => [...statuses, 429];
 
 // Also drives k6's own http_req_failed metric, not just our checks.
 http.setResponseCallback(
-  http.expectedStatuses(200, 400, 401, ...(ALLOW_503 ? [503] : [])),
+  http.expectedStatuses(200, 400, 401, 429, ...(ALLOW_503 ? [503] : [])),
 );
 
 // Slugs, not display names: whitespace in tag values breaks threshold selectors.
@@ -101,7 +102,7 @@ export default function () {
   expectStatus(
     "profiles",
     http.get(`${BASE_URL}/api/profiles?offset=0`, tagged("profiles")),
-    withOutage([200]),
+    withRateLimit(withOutage([200])),
   );
 
   expectStatus(
@@ -111,7 +112,7 @@ export default function () {
       JSON.stringify({}),
       tagged("events", jsonParams),
     ),
-    withOutage([400]),
+    withRateLimit(withOutage([400])),
   );
 
   expectStatus(
@@ -126,7 +127,7 @@ export default function () {
       }),
       tagged("inquiries", jsonParams),
     ),
-    withOutage([400]),
+    withRateLimit(withOutage([400])),
   );
 
   expectStatus(
@@ -171,7 +172,11 @@ export default function () {
     JSON.stringify({ query: "designer", candidates: [] }),
     tagged("search_profiles", jsonParams),
   );
-  expectStatus("AI profile search", profileSearch, withOutage([200]));
+  expectStatus(
+    "AI profile search",
+    profileSearch,
+    withRateLimit(withOutage([200])),
+  );
   if (profileSearch.status === 200) {
     // Parse once; response.json() re-parses the body on every call.
     const ids = profileSearch.json("ids");
