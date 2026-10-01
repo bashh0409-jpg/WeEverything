@@ -234,6 +234,11 @@ const Page = () => {
       .catch(() => undefined);
   };
 
+  const clearRecentlyViewedProfiles = () => {
+    window.localStorage.removeItem(RECENTLY_VIEWED_PROFILES_KEY);
+    setRecentlyViewedProfileIds([]);
+  };
+
   useEffect(() => {
     let timeoutId: number | undefined;
 
@@ -713,6 +718,7 @@ const Page = () => {
         <DirectorySearchModal
           isOpen={isSearchOpen}
           onClose={() => setIsSearchOpen(false)}
+          onClearRecents={clearRecentlyViewedProfiles}
           onSelectProfile={openProfile}
           profiles={profiles}
           recentlyViewedProfileIds={recentlyViewedProfileIds}

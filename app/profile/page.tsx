@@ -581,6 +581,11 @@ const ProfilePage = () => {
     null,
   );
   const [saving, setSaving] = useState(false);
+  const [enhancingBio, setEnhancingBio] = useState(false);
+  const [bioSuggestion, setBioSuggestion] = useState<{
+    original: string;
+    enhanced: string;
+  } | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
   const [draggingSlot, setDraggingSlot] = useState<number | null>(null);
@@ -795,7 +800,58 @@ const ProfilePage = () => {
 
   const handleBioChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const bio = truncateToWordLimit(event.target.value, MAX_BIO_WORDS);
+    setBioSuggestion(null);
     setForm((current) => (current ? { ...current, bio } : current));
+  };
+
+  const handleEnhanceBio = async () => {
+    if (!form?.bio.trim() || enhancingBio) return;
+
+    setEnhancingBio(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/ai/enhance-bio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bio: form.bio }),
+      });
+      const result = (await response.json()) as {
+        bio?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !result.bio) {
+        setMessage(result.error ?? "Could not enhance your bio.");
+        return;
+      }
+
+      const enhancedBio = truncateToWordLimit(result.bio, MAX_BIO_WORDS);
+      setBioSuggestion({ original: form.bio, enhanced: enhancedBio });
+      setForm((current) =>
+        current ? { ...current, bio: enhancedBio } : current,
+      );
+      setMessage("Bio enhanced. Review it before saving.");
+    } catch {
+      setMessage("Could not reach the bio enhancement service.");
+    } finally {
+      setEnhancingBio(false);
+    }
+  };
+
+  const rejectBioSuggestion = () => {
+    if (!bioSuggestion) return;
+
+    setForm((current) =>
+      current ? { ...current, bio: bioSuggestion.original } : current,
+    );
+    setBioSuggestion(null);
+    setMessage("Enhanced bio rejected. Your original bio was restored.");
+  };
+
+  const approveBioSuggestion = () => {
+    setBioSuggestion(null);
+    setMessage("Enhanced bio approved. Review it once more before saving.");
   };
 
   const handleRoleToggle = (role: string) => {
@@ -1847,6 +1903,8 @@ const ProfilePage = () => {
                     {media.map((item) => {
                       const mediaUrl = mediaUrls[item.storage_path] ?? "";
 
+                      if (!mediaUrl) return null;
+
                       return item.media_type === "video" ? (
                         <ProfileVideo
                           key={item.id}
@@ -2113,14 +2171,14 @@ const ProfilePage = () => {
                   <label className="mt-8 block mono text-sm font-Medium uppercase tracking-tight text-[#999]">
                     <div className="flex items-center justify-between">
                       <span>About Me *</span>
-                      <span>
+                      <div className="flex items-center gap-3">
                         <p
                           id="bio-word-count"
                           className="mt-2 text-xs geist tracking-tighter font-semibold capitalize mon uppercase text-[#999]"
                         >
                           {countWords(activeForm.bio)} / {MAX_BIO_WORDS}
                         </p>
-                      </span>
+                      </div>
                     </div>{" "}
                     <textarea
                       ref={bioInputRef}
@@ -2134,6 +2192,40 @@ const ProfilePage = () => {
                       placeholder="Tell people what you do in at least 20 words."
                       className="mt-2 w-full text-justify  min-h-50 text-black geist resize-none scrollbar-none bg-black/5 rounded p-3 outline-none transition placeholder:text-[#aaa] focus:border-[#1c40f2]/50  focus:border-2"
                     />
+                    {!bioSuggestion ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleEnhanceBio()}
+                        disabled={enhancingBio || !activeForm.bio.trim()}
+                        className="rounded-full border border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {enhancingBio ? "Enhancing..." : "Enhance bio"}
+                      </button>
+                    ) : null}
+                    {bioSuggestion ? (
+                      <div className="mt-2 flex flex-col gap-2  ">
+                        <p className="text-xs hidden font-semibold normal-case tracking-tight geist text-[#666]">
+                          AI can make mistakes. Verify the information before
+                          approving or saving this bio.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={approveBioSuggestion}
+                            className="rounded-full bg-[#1c40f2] px-3 py-1 text-xs font-semibold uppercase tracking-tight text-white transition hover:bg-black"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={rejectBioSuggestion}
+                            className="rounded-full border border-black/20 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-black transition hover:bg-black/5"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
                   </label>
 
                   <section className="mt-4 pt-5">

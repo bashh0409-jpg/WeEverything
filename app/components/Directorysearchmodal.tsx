@@ -15,6 +15,7 @@ export interface DirectoryProfile {
 interface DirectorySearchModalProps<TProfile extends DirectoryProfile> {
   isOpen: boolean;
   onClose: () => void;
+  onClearRecents: () => void;
   onSelectProfile: (profile: TProfile) => void;
   profiles: readonly TProfile[];
   recentlyViewedProfileIds: readonly string[];
@@ -31,16 +32,29 @@ const getInitials = (name: string): string =>
     .join("")
     .toUpperCase();
 
+const normalizeSearchText = (value: string): string =>
+  value
+    .toLocaleLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
 export default function DirectorySearchModal<
   TProfile extends DirectoryProfile,
 >({
   isOpen,
   onClose,
+  onClearRecents,
   onSelectProfile,
   profiles,
   recentlyViewedProfileIds,
 }: DirectorySearchModalProps<TProfile>) {
   const [query, setQuery] = useState("");
+  const [semanticProfiles, setSemanticProfiles] = useState<TProfile[]>([]);
+  const [semanticQuery, setSemanticQuery] = useState("");
+  const [isSemanticSearching, setIsSemanticSearching] = useState(false);
+  const [semanticSearchError, setSemanticSearchError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -53,7 +67,10 @@ export default function DirectorySearchModal<
 
     const dialog = dialogRef.current;
     const content = contentRef.current;
-    if (!dialog || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (
+      !dialog ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
       onClose();
       afterClose?.();
       return;
@@ -112,7 +129,54 @@ export default function DirectorySearchModal<
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-  const needle = query.trim().toLowerCase();
+  const searchWithAI = async () => {
+    const submittedQuery = query.trim();
+    if (!submittedQuery || isSemanticSearching) return;
+
+    setIsSemanticSearching(true);
+    setSemanticSearchError("");
+
+    try {
+      const response = await fetch("/api/ai/search-profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: submittedQuery,
+          candidates: profiles.slice(0, 100).map((profile) => ({
+            id: String(profile.id),
+            name: profile.name,
+            role: profile.role,
+            bio: profile.bio ?? "",
+            location: profile.location ?? "",
+          })),
+        }),
+      });
+      const result = (await response.json()) as { ids?: string[]; error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Intelligent search failed.");
+
+      const profilesById = new Map(
+        profiles.map((profile) => [String(profile.id), profile]),
+      );
+      setSemanticProfiles(
+        (result.ids ?? [])
+          .map((id) => profilesById.get(id))
+          .filter((profile): profile is TProfile => Boolean(profile)),
+      );
+      setSemanticQuery(normalizeSearchText(submittedQuery));
+    } catch (error) {
+      setSemanticSearchError(
+        error instanceof Error
+          ? error.message
+          : "Intelligent search is unavailable.",
+      );
+      setSemanticProfiles([]);
+      setSemanticQuery("");
+    } finally {
+      setIsSemanticSearching(false);
+    }
+  };
+
+  const needle = normalizeSearchText(query);
 
   const matchingProfiles = useMemo(() => {
     if (!needle) return [];
@@ -120,13 +184,13 @@ export default function DirectorySearchModal<
     return profiles
       .filter((profile) =>
         [profile.name, profile.role, profile.location ?? ""].some((field) =>
-          field.toLowerCase().includes(needle),
+          normalizeSearchText(field).includes(needle),
         ),
       )
       .sort(
         (a, b) =>
-          Number(!a.name.toLowerCase().startsWith(needle)) -
-          Number(!b.name.toLowerCase().startsWith(needle)),
+          Number(!normalizeSearchText(a.name).startsWith(needle)) -
+          Number(!normalizeSearchText(b.name).startsWith(needle)),
       );
   }, [profiles, needle]);
   const totalMatches = matchingProfiles.length;
@@ -143,7 +207,17 @@ export default function DirectorySearchModal<
       .slice(0, MAX_RESULTS);
   }, [profiles, recentlyViewedProfileIds]);
 
-  const displayedProfiles = needle ? matches : recentlyViewedProfiles;
+  const isShowingSemanticResults = Boolean(
+    needle && semanticQuery === needle && semanticProfiles.length > 0,
+  );
+  const displayedProfiles = needle
+    ? isShowingSemanticResults
+      ? semanticProfiles
+      : matches
+    : recentlyViewedProfiles;
+  const displayedMatchCount = isShowingSemanticResults
+    ? semanticProfiles.length
+    : totalMatches;
 
   if (!isOpen) return null;
 
@@ -187,7 +261,18 @@ export default function DirectorySearchModal<
             ref={inputRef}
             type="search"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setSemanticProfiles([]);
+              setSemanticQuery("");
+              setSemanticSearchError("");
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void searchWithAI();
+              }
+            }}
             placeholder="Search"
             aria-label="Search profiles"
             className="directory-search-input w-full min-w-0 border-0 bg-transparent px-0 text-lg font-medium tracking-tight text-white outline-none placeholder:text-white/30 sm:text-6xl"
@@ -215,6 +300,21 @@ export default function DirectorySearchModal<
           )}
         </div>
 
+        {needle ? (
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <p className="text-xs font-medium tracking-tight text-white/60">
+              {isSemanticSearching
+                ? "Finding the most relevant profiles..."
+                : "Press Enter for an intelligent search"}
+            </p>
+            {semanticSearchError ? (
+              <p className="text-xs font-medium text-red-100" role="status">
+                {semanticSearchError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         {(needle || recentlyViewedProfiles.length > 0) && (
           <div className="mt-8">
             {needle && (
@@ -222,18 +322,35 @@ export default function DirectorySearchModal<
                 aria-live="polite"
                 className="mb-3 text-sm capitaliz font-medium tracking-tight text-white"
               >
-                {totalMatches === 0
+                {displayedMatchCount === 0
                   ? "No results found. Try searching for a different name or role."
-                  : `${totalMatches} ${totalMatches === 1 ? "result" : "results"}${totalMatches > matches.length ? ` · Showing ${matches.length}` : ""}`}
+                  : `${displayedMatchCount} ${displayedMatchCount === 1 ? "result" : "results"}${isShowingSemanticResults ? " · Intelligent search" : displayedMatchCount > matches.length ? ` · Showing ${matches.length}` : ""}`}
               </p>
             )}
             {!needle && (
-              <p className="mb-3 text-xs mono capitalize font-medium tracking-tight uppercase text-white">
-                Recently viewed
-              </p>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-xs mono capitalize font-medium tracking-tight uppercase text-white">
+                  Recents
+                </p>
+                <button
+                  type="button"
+                  onClick={onClearRecents}
+                  className="text-xs mono flex items-center font-medium uppercase tracking-tight text-white/60 transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="20px"
+                    viewBox="0 -960 960 960"
+                    width="20px"
+                    fill="currentColor"
+                  >
+                    <path d="m456-320 104-104 104 104 56-56-104-104 104-104-56-56-104 104-104-104-56 56 104 104-104 104 56 56Zm-96 160q-19 0-36-8.5T296-192L80-480l216-288q11-15 28-23.5t36-8.5h440q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H360ZM180-480l180 240h440v-480H360L180-480Zm400 0Z" />
+                  </svg>
+                </button>
+              </div>
             )}
             {displayedProfiles.length > 0 ? (
-              <div className="divide-y divide-white/10">
+              <div className="">
                 {displayedProfiles.map((profile) => (
                   <button
                     key={profile.id}
@@ -252,7 +369,7 @@ export default function DirectorySearchModal<
                         className="h-8 w-8 shrink-0 rounded-full object-cover"
                       />
                     ) : (
-                      <span className="flex h-8 w-8  shrink-0 items-center justify-center rounded-full bg-white text-2xl font-semibold text-black">
+                      <span className="flex h-8 w-8  shrink-0 items-center justify-center rounded-full bg-white text-x font-semibold text-black">
                         {getInitials(profile.name)}
                       </span>
                     )}
