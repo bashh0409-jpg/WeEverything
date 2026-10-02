@@ -660,7 +660,7 @@ const Page = () => {
           </div>
         </section>
 
-        <section className="mt-10 grid w-full  grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <section className="mt-10 grid w-full  grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {loading ? (
             <div
               role="status"

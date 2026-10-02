@@ -21,20 +21,20 @@ const links = [
   { href: "/legal", label: "Legal," },
 ];
 
-const topDevs = [
-  { id: 1, name: "alex.dev", href: "https://alex.dev" },
-  { id: 2, name: "mika.codes", href: "https://mika.codes" },
-  { id: 3, name: "jordan.builds", href: "https://jordan.builds" },
-  { id: 4, name: "noahstack", href: "https://noahstack.dev" },
-  { id: 5, name: "lena.dev", href: "https://lena.dev" },
-];
-
-const topDesigners = [
-  { id: 1, name: "maya.design", href: "https://maya.design" },
-  { id: 2, name: "leo.studio", href: "https://leo.studio" },
-  { id: 3, name: "sophia.design", href: "https://sophia.design" },
-  { id: 4, name: "kai.studio", href: "https://kai.studio" },
-  { id: 5, name: "nina.works", href: "https://nina.works" },
+const mostAwardedProfiles = [
+  { name: "Locomotive", href: "https://www.awwwards.com/locomotive/" },
+  {
+    name: "Immersive Garden",
+    href: "https://www.awwwards.com/immersivegarden/",
+  },
+  { name: "Resn", href: "https://www.awwwards.com/resn/" },
+  { name: "Monks", href: "https://www.awwwards.com/madebymonks/" },
+  { name: "Active Theory", href: "https://www.awwwards.com/active_theory/" },
+  { name: "Hello Monday", href: "https://www.awwwards.com/hellomonday/" },
+  { name: "AQuest", href: "https://www.awwwards.com/aquest/" },
+  { name: "Merci Michel", href: "https://www.awwwards.com/Merci-Michel/" },
+  { name: "makemepulse", href: "https://www.awwwards.com/makemepulse/" },
+  { name: "dogstudio", href: "https://www.awwwards.com/dogstudio/" },
 ];
 
 const SPONSORSHIP_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -292,7 +292,7 @@ const Navbar = forwardRef<
           href="/"
           className="shrink-0 font-bold  mt-1 blue italic tracking-tighter text-white"
         >
-          WeEverything.xyz
+          WeEverything
         </Link>
 
         <div
@@ -311,38 +311,33 @@ const Navbar = forwardRef<
           ))}
         </div>
 
-        <div className="gap-4 hidden md:flex  text-[#1c40f2] items-start leading-none">
-          <div className="flex flex-col mr-4  items-star leading-none">
-            <span className=" mb-4 text-sm   font-semibold mt-1 opacity-100">
-              Top Developers
-            </span>
-            {topDevs.map((designer) => (
-              <a
-                key={designer.id}
-                href={designer.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-bold blue tracking-tighter hover:underline"
-              >
-                {designer.name}
-              </a>
-            ))}
-          </div>
-          <div className="flex flex-col items-star leading-none">
-            <span className=" mb-4 text- text-sm mr-4 font-semibold mt-1 opacity-100">
-              Top Designers
-            </span>
-            {topDesigners.map((designer) => (
-              <a
-                key={designer.id}
-                href={designer.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-bold blue tracking-tighter hover:underline"
-              >
-                {designer.name}
-              </a>
-            ))}
+        <div className="hidden flex-col gap-2 text-[#1c40f2] md:flex">
+          <a
+            href="https://www.awwwards.com/winner-list/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-fit hidden text-sm font-semibold hover:underline"
+          >
+            10 Most Awarded Profiles
+          </a>
+          <div className="grid grid-cols-2 mt-2 gap-x-5 leading-none">
+            {[mostAwardedProfiles.slice(0, 5), mostAwardedProfiles.slice(5)].map(
+              (column, columnIndex) => (
+                <div key={columnIndex} className="flex flex-col items-start">
+                  {column.map((profile) => (
+                    <a
+                      key={profile.name}
+                      href={profile.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold tracking-tighter hover:underline"
+                    >
+                      {profile.name}
+                    </a>
+                  ))}
+                </div>
+              ),
+            )}
           </div>
         </div>
 
@@ -480,27 +475,31 @@ const Navbar = forwardRef<
       <aside
         ref={asideRef}
         aria-hidden={!sidebarOpen}
-        className={`fixed inset-x-0 top-0 z-100 flex h-full w-full flex-col bg-white p-6 text-black sm:hidden ${
+        className={`fixed inset-0 z-100 flex h-dvh w-full flex-col gap-6 overflow-y-auto overscroll-contain bg-[#1c40f2] px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-white sm:hidden ${
           sidebarOpen ? "" : "pointer-events-none"
         }`}
       >
-        <div className="flexitems-center justify-between">
-          <span className="font-bold italic tracking-tighter">
-            WeEverything.xyz
-          </span>
+        <div className="flex shrink-0 items-center justify-between">
+          <div className="flex items-center gap-3">
+           
+            <div>
+              <p className="font-bold italic tracking-tighter">WeEverything</p>
+              
+            </div>
+          </div>
 
           <button
             type="button"
             aria-label="Close navigation"
             onClick={closeSidebar}
-            className="text-2xl leading-none"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full  transition-colors hover:bg-white/10"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               height="24px"
               viewBox="0 -960 960 960"
               width="24px"
-              fill="currentColor"
+              fill="white"
             >
               <path d="M256-213.85 213.85-256l224-224-224-224L256-746.15l224 224 224-224L746.15-704l-224 224 224 224L704-213.85l-224-224-224 224Z" />
             </svg>
@@ -509,23 +508,48 @@ const Navbar = forwardRef<
 
         <div
           ref={linksContainerRef}
-          className="my-auto flex flex-col text-2xl font-medium uppercase tracking-tighter"
+          className="my-auto flex shrink-0 flex-col"
         >
-          {links.map((link) => (
-            <Link key={link.href} href={link.href} onClick={closeSidebar}>
-              {link.label}
+          {links.map((link, index) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={closeSidebar}
+              className="group flex items-center gap-4 border-b border-white/20 py-4 first:border-t"
+            >
+              <span className="geist font-semibold w-6 text-xs text-white/55">
+                0{index + 1}
+              </span>
+              <span className="flex-1 geist text-4xl font-semibold uppercase leading-none tracking-[-0.06em]">
+                {link.label.replace(/,$/, "")}
+              </span>
+              <svg
+                aria-hidden="true"
+                className="h-6 w-6 shrink-0 transition-transform duration-200 group-hover:translate-x-1"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  d="M4.5 12h14m-6-6 6 6-6 6"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </Link>
           ))}
         </div>
 
-        <div className="mt-6 flex flex-col gap-3">
+        <div className="mt-auto flex shrink-0 flex-col gap-3 pt-4">
           <Link
-            href="/submit"
+            href="/profile"
             onClick={closeSidebar}
-            className="rounded-full border border-black/20 px-4 py-2 text-center text-sm font-semibold text-black"
+            className="flex min-h-11 items-center justify-center rounded-full border border-white/45 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
           >
-            Submit
+            Profile
           </Link>
+
           <button
             type="button"
             onClick={async () => {
@@ -538,10 +562,19 @@ const Navbar = forwardRef<
 
               setIsSignInOpen(true);
             }}
-            className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white"
+            className="flex min-h-10  items-center rounded-full bg-white px-5 text-center text-sm font-semibold text-[#1c40f2] transition-transform hover:scale-[1.01] active:scale-[0.99]"
           >
-            {isAuthenticated ? "Log out" : "Sign in"}
+            
+              <span className=" text-center w-full geist tracking-tight text-sm">
+                {isAuthenticated ? "Log out" : "Sign in"}
+              </span>
+            
+            
+          
           </button>
+          <p className="mono text-center font-medium text-xs hidden uppercase tracking-[0.18em] text-white/55">
+            Make something. Find your people.
+          </p>
         </div>
       </aside>
 
