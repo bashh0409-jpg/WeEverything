@@ -1444,25 +1444,8 @@ const ProfilePage = () => {
       <div>
         <Navbar />
 
-        <main className="flex min-h-screen items-center justify-center px-6 py-20">
-          <section className="w-full max-w-xl border-t border-black pt-5">
-            <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-              Your profile
-            </p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-tighter text-black sm:text-5xl">
-              Sign in to make your profile.
-            </h1>
-            <p className="mt-4 max-w-md text-sm leading-relaxed text-[#666]">
-              Your member profile is where you can add your bio, discipline,
-              location, work, and social links.
-            </p>
-            <Link
-              href="/signin"
-              className="mt-7 inline-flex rounded-full bg-black px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1c40f2]"
-            >
-              Sign in with Google
-            </Link>
-          </section>
+        <main className="flex min-h-screen mono uppercase text-sm tracking-tight text-[#999] items-center justify-center px-6 py-20">
+         No user is signed in. Please sign in to view your profile.
         </main>
       </div>
     );
@@ -2402,7 +2385,7 @@ const ProfilePage = () => {
                                   key={`${award}-${index}`}
                                   className="flex items-center mb-1  bg-black/0 rounded justify-between gap-4 py-1 px-2  text-sm font-normal"
                                 >
-                                  <span className="min-w-0 font-medium break-words">
+                                  <span className="min-w-0 capitalize font-medium break-word">
                                     {award}
                                   </span>
                                   <button
@@ -2425,7 +2408,7 @@ const ProfilePage = () => {
                             )}
                           </ul>
                         ) : (
-                          <div className="border-y border-dashed border-black/15 py-5 mono uppercase text-sm font-medium text-[#999]">
+                          <div className="border-y border-dashed mt-8 border-black/15 py-2 mono uppercase text-sm font-medium text-[#999]">
                             No awards added yet.
                           </div>
                         )}

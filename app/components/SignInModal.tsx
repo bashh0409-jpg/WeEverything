@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { User } from "@supabase/supabase-js";
 import { FaGithub, FaGoogle } from "react-icons/fa6";
 import {
@@ -14,9 +14,34 @@ type SignInModalProps = {
   onClose: () => void;
 };
 
+const subscribeToLocation = (callback: () => void) => {
+  window.addEventListener("hashchange", callback);
+  window.addEventListener("popstate", callback);
+
+  return () => {
+    window.removeEventListener("hashchange", callback);
+    window.removeEventListener("popstate", callback);
+  };
+};
+
+const getIsBannedFromLocation = () => {
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.slice(1));
+
+  return (
+    searchParams.get("error_code") === "user_banned" ||
+    hashParams.get("error_code") === "user_banned"
+  );
+};
+
 const SignInModal = ({ onClose }: SignInModalProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(() => Boolean(supabase));
+  const isBanned = useSyncExternalStore(
+    subscribeToLocation,
+    getIsBannedFromLocation,
+    () => false,
+  );
   const [message, setMessage] = useState(() =>
     supabase
       ? ""
@@ -132,16 +157,31 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
         </p>
 
         <h2 className="mt-3 geist text-3xl font-semibold tracking-tighter text-black">
-          {user ? "You are signed in" : "Sign in or create your profile"}
+          {isBanned
+            ? "Your account is banned"
+            : user
+              ? "You are signed in"
+              : "Sign in or create your profile"}
         </h2>
 
-        {message ? (
+        {isBanned ? (
+          <div
+            role="alert"
+            className="mt-4 rounded geist font-medium tracking-tight text-sm text-red-400"
+          >
+            
+            <p className="">
+              If you believe this is a mistake, please contact the
+              WeEverything team.
+            </p>
+          </div>
+        ) : message ? (
           <p className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {message}
           </p>
         ) : null}
 
-        {loading ? (
+        {isBanned ? null : loading ? (
           <div className="mt-6 text-sm text-[#666]">Loading session...</div>
         ) : user ? (
           <div className="mt-6 space-y-4">
