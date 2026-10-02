@@ -2,6 +2,7 @@
 
 import { gsap } from "gsap";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import posthog from "posthog-js";
 
 export interface DirectoryProfile {
   id: string | number;
@@ -133,6 +134,7 @@ export default function DirectorySearchModal<
     const submittedQuery = query.trim();
     if (!submittedQuery || isSemanticSearching) return;
 
+    posthog.capture("directory_ai_search_submitted");
     setIsSemanticSearching(true);
     setSemanticSearchError("");
 

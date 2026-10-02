@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
+import { SeverityNumber } from "@opentelemetry/api-logs";
 import { createClient } from "@supabase/supabase-js";
+import { emitPostHogLog, flushPostHogLogs } from "@/instrumentation";
 import { isSafeExternalUrl } from "@/lib/safe-url";
 import { enforceRateLimit } from "@/lib/rate-limit";
 
@@ -101,6 +103,11 @@ export async function POST(request: Request) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  emitPostHogLog("event_suggestion_persistence_started", {
+    endpoint: "/api/events",
+    method: "POST",
+  });
+
   const { error } = await admin.from("events").insert({
     title,
     company,
@@ -113,11 +120,26 @@ export async function POST(request: Request) {
 
   if (error) {
     console.error("Could not save suggested event", error);
+    emitPostHogLog(
+      "event_suggestion_persistence_failed",
+      {
+        endpoint: "/api/events",
+        method: "POST",
+      },
+      SeverityNumber.ERROR,
+    );
+    after(flushPostHogLogs);
     return NextResponse.json(
       { error: "Could not save your event suggestion. Please try again." },
       { status: 500 },
     );
   }
+
+  emitPostHogLog("event_suggestion_persisted", {
+    endpoint: "/api/events",
+    method: "POST",
+  });
+  after(flushPostHogLogs);
 
   return NextResponse.json({
     ok: true,

@@ -14,6 +14,7 @@ import {
   FaYoutube,
 } from "react-icons/fa6";
 import { useCallback, useEffect, useRef, useState } from "react";
+import posthog from "posthog-js";
 import CachedImage from "./CachedImage";
 import {
   getCountries,
@@ -223,6 +224,7 @@ const ProfileModal = ({
       return;
     }
 
+    posthog.capture("profile_inquiry_sent");
     setInquiryStatus("sent");
     setInquiryMessage("Your inquiry has been sent.");
     inquiryFormRef.current?.reset();

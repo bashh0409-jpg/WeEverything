@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import posthog from "posthog-js";
 import type { User } from "@supabase/supabase-js";
 import { FaGithub, FaGoogle } from "react-icons/fa6";
 import {
@@ -84,6 +85,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
     }
 
     setMessage("");
+    posthog.capture("sign_in_started", { provider: "google" });
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -106,6 +108,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
     }
 
     setMessage("");
+    posthog.capture("sign_in_started", { provider: "github" });
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "github",

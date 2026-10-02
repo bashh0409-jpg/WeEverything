@@ -1,6 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import {
+  captureAiGeneration,
+  createAiTraceId,
+} from "@/lib/posthog-ai";
 import { enforceRateLimit } from "@/lib/rate-limit";
 
 const MAX_BIO_LENGTH = 2_000;
@@ -81,6 +85,17 @@ export async function POST(request: Request) {
     );
   }
 
+  const messages = [
+    {
+      role: "system",
+      content:
+        "Rewrite professional profile bios. Preserve every factual claim and the person's voice. Never invent experience, clients, awards, skills, or credentials. Return only the improved bio, under 100 words, with no quotation marks or preamble.",
+    },
+    { role: "user", content: bio },
+  ];
+  const traceId = createAiTraceId();
+  const aiRequestStartedAt = Date.now();
+
   let aiResponse: Response;
   try {
     aiResponse = await fetch(
@@ -95,14 +110,7 @@ export async function POST(request: Request) {
           model: AI_MODEL,
           temperature: 0.6,
           max_tokens: 180,
-          messages: [
-            {
-              role: "system",
-              content:
-                "Rewrite professional profile bios. Preserve every factual claim and the person's voice. Never invent experience, clients, awards, skills, or credentials. Return only the improved bio, under 100 words, with no quotation marks or preamble.",
-            },
-            { role: "user", content: bio },
-          ],
+          messages,
         }),
       },
     );
@@ -136,5 +144,15 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ bio: enhancedBio.trim() });
+  const enhancedBioContent = enhancedBio.trim();
+  await captureAiGeneration({
+    distinctId: user.id,
+    input: messages,
+    latencyMs: Date.now() - aiRequestStartedAt,
+    model: AI_MODEL,
+    output: enhancedBioContent,
+    traceId,
+  });
+
+  return NextResponse.json({ bio: enhancedBioContent });
 }

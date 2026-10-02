@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 import { useRef } from "react";
 import { FaMagnifyingGlass } from "react-icons/fa6";
+import posthog from "posthog-js";
 import Navbar from "./components/Navbar";
 import PersonCard from "./components/PersonCard";
 import ProfileModal from "./components/ProfileModal";
@@ -187,6 +188,9 @@ const Page = () => {
   }, [filtersReady, searchQuery, roleFilter, locationFilter]);
 
   const toggleSavedProfile = (profileId: string) => {
+    const wasSaved = savedProfileIds.includes(profileId);
+    posthog.capture(wasSaved ? "profile_unsaved" : "profile_saved");
+
     setSavedProfileIds((currentIds) => {
       const nextIds = currentIds.includes(profileId)
         ? currentIds.filter((id) => id !== profileId)
@@ -198,6 +202,11 @@ const Page = () => {
   };
 
   const openProfile = (profile: Profile) => {
+    posthog.capture("profile_opened", {
+      is_sponsored: profile.is_sponsored,
+      profile_role: normalizeRole(profile.role),
+    });
+
     const nextRecentlyViewedIds = [
       profile.id,
       ...recentlyViewedProfileIds.filter((id) => id !== profile.id),
@@ -526,6 +535,7 @@ const Page = () => {
         );
       }
 
+      posthog.capture("event_suggestion_submitted");
       setEventSuggestion(EMPTY_EVENT_SUGGESTION);
       setSuggestionStatus({
         type: "success",

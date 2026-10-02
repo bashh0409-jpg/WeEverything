@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import {
   useEffect,
   useRef,
@@ -1009,6 +1010,9 @@ const ProfilePage = () => {
       return;
     }
 
+    posthog.capture("sponsorship_checkout_started", {
+      amount: sponsorshipAmount,
+    });
     window.location.assign(result.url);
   };
 
@@ -1152,6 +1156,10 @@ const ProfilePage = () => {
     setSocials(toSocialForm(savedSocials));
     setEditingSocialType(null);
     setIsEditing(false);
+    posthog.capture("profile_saved_changes", {
+      is_published: data.is_published,
+      social_link_count: savedSocials.length,
+    });
     setMessage("Profile changes saved.");
   };
 
@@ -1206,6 +1214,9 @@ const ProfilePage = () => {
       current ? { ...current, is_published: nextPublishedState } : current,
     );
     setPublishing(false);
+    posthog.capture(
+      nextPublishedState ? "profile_published" : "profile_unpublished",
+    );
     setMessage(
       nextPublishedState ? "Profile published." : "Profile unpublished.",
     );
@@ -1311,6 +1322,11 @@ const ProfilePage = () => {
       });
     }
     setUploadingSlot(null);
+    posthog.capture("profile_media_uploaded", {
+      media_type: mediaType,
+      slot: position + 1,
+      replaced_existing_media: Boolean(previousItem),
+    });
     setMessage("Media uploaded.");
   };
 
@@ -1412,6 +1428,7 @@ const ProfilePage = () => {
       return;
     }
 
+    posthog.capture("account_deletion_scheduled");
     await supabase.auth.signOut();
     router.push("/account-deleted");
   };
