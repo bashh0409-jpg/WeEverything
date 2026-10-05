@@ -134,7 +134,7 @@ const PersonCard = ({
           ) : null}
         </div>
         <div>
-          <h1 className="text-sm mt-1 cursor-pointer font-semibold geist tracking-tighter transition-colors duration-500 hover:text-[#1c40f2] hover:underline">
+          <h1 className="text-sm mt-1 cursor-pointer font-semibold geist tracking-tighter transition-colors duration-300 hover:text-[#999]">
             {name}
           </h1>
           <div className="relative mt-1">

@@ -12,12 +12,13 @@ export type SocialPlatform =
   | "tiktok"
   | "x"
   | "threads"
-  | "email";
+  | "email"
+  | "booking";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const platformConfig: Record<
-  Exclude<SocialPlatform, "portfolio" | "email">,
+  Exclude<SocialPlatform, "portfolio" | "email" | "booking">,
   { hosts: string[]; prefix: string }
 > = {
   github: { hosts: ["github.com", "www.github.com"], prefix: "/" },
@@ -55,6 +56,14 @@ export const getSocialUrl = (platform: SocialPlatform, value: string) => {
   const trimmedValue = value.trim();
 
   if (platform === "portfolio") return trimmedValue;
+  if (platform === "booking") {
+    try {
+      const url = new URL(trimmedValue);
+      return url.protocol === "https:" && url.hostname ? url.toString() : null;
+    } catch {
+      return null;
+    }
+  }
   if (platform === "email") {
     return isValidEmailAddress(trimmedValue) ? `mailto:${trimmedValue}` : null;
   }
@@ -71,6 +80,7 @@ export const getSocialInputValue = (
   storedUrl: string,
 ) => {
   if (platform === "portfolio") return storedUrl;
+  if (platform === "booking") return storedUrl;
 
   const storedValue = storedUrl.trim();
 

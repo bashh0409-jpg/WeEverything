@@ -55,6 +55,11 @@ type Profile = {
   location: string | null;
   awards: string | null;
   experience: string | null;
+  custom_sections: {
+    title: string;
+    content: string;
+    expiresOn: string | null;
+  }[];
   is_sponsored: boolean;
   uploaded_image: string | null;
   hover_media: { type: "image" | "video"; url: string } | null;
@@ -889,6 +894,7 @@ const Page = () => {
           location={selectedProfile.location}
           awards={selectedProfile.awards}
           experience={selectedProfile.experience}
+          customSections={selectedProfile.custom_sections}
           image={selectedProfile.uploaded_image ?? selectedProfile.avatar_url}
           hoverMedia={selectedProfile.hover_media}
           socialLinks={selectedProfile.socialLinks}

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const CACHE_NAME = "weeverything-profile-images-v1";
 const MAX_CACHED_IMAGES = 100;
+const IMAGE_PREFETCH_MARGIN = "400px";
 
 type ResolvedImage = {
   source: string;
@@ -35,12 +36,41 @@ const CachedImage = ({
   className: string;
 }) => {
   const shouldCache = isProfileStorageImage(src);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const [visibleSource, setVisibleSource] = useState<string | null>(null);
   const [resolvedImage, setResolvedImage] = useState<ResolvedImage | null>(
     null,
   );
 
   useEffect(() => {
-    if (!shouldCache) return;
+    if (!shouldCache || visibleSource === src) return;
+
+    const container = imageContainerRef.current;
+    if (!container) return;
+
+    if (!("IntersectionObserver" in window)) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+
+        setVisibleSource(src);
+        observer.disconnect();
+      },
+      { rootMargin: IMAGE_PREFETCH_MARGIN },
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [shouldCache, src, visibleSource]);
+
+  useEffect(() => {
+    if (
+      !shouldCache ||
+      (visibleSource !== src && "IntersectionObserver" in window)
+    ) {
+      return;
+    }
 
     let isCancelled = false;
     let objectUrl: string | null = null;
@@ -98,7 +128,7 @@ const CachedImage = ({
       isCancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [shouldCache, src]);
+  }, [shouldCache, src, visibleSource]);
 
   const imageUrl = shouldCache
     ? resolvedImage?.source === src
@@ -107,7 +137,13 @@ const CachedImage = ({
     : src;
 
   if (!imageUrl) {
-    return <div className={className} aria-hidden="true" />;
+    return (
+      <div
+        ref={imageContainerRef}
+        className={className}
+        aria-hidden="true"
+      />
+    );
   }
 
   return <img src={imageUrl} alt={alt} className={className} />;

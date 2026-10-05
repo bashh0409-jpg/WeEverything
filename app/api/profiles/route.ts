@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { isSafeExternalUrl } from "@/lib/safe-url";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { getActiveCustomProfileSections } from "@/lib/profile-sections";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ type Profile = {
   location: string | null;
   awards: string | null;
   experience: string | null;
+  custom_sections: ReturnType<typeof getActiveCustomProfileSections>;
   is_sponsored: boolean;
   uploaded_image: string | null;
   hover_media: {
@@ -87,7 +89,7 @@ export async function GET(request: Request) {
   let profilesQuery = admin
     .from("published_profiles")
     .select(
-      "id, handle, name, bio, avatar_url, role, location, awards, experience, is_sponsored",
+      "id, handle, name, bio, avatar_url, role, location, awards, experience, custom_sections, is_sponsored",
     )
     .order("is_sponsored", { ascending: false })
     .order("created_at", { ascending: false });
@@ -200,6 +202,7 @@ export async function GET(request: Request) {
 
     return {
       ...profile,
+      custom_sections: getActiveCustomProfileSections(profile.custom_sections),
       avatar_url: isSafeExternalUrl(profile.avatar_url ?? "")
         ? profile.avatar_url
         : null,

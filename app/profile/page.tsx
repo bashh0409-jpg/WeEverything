@@ -36,6 +36,15 @@ import {
   isValidEmailAddress,
   isValidSocialHandle,
 } from "@/lib/social-links";
+import {
+  MAX_CUSTOM_PROFILE_SECTIONS,
+  MAX_CUSTOM_PROFILE_SECTION_CONTENT_LENGTH,
+  MAX_CUSTOM_PROFILE_SECTION_TITLE_LENGTH,
+  getActiveCustomProfileSections,
+  isCustomProfileSectionExpired,
+  parseCustomProfileSections,
+  type CustomProfileSection,
+} from "@/lib/profile-sections";
 
 type ProfileRecord = {
   id: string;
@@ -46,6 +55,7 @@ type ProfileRecord = {
   location: string | null;
   awards: string | null;
   experience: string | null;
+  custom_sections: CustomProfileSection[] | null;
   avatar_url: string | null;
   is_published: boolean | null;
 };
@@ -102,7 +112,8 @@ type SocialType =
   | "tiktok"
   | "x"
   | "threads"
-  | "email";
+  | "email"
+  | "booking";
 
 type SocialLink = {
   id: string;
@@ -117,6 +128,7 @@ type ProfileForm = {
   location: string;
   awards: string;
   experience: string;
+  custom_sections: CustomProfileSection[];
   avatar_url: string;
   is_published: boolean;
 };
@@ -124,7 +136,7 @@ type ProfileForm = {
 type SocialForm = Record<SocialType, string>;
 
 const MEDIA_BUCKET = "profile-media";
-const MAX_MEDIA_BYTES = 15 * 1024 * 1024;
+const MAX_MEDIA_BYTES = 8 * 1024 * 1024;
 const acceptedMediaTypes = [
   "image/jpeg",
   "image/png",
@@ -139,6 +151,11 @@ const MAX_DISCIPLINES = 6;
 const MIN_BIO_WORDS = 20;
 const MAX_BIO_WORDS = 350;
 const MAX_EXPERIENCE_DESCRIPTION_WORDS = 80;
+const EMPTY_CUSTOM_PROFILE_SECTION: CustomProfileSection = {
+  title: "",
+  content: "",
+  expiresOn: null,
+};
 const MAX_BIO_STYLE_INSTRUCTION_LENGTH = 300;
 const MIN_LOCATION_QUERY_LENGTH = 3;
 const standardRoles = new Set<string>(roles.filter((role) => role !== "Other"));
@@ -295,6 +312,9 @@ const emptyExperienceEntry = (): ExperienceEntry => ({
   description: "",
 });
 
+const hasExperienceEntryData = (entry: ExperienceEntry) =>
+  Object.values(entry).some((value) => value.trim());
+
 const parseExperienceEntries = (
   value: string | null | undefined,
 ): ExperienceEntry[] => {
@@ -305,7 +325,10 @@ const parseExperienceEntries = (
 
     if (Array.isArray(parsed)) {
       return parsed
-        .filter((item): item is Partial<ExperienceEntry> => !!item && typeof item === "object")
+        .filter(
+          (item): item is Partial<ExperienceEntry> =>
+            !!item && typeof item === "object",
+        )
         .map((item) => ({
           role: typeof item.role === "string" ? item.role : "",
           company: typeof item.company === "string" ? item.company : "",
@@ -318,27 +341,35 @@ const parseExperienceEntries = (
 
     if (parsed && typeof parsed === "object") {
       const candidate = parsed as Partial<ExperienceEntry>;
-      return [{
-        role: typeof candidate.role === "string" ? candidate.role : "",
-        company: typeof candidate.company === "string" ? candidate.company : "",
-        startDate:
-          typeof candidate.startDate === "string" ? candidate.startDate : "",
-        endDate: typeof candidate.endDate === "string" ? candidate.endDate : "",
-        description:
-          typeof candidate.description === "string" ? candidate.description : "",
-      }];
+      return [
+        {
+          role: typeof candidate.role === "string" ? candidate.role : "",
+          company:
+            typeof candidate.company === "string" ? candidate.company : "",
+          startDate:
+            typeof candidate.startDate === "string" ? candidate.startDate : "",
+          endDate:
+            typeof candidate.endDate === "string" ? candidate.endDate : "",
+          description:
+            typeof candidate.description === "string"
+              ? candidate.description
+              : "",
+        },
+      ];
     }
   } catch {
     // Legacy plain-text values are preserved as a single entry.
   }
 
-  return [{
-    role: "",
-    company: "",
-    startDate: "",
-    endDate: "",
-    description: value.trim(),
-  }];
+  return [
+    {
+      role: "",
+      company: "",
+      startDate: "",
+      endDate: "",
+      description: value.trim(),
+    },
+  ];
 };
 
 const serializeExperienceEntries = (entries: ExperienceEntry[]) =>
@@ -353,7 +384,11 @@ const serializeExperienceEntries = (entries: ExperienceEntry[]) =>
       }))
       .filter(
         (entry) =>
-          entry.role || entry.company || entry.startDate || entry.endDate || entry.description,
+          entry.role ||
+          entry.company ||
+          entry.startDate ||
+          entry.endDate ||
+          entry.description,
       ),
   );
 
@@ -372,6 +407,7 @@ const socialOptions: { type: SocialType; label: string }[] = [
   { type: "x", label: "X" },
   { type: "threads", label: "Threads" },
   { type: "email", label: "Email" },
+  { type: "booking", label: "Booking link" },
 ];
 
 const getSocialIcon = (type: SocialType) => {
@@ -423,6 +459,21 @@ const getSocialIcon = (type: SocialType) => {
       return <FaThreads className="text-base" />;
     case "email":
       return <FaEnvelope className="text-base" />;
+    case "booking":
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+          aria-hidden="true"
+        >
+          <rect x="3" y="5" width="18" height="16" rx="2" />
+          <path d="M16 3v4M8 3v4M3 11h18M8 15h3" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -430,6 +481,22 @@ const getSocialIcon = (type: SocialType) => {
 
 const getSocialInputIcon = (type: SocialType) => {
   if (type === "email") return <FaEnvelope className="h-3 w-3" />;
+  if (type === "booking") {
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-3 w-3"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+        aria-hidden="true"
+      >
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M16 3v4M8 3v4M3 11h18" />
+      </svg>
+    );
+  }
 
   return (
     <svg
@@ -529,6 +596,7 @@ const toForm = (user: User, profile: ProfileRecord | null): ProfileForm => ({
   location: profile?.location ?? "",
   awards: profile?.awards ?? "",
   experience: profile?.experience ?? "",
+  custom_sections: parseCustomProfileSections(profile?.custom_sections),
   avatar_url:
     profile?.avatar_url ??
     (typeof user.user_metadata.avatar_url === "string"
@@ -603,7 +671,7 @@ const ProfileVideo = ({
         ref={videoRef}
         src={src}
         controls={false}
-        preload="metadata"
+        preload="none"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onEnded={() => setIsPlaying(false)}
@@ -671,6 +739,7 @@ const ProfilePage = () => {
   const [newExperience, setNewExperience] = useState<ExperienceEntry>(
     emptyExperienceEntry(),
   );
+  const [experienceError, setExperienceError] = useState("");
   const [editingExperienceIndex, setEditingExperienceIndex] = useState<
     number | null
   >(null);
@@ -678,6 +747,17 @@ const ProfilePage = () => {
     number | null
   >(null);
   const [removingExperienceIndex, setRemovingExperienceIndex] = useState<
+    number | null
+  >(null);
+  const [newCustomSection, setNewCustomSection] =
+    useState<CustomProfileSection>(EMPTY_CUSTOM_PROFILE_SECTION);
+  const [editingCustomSectionIndex, setEditingCustomSectionIndex] = useState<
+    number | null
+  >(null);
+  const [enteringCustomSectionIndex, setEnteringCustomSectionIndex] = useState<
+    number | null
+  >(null);
+  const [removingCustomSectionIndex, setRemovingCustomSectionIndex] = useState<
     number | null
   >(null);
   const [customRoleInput, setCustomRoleInput] = useState("");
@@ -710,8 +790,7 @@ const ProfilePage = () => {
   );
   const [saving, setSaving] = useState(false);
   const [enhancingBio, setEnhancingBio] = useState(false);
-  const [showBioStyleInstruction, setShowBioStyleInstruction] =
-    useState(false);
+  const [showBioStyleInstruction, setShowBioStyleInstruction] = useState(false);
   const [bioStyleInstruction, setBioStyleInstruction] = useState("");
   const [bioSuggestion, setBioSuggestion] = useState<{
     original: string;
@@ -723,6 +802,7 @@ const ProfilePage = () => {
   const [shareLabel, setShareLabel] = useState("Share profile");
   const bioInputRef = useRef<HTMLTextAreaElement>(null);
   const bioStyleInstructionRef = useRef<HTMLTextAreaElement>(null);
+  const experienceErrorRef = useRef<HTMLParagraphElement>(null);
   const profileFormRef = useRef<HTMLFormElement>(null);
   const disciplinePickerRef = useRef<HTMLDivElement>(null);
   const locationPickerRef = useRef<HTMLDivElement>(null);
@@ -738,6 +818,15 @@ const ProfilePage = () => {
       bioStyleInstructionRef.current?.focus();
     }
   }, [showBioStyleInstruction]);
+
+  useEffect(() => {
+    if (isEditing && experienceError) {
+      experienceErrorRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [experienceError, isEditing]);
 
   useEffect(() => {
     const query = locationSearch.trim();
@@ -761,7 +850,8 @@ const ProfilePage = () => {
         if (!response.ok) {
           const result = (await response.json()) as { error?: string };
           throw new Error(
-            result.error ?? `Location search failed with status ${response.status}`,
+            result.error ??
+              `Location search failed with status ${response.status}`,
           );
         }
 
@@ -862,7 +952,7 @@ const ProfilePage = () => {
         client
           .from("profiles")
           .select(
-            "id, handle, name, role, bio, location, awards, experience, avatar_url, is_published",
+            "id, handle, name, role, bio, location, awards, experience, custom_sections, avatar_url, is_published",
           )
           .eq("id", currentUser.id)
           .maybeSingle(),
@@ -1090,7 +1180,8 @@ const ProfilePage = () => {
     const selectedRoles = parseRoles(form?.role ?? "");
     const alreadySelected =
       role === "Other"
-        ? selectedRoles.includes("Other") || Boolean(getCustomRole(form?.role ?? ""))
+        ? selectedRoles.includes("Other") ||
+          Boolean(getCustomRole(form?.role ?? ""))
         : selectedRoles.includes(role);
 
     if (
@@ -1253,15 +1344,24 @@ const ProfilePage = () => {
       description,
     };
 
-    if (
-      !nextEntry.role &&
-      !nextEntry.company &&
-      !nextEntry.startDate &&
-      !nextEntry.endDate &&
-      !nextEntry.description
-    ) {
+    if (!hasExperienceEntryData(nextEntry)) {
+      setExperienceError("");
       return;
     }
+
+    if (
+      !nextEntry.role ||
+      !nextEntry.company ||
+      !nextEntry.startDate ||
+      !nextEntry.description
+    ) {
+      setExperienceError(
+        "Role, company, start date, and description are required once you start a work experience entry.",
+      );
+      return;
+    }
+
+    setExperienceError("");
 
     if (editingExperienceIndex === null) {
       const nextIndex = parseExperienceEntries(form.experience).filter(
@@ -1323,9 +1423,7 @@ const ProfilePage = () => {
         setEditingExperienceIndex(null);
       } else {
         setEditingExperienceIndex((current) =>
-          current !== null && current > experienceIndex
-            ? current - 1
-            : current,
+          current !== null && current > experienceIndex ? current - 1 : current,
         );
       }
       setRemovingExperienceIndex(null);
@@ -1340,6 +1438,95 @@ const ProfilePage = () => {
   const cancelExperienceEdit = () => {
     setNewExperience(emptyExperienceEntry());
     setEditingExperienceIndex(null);
+  };
+
+  const saveCustomSection = () => {
+    if (!form || removingCustomSectionIndex !== null) return;
+
+    const nextSection = {
+      title: newCustomSection.title.trim(),
+      content: newCustomSection.content.trim(),
+      expiresOn: newCustomSection.expiresOn || null,
+    };
+
+    if (!nextSection.title || !nextSection.content) {
+      setMessage("Add both a title and body to your custom section.");
+      return;
+    }
+
+    const sections = [...form.custom_sections];
+    if (editingCustomSectionIndex !== null) {
+      sections[editingCustomSectionIndex] = nextSection;
+    } else {
+      if (sections.length >= MAX_CUSTOM_PROFILE_SECTIONS) return;
+      setEnteringCustomSectionIndex(sections.length);
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => setEnteringCustomSectionIndex(null));
+      });
+      sections.push(nextSection);
+    }
+
+    setForm((current) =>
+      current ? { ...current, custom_sections: sections } : current,
+    );
+    setNewCustomSection(EMPTY_CUSTOM_PROFILE_SECTION);
+    setEditingCustomSectionIndex(null);
+    setMessage("");
+  };
+
+  const removeCustomSection = (sectionIndex: number) => {
+    if (removingCustomSectionIndex !== null) return;
+    setRemovingCustomSectionIndex(sectionIndex);
+    const delay = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? 0
+      : 300;
+
+    window.setTimeout(() => {
+      setForm((current) =>
+        current
+          ? {
+              ...current,
+              custom_sections: current.custom_sections.filter(
+                (_, index) => index !== sectionIndex,
+              ),
+            }
+          : current,
+      );
+
+      if (editingCustomSectionIndex === sectionIndex) {
+        setNewCustomSection(EMPTY_CUSTOM_PROFILE_SECTION);
+        setEditingCustomSectionIndex(null);
+      } else {
+        setEditingCustomSectionIndex((current) =>
+          current !== null && current > sectionIndex ? current - 1 : current,
+        );
+      }
+      setRemovingCustomSectionIndex(null);
+    }, delay);
+  };
+
+  const editCustomSection = (
+    sectionIndex: number,
+    section: CustomProfileSection,
+  ) => {
+    if (
+      editingCustomSectionIndex !== sectionIndex &&
+      (newCustomSection.title.trim() ||
+        newCustomSection.content.trim() ||
+        newCustomSection.expiresOn)
+    ) {
+      setMessage("Save or clear this custom section before editing another.");
+      return;
+    }
+
+    setMessage("");
+    setNewCustomSection(section);
+    setEditingCustomSectionIndex(sectionIndex);
+  };
+
+  const cancelCustomSectionEdit = () => {
+    setNewCustomSection(EMPTY_CUSTOM_PROFILE_SECTION);
+    setEditingCustomSectionIndex(null);
   };
 
   const handleSponsorProfile = () => {
@@ -1404,6 +1591,21 @@ const ProfilePage = () => {
     if (!supabase || !user || !form) return;
     if (removingExperienceIndex !== null) return;
 
+    if (hasExperienceEntryData(newExperience)) {
+      const hasRequiredExperienceFields =
+        newExperience.role.trim() &&
+        newExperience.company.trim() &&
+        newExperience.startDate.trim() &&
+        newExperience.description.trim();
+
+      setExperienceError(
+        hasRequiredExperienceFields
+          ? "Save or clear the work experience entry before saving your profile."
+          : "Role, company, start date, and description are required once you start a work experience entry.",
+      );
+      return;
+    }
+
     const bioWordCount = countWords(form.bio);
 
     if (bioWordCount < MIN_BIO_WORDS) {
@@ -1415,6 +1617,30 @@ const ProfilePage = () => {
 
     if (bioWordCount > MAX_BIO_WORDS) {
       setMessage(`Your bio must be ${MAX_BIO_WORDS} words or fewer.`);
+      return;
+    }
+
+    if (
+      newCustomSection.title.trim() ||
+      newCustomSection.content.trim() ||
+      newCustomSection.expiresOn
+    ) {
+      setMessage(
+        "Save or clear your custom section before saving your profile.",
+      );
+      return;
+    }
+
+    const customSections = form.custom_sections
+      .map((section) => ({
+        title: section.title.trim(),
+        content: section.content.trim(),
+        expiresOn: section.expiresOn,
+      }))
+      .filter((section) => section.title || section.content);
+
+    if (customSections.some((section) => !section.title || !section.content)) {
+      setMessage("Each custom section needs both a title and some content.");
       return;
     }
 
@@ -1445,6 +1671,7 @@ const ProfilePage = () => {
       location: form.location.trim() || null,
       awards: form.awards.trim() || null,
       experience: experienceValue,
+      custom_sections: customSections,
       avatar_url: form.avatar_url.trim() || null,
       is_published: form.is_published,
     };
@@ -1454,14 +1681,14 @@ const ProfilePage = () => {
           .update(profilePayload)
           .eq("id", user.id)
           .select(
-            "id, handle, name, role, bio, location, awards, experience, avatar_url, is_published",
+            "id, handle, name, role, bio, location, awards, experience, custom_sections, avatar_url, is_published",
           )
           .single()
       : await supabase
           .from("profiles")
           .insert({ id: user.id, ...profilePayload })
           .select(
-            "id, handle, name, role, bio, location, awards, experience, avatar_url, is_published",
+            "id, handle, name, role, bio, location, awards, experience, custom_sections, avatar_url, is_published",
           )
           .single();
     const { data, error } = profileResult;
@@ -1477,7 +1704,9 @@ const ProfilePage = () => {
 
       if (!value) return false;
 
-      if (type === "portfolio") return !isSafeExternalUrl(value);
+      if (type === "portfolio" || type === "booking") {
+        return !isSafeExternalUrl(value);
+      }
       if (type === "email") return !isValidEmailAddress(value);
       return !isValidSocialHandle(value);
     });
@@ -1485,7 +1714,7 @@ const ProfilePage = () => {
     if (invalidSocialInput) {
       setSaving(false);
       setMessage(
-        "Use valid usernames for social accounts, a valid email address, and a valid HTTP or HTTPS URL for your portfolio.",
+        "Use valid usernames for social accounts, a valid email address, and valid HTTPS URLs for your portfolio and booking link.",
       );
       return;
     }
@@ -1588,7 +1817,7 @@ const ProfilePage = () => {
       .update({ is_published: nextPublishedState })
       .eq("id", user.id)
       .select(
-        "id, handle, name, role, bio, location, awards, experience, avatar_url, is_published",
+        "id, handle, name, role, bio, location, awards, experience, custom_sections, avatar_url, is_published",
       )
       .single();
 
@@ -1629,7 +1858,7 @@ const ProfilePage = () => {
     }
 
     if (file.size > MAX_MEDIA_BYTES) {
-      setMessage("Media files must be 15 MB or smaller.");
+      setMessage("Media files must be 8 MB or smaller.");
       return;
     }
 
@@ -1851,7 +2080,7 @@ const ProfilePage = () => {
         <Navbar />
 
         <main className="flex min-h-screen mono uppercase text-sm tracking-tight text-[#999] items-center justify-center px-6 py-20">
-         No user is signed in. Please sign in to view your profile.
+          No user is signed in. Please sign in to view your profile.
         </main>
       </div>
     );
@@ -1861,9 +2090,7 @@ const ProfilePage = () => {
   const profileName = profile?.name || getFallbackName(user);
   const handle = getHandle(user);
   const avatarUrl = activeForm.avatar_url;
-  const visibleExperienceEntries = parseExperienceEntries(
-    activeForm.experience,
-  )
+  const visibleExperienceEntries = parseExperienceEntries(activeForm.experience)
     .map((entry, index) => ({ entry, index }))
     .filter(
       ({ entry }) =>
@@ -1973,6 +2200,8 @@ const ProfilePage = () => {
     setNewAward("");
     setNewExperience(emptyExperienceEntry());
     setEditingExperienceIndex(null);
+    setNewCustomSection(EMPTY_CUSTOM_PROFILE_SECTION);
+    setEditingCustomSectionIndex(null);
     setIsEditing(true);
     window.setTimeout(() => bioInputRef.current?.focus(), 0);
   };
@@ -1993,6 +2222,8 @@ const ProfilePage = () => {
     setNewAward("");
     setNewExperience(emptyExperienceEntry());
     setEditingExperienceIndex(null);
+    setNewCustomSection(EMPTY_CUSTOM_PROFILE_SECTION);
+    setEditingCustomSectionIndex(null);
     setIsEditing(shouldOpen);
   };
 
@@ -2193,19 +2424,24 @@ const ProfilePage = () => {
                     ) : null}
                   </div>
                 </div>
-              </div>
-
-              <div className="mt-14 max-w-2xl border-t border-black/10 pt-5">
-                <div className="flex items-center justify-between gap-4">
+              </div>{" "}
+              <div className="grid mt-10 gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                <div className="flex justify-between ">
                   <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
                     About me
+                  </p>
+                </div>
+                <div>
+                  <p className=" whitespace-pre-line text-justify text-sm geist leading-4 tracking-tight font-medium text-[#444]">
+                    {activeForm.bio ||
+                      "Add a short introduction so the community knows what you make and how you work."}
                   </p>
                   <button
                     type="button"
                     onClick={openBioEditor}
                     aria-label="Edit bio"
                     title="Edit bio"
-                    className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-black/15 text-black transition hover:bg-black hover:text-white"
+                    className="flex h-5 justify-end mt-1 w-full cursor-pointer items-center justify-center rounded-full text-black transition "
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -2223,18 +2459,13 @@ const ProfilePage = () => {
                     </svg>
                   </button>
                 </div>
-
-                <p className="mt-2 whitespace-pre-line text-sm geist leading-4 tracking-tight font-medium text-[#444]">
-                  {activeForm.bio ||
-                    "Add a short introduction so the community knows what you make and how you work."}
-                </p>
               </div>
               {profile?.awards ? (
-                <section className="mt-14 max-w-2xl border-t border-black/10 pt-5">
+                <section className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)] mt-10">
                   <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                    Awards
+                    Honors
                   </p>
-                  <p className="mt-4 geist whitespace-pre-line text-sm leading-tight font-medium tracking-tight text-[#444]">
+                  <p className=" geist whitespace-pre-line text-sm leading-tight font-medium tracking-tight text-[#444]">
                     {profile.awards}
                   </p>
                 </section>
@@ -2305,10 +2536,32 @@ const ProfilePage = () => {
                   </div>
                 </section>
               ) : null}
+              {getActiveCustomProfileSections(profile?.custom_sections).map(
+                (section, index) => (
+                  <section
+                    key={`${section.title}-${index}`}
+                    className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)] mt-10"
+                  >
+                    <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
+                      {section.title}
+                    </p>
+                    <div>
+                      <p className=" geist whitespace-pre-line text-sm leading-tight font-medium tracking-tight text-[#444]">
+                        {section.content}
+                      </p>
+                      {section.expiresOn ? (
+                        <p className="mt-2 geist text-xs font-medium uppercase tracking-tight text-[#999]">
+                          {section.expiresOn}
+                        </p>
+                      ) : null}
+                    </div>
+                  </section>
+                ),
+              )}
               {visibleSocials.length ? (
                 <section className="mt-14 border-t border-black/10 pt-5">
                   <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                    Find me online
+                    Let&apos;s connect
                   </p>
                   <div className="mt-4 flex flex-wrap gap-x-1 gap-y-3">
                     {visibleSocials.map((link) => {
@@ -2383,7 +2636,6 @@ const ProfilePage = () => {
                   </div>
                 </section>
               ) : null}
-
               {media.length ? (
                 <section className="mt-14 border-t border-black/10 pt-5">
                   <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
@@ -2575,7 +2827,7 @@ const ProfilePage = () => {
                   </div>
 
                   <div className="mt-8 grid gap-6 md:grid-cols-2">
-                    <label className="text-sm mono uppercase tracking-tight text-[#999] font-medium">
+                    <label className="text-xs uppercase tracking-tight text-[#999] font-medium">
                       Full Name <span>*</span>
                       <InputArea
                         leadingIcon={getProfileFieldIcon("name")}
@@ -2588,17 +2840,14 @@ const ProfilePage = () => {
                         className="geist text-sm"
                       />
                     </label>
-                    <div className="text-sm font-medium">
+                    <div className="text-xs font-medium">
                       <label
                         htmlFor="profile-location"
-                        className="mono uppercase tracking-tight text-[#999]"
+                        className=" uppercase tracking-tight text-[#999]"
                       >
                         Location <span>*</span>
                       </label>
-                      <div
-                        ref={locationPickerRef}
-                        className="relative mt-2"
-                      >
+                      <div ref={locationPickerRef} className="relative mt-2">
                         <InputArea
                           id="profile-location"
                           leadingIcon={getProfileFieldIcon("location")}
@@ -2716,8 +2965,8 @@ const ProfilePage = () => {
                         ) : null}
                       </div>
                     </div>
-                    <fieldset className="text-sm font-semibold">
-                      <legend className="mono uppercase tracking-tight text-[#999] font-medium">
+                    <fieldset className="text-xs font-semibold">
+                      <legend className="uppercase tracking-tight text-[#999] font-medium">
                         What do you do? <span>*</span>
                       </legend>
 
@@ -2761,8 +3010,7 @@ const ProfilePage = () => {
                               <div
                                 key={role}
                                 className={`inline-grid overflow-hidden transition-[grid-template-rows,opacity,transform,margin] duration-300 ease-out motion-reduce:transition-none ${
-                                  enteringRole === role ||
-                                  removingRole === role
+                                  enteringRole === role || removingRole === role
                                     ? "grid-rows-[0fr] -translate-y-1 opacity-0"
                                     : "grid-rows-[1fr] translate-y-0 opacity-100"
                                 }`}
@@ -2770,7 +3018,9 @@ const ProfilePage = () => {
                                 <div className="min-h-0 overflow-hidden">
                                   <button
                                     type="button"
-                                    onClick={() => removeRoleWithAnimation(role)}
+                                    onClick={() =>
+                                      removeRoleWithAnimation(role)
+                                    }
                                     disabled={removingRole !== null}
                                     aria-label={`Remove ${role} role`}
                                     className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[#1c40f2] px-3 py-1 text-sm font-medium tracking-tight text-white transition hover:bg-black disabled:pointer-events-none"
@@ -2818,7 +3068,7 @@ const ProfilePage = () => {
                                     disabled={
                                       removingRole !== null ||
                                       getDisciplineCount(activeForm.role) >=
-                                      MAX_DISCIPLINES
+                                        MAX_DISCIPLINES
                                     }
                                     onClick={() => {
                                       addRoleWithAnimation(role);
@@ -2853,13 +3103,13 @@ const ProfilePage = () => {
                                   No matching roles.
                                 </p>
                               ) : null}
-                            {getDisciplineCount(activeForm.role) >=
-                            MAX_DISCIPLINES ? (
-                              <p className="px-2 py-2 text-xs font-medium text-[#999]">
-                                You&apos;ve reached the {MAX_DISCIPLINES}-role limit.
-                                Remove a role to add another.
-                              </p>
-                            ) : null}
+                              {getDisciplineCount(activeForm.role) >=
+                              MAX_DISCIPLINES ? (
+                                <p className="px-2 py-2 text-xs font-medium text-[#999]">
+                                  You&apos;ve reached the {MAX_DISCIPLINES}-role
+                                  limit. Remove a role to add another.
+                                </p>
+                              ) : null}
                             </div>
                             <button
                               type="button"
@@ -2871,13 +3121,12 @@ const ProfilePage = () => {
                           </div>
                         ) : null}
                       </div>
-
                     </fieldset>
                   </div>
 
                   <div className="mt-8 mono text-sm font-Medium uppercase tracking-tight text-[#999]">
                     <div className="flex items-center justify-between">
-                      <label htmlFor="profile-bio">About Me *</label>
+                      <label htmlFor="profile-bio text-xs">About Me *</label>
                       <div className="flex items-center gap-3">
                         <p
                           id="bio-word-count"
@@ -3008,23 +3257,38 @@ const ProfilePage = () => {
 
                   <section className="mt-8 pt-5">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="mono text-sm font-medium uppercase tracking-tight text-[#999]">
+                      <p className=" text-xs font-medium uppercase tracking-tight text-[#999]">
                         work experience
                       </p>
                     </div>
+                    <p className="mt-2 hidden text-xs font-medium tracking-tight text-[#999]">
+                      Optional. Leave every field blank to skip. If you enter
+                      any details, role, company, start date, and description
+                      are required.
+                    </p>
+                    {experienceError ? (
+                      <p
+                        ref={experienceErrorRef}
+                        role="alert"
+                        className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium tracking-tight text-red-700"
+                      >
+                        {experienceError}
+                      </p>
+                    ) : null}
 
-                    <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
                       <InputArea
                         leadingIcon={getProfileFieldIcon("discipline")}
                         wrapperClassName="flex min-w-0 items-center gap-1 rounded bg-black/5 px-2"
                         variant="plain"
                         value={newExperience.role}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          setExperienceError("");
                           setNewExperience((current) => ({
                             ...current,
                             role: event.target.value,
-                          }))
-                        }
+                          }));
+                        }}
                         placeholder="Role"
                         className="min-w-0 capitalize text-sm placeholder:text-[#aaa]"
                       />
@@ -3034,12 +3298,13 @@ const ProfilePage = () => {
                         wrapperClassName="flex min-w-0 items-center gap-1 rounded bg-black/5 px-2"
                         variant="plain"
                         value={newExperience.company}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          setExperienceError("");
                           setNewExperience((current) => ({
                             ...current,
                             company: event.target.value,
-                          }))
-                        }
+                          }));
+                        }}
                         placeholder="Company"
                         className="min-w-0 capitalize text-sm placeholder:text-[#aaa]"
                       />
@@ -3049,12 +3314,13 @@ const ProfilePage = () => {
                         wrapperClassName="flex min-w-0 items-center gap-1 rounded bg-black/5 px-2"
                         variant="plain"
                         value={newExperience.startDate}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          setExperienceError("");
                           setNewExperience((current) => ({
                             ...current,
                             startDate: event.target.value,
-                          }))
-                        }
+                          }));
+                        }}
                         placeholder="Start date"
                         className="min-w-0 capitalize text-sm placeholder:text-[#aaa]"
                       />
@@ -3064,12 +3330,13 @@ const ProfilePage = () => {
                         wrapperClassName="flex min-w-0 items-center gap-1 rounded bg-black/5 px-2"
                         variant="plain"
                         value={newExperience.endDate}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          setExperienceError("");
                           setNewExperience((current) => ({
                             ...current,
                             endDate: event.target.value,
-                          }))
-                        }
+                          }));
+                        }}
                         placeholder="End date"
                         className="min-w-0 capitalize text-sm placeholder:text-[#aaa]"
                       />
@@ -3077,15 +3344,16 @@ const ProfilePage = () => {
 
                     <textarea
                       value={newExperience.description}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        setExperienceError("");
                         setNewExperience((current) => ({
                           ...current,
                           description: truncateToWordLimit(
                             event.target.value,
                             MAX_EXPERIENCE_DESCRIPTION_WORDS,
                           ),
-                        }))
-                      }
+                        }));
+                      }}
                       rows={4}
                       placeholder="Short description of your work, impact, or notable projects."
                       className="mt-3 w-full resize-none rounded bg-black/5 p-3 text-sm normal-case tracking-tight text-black outline-none transition placeholder:text-[#aaa] "
@@ -3171,7 +3439,7 @@ const ProfilePage = () => {
                                       </p>
                                     )}
                                     {entry.description ? (
-                                      <p className="mt-2 whitespace-pre-line leading-4 text-justify text-xs text-[#999]">
+                                      <p className="mt-2 whitespace-pre-line w-full leading-4 text-justify text-xs text-[#999]">
                                         {entry.description}
                                       </p>
                                     ) : null}
@@ -3182,7 +3450,7 @@ const ProfilePage = () => {
                                     onClick={() => removeExperience(index)}
                                     disabled={removingExperienceIndex !== null}
                                     aria-label={`Remove ${entry.role || entry.company || "experience"}`}
-                                    className="shrink-0 text-[10px] font-semibold uppercase tracking-tight text-[#666] transition hover:text-black"
+                                    className="shrink-0 fixed right-2 text-[10px]  font-semibold uppercase tracking-tight text-[#666] transition hover:text-black"
                                   >
                                     <svg
                                       xmlns="http://www.w3.org/2000/svg"
@@ -3203,9 +3471,169 @@ const ProfilePage = () => {
                     ) : null}
                   </section>
 
+                  <section className="mt-8 pt-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-tight text-[#999]">
+                          Custom sections
+                        </p>{" "}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid gap-3 md:grid-cols-2 ">
+                      <InputArea
+                        value={newCustomSection.title}
+                        onChange={(event) =>
+                          setNewCustomSection((current) => ({
+                            ...current,
+                            title: event.target.value,
+                          }))
+                        }
+                        maxLength={MAX_CUSTOM_PROFILE_SECTION_TITLE_LENGTH}
+                        placeholder="Section title"
+                        aria-label="Custom section title"
+                        className="min-w-10 rounded max-h-8 px-3 py-2 text-sm placeholder:text-[#aaa]"
+                      />
+
+                      <label className="flex min-w-0 flex-col gap-1 text-[10px] font-semibold capitalize tracking-tight text-[#999]">
+                        <input
+                          type="date"
+                          value={newCustomSection.expiresOn ?? ""}
+                          min={new Date().toISOString().slice(0, 10)}
+                          onChange={(event) =>
+                            setNewCustomSection((current) => ({
+                              ...current,
+                              expiresOn: event.target.value || null,
+                            }))
+                          }
+                          className="min-w-0 max-h-8 rounded bg-black/5 px-3 py-2 text-sm font-medium normal-case tracking-tight text-black outline-none"
+                        />{" "}
+                        optional
+                      </label>
+                    </div>
+
+                    <textarea
+                      value={newCustomSection.content}
+                      onChange={(event) =>
+                        setNewCustomSection((current) => ({
+                          ...current,
+                          content: event.target.value,
+                        }))
+                      }
+                      maxLength={MAX_CUSTOM_PROFILE_SECTION_CONTENT_LENGTH}
+                      rows={4}
+                      placeholder="Write the details you want to share."
+                      aria-label="Custom section body"
+                      className="mt-3 w-full resize-none rounded bg-black/5 p-3 text-sm leading-5 tracking-tight text-black outline-none placeholder:text-[#aaa]"
+                    />
+
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={saveCustomSection}
+                          disabled={
+                            removingCustomSectionIndex !== null ||
+                            (editingCustomSectionIndex === null &&
+                              activeForm.custom_sections.length >=
+                                MAX_CUSTOM_PROFILE_SECTIONS)
+                          }
+                          className="rounded-full border mono border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {editingCustomSectionIndex === null
+                            ? "Save section"
+                            : "Update section"}
+                        </button>
+                        {editingCustomSectionIndex !== null ? (
+                          <button
+                            type="button"
+                            onClick={cancelCustomSectionEdit}
+                            className="rounded-full border border-black/20 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#666] transition hover:border-black hover:text-black"
+                          >
+                            Cancel
+                          </button>
+                        ) : null}
+                      </div>
+                      <span className="text-xs hidden font-medium tracking-tight text-[#999]">
+                        {activeForm.custom_sections.length} /{" "}
+                        {MAX_CUSTOM_PROFILE_SECTIONS} sections
+                      </span>
+                    </div>
+
+                    {activeForm.custom_sections.length ? (
+                      <ul className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+                        {activeForm.custom_sections.map((section, index) => (
+                          <li
+                            key={`${section.title}-${index}`}
+                            className={`grid overflow-hidden rounded bg-black/5 transition-[grid-template-rows,opacity,transform,margin] duration-300 ease-out motion-reduce:transition-none ${
+                              removingCustomSectionIndex === index ||
+                              enteringCustomSectionIndex === index
+                                ? "grid-rows-[0fr] -translate-y-1 opacity-0"
+                                : "grid-rows-[1fr] translate-y-0 opacity-100"
+                            } ${
+                              editingCustomSectionIndex === index
+                                ? "ring-1 ring-[#1c40f2]/40"
+                                : ""
+                            } ${
+                              removingCustomSectionIndex === null
+                                ? "hover:bg-black/[0.08]"
+                                : "pointer-events-none"
+                            }`}
+                          >
+                            <div className="min-h-0 overflow-hidden p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    editCustomSection(index, section)
+                                  }
+                                  disabled={removingCustomSectionIndex !== null}
+                                  aria-label={`Edit ${section.title || "custom section"}`}
+                                  className="min-w-0 flex-1 cursor-pointer text-left text-sm tracking-tight text-[#444] outline-none focus-visible:ring-2 focus-visible:ring-[#1c40f2]"
+                                >
+                                  <p className="font-medium tracking-tight text-[#999]">
+                                    {section.title || "Untitled section"}
+                                  </p>
+                                  <p className="mt-2 whitespace-pre-line font-medium tracking-tight text-xs leading-4 text-justify text-[#666]">
+                                    {section.content}
+                                  </p>
+                                  {section.expiresOn ? (
+                                    <p className="mt-2  text-xs font-medium uppercase tracking-tight text-[#999]">
+                                      {isCustomProfileSectionExpired(section)
+                                        ? "Expired"
+                                        : ""}{" "}
+                                      {section.expiresOn}
+                                    </p>
+                                  ) : null}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeCustomSection(index)}
+                                  disabled={removingCustomSectionIndex !== null}
+                                  aria-label={`Remove ${section.title || "custom section"}`}
+                                  className="shrink-0 fixed right-2  text-[10px] font-semibold uppercase tracking-tight text-[#666] transition hover:text-black"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    height="18px"
+                                    viewBox="0 -960 960 960"
+                                    width="18px"
+                                    fill="#999"
+                                  >
+                                    <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </section>
+
                   <section className="mt-4 pt-5">
-                    <p className="mono text-sm font-medium uppercase tracking-tight text-[#999]">
-                      media<span>*</span>
+                    <p className="text-sm font-medium uppercase tracking-tight text-[#999]">
+                      gallery <span>*</span>
                     </p>
 
                     <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -3286,13 +3714,13 @@ const ProfilePage = () => {
                                     ""
                                   ) : position === 0 ? (
                                     <span className="mono text-center text-xs font-medium uppercase tracking-tighter text-[#999]">
-                                      JPG, PNG, WebP, and AVIF files up to 15 MB
+                                      JPG, PNG, WebP, and AVIF files up to 8 MB
                                       are accepted.
                                     </span>
                                   ) : (
                                     <span className="mono text-center text-xs font-medium uppercase tracking-tighter text-[#999]">
                                       JPG, PNG, WebP, AVIF, MP4, and WebM files
-                                      up to 15 MB are accepted.
+                                      up to 8 MB are accepted.
                                     </span>
                                   )}
                                 </div>
@@ -3323,8 +3751,8 @@ const ProfilePage = () => {
                   <section className="mt-8  w-full text-sm font-semibold">
                     <div className="grid gap-6 lg:grid-cols-2">
                       <div>
-                        <p className="mono uppercase tracking-tight text-[#999] font-medium">
-                          Awards & Recognitions
+                        <p className=" text-xs uppercase tracking-tight text-[#999] font-medium">
+                          Honours
                         </p>
                         <div className="mt-3 flex lg:items-center  gap-3 ">
                           <InputArea
@@ -3395,7 +3823,7 @@ const ProfilePage = () => {
                   </section>
                   <section className="mt-10 pt-5">
                     <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                      Portfolio & social links
+                      Let&apos;s Connect
                     </p>
                     <p className="mt-2 tracking-tight mono hidden text-sm text-[#666]">
                       Add only the portfolio and accounts you want to show
@@ -3407,7 +3835,9 @@ const ProfilePage = () => {
                           (link) => link.type === type,
                         );
 
-                        return !hasSavedLink || editingSocialType === type ? (
+                        return !hasSavedLink ||
+                          editingSocialType === type ||
+                          type === "booking" ? (
                           <label
                             key={type}
                             className="flex flex-col gap-2 text-sm mono font-medium uppercase"
@@ -3432,13 +3862,19 @@ const ProfilePage = () => {
                               placeholder={
                                 type === "portfolio"
                                   ? "https://yourportfolio.com"
-                                  : type === "email"
-                                    ? "you@example.com"
-                                    : type === "discord"
-                                      ? "Username/ User ID"
-                                      : "Username"
+                                  : type === "booking"
+                                    ? "https://calendly.com/your-name"
+                                    : type === "email"
+                                      ? "you@example.com"
+                                      : type === "discord"
+                                        ? "Username/ User ID"
+                                        : "Username"
                               }
-                              type={type === "portfolio" ? "url" : "text"}
+                              type={
+                                type === "portfolio" || type === "booking"
+                                  ? "url"
+                                  : "text"
+                              }
                             />
                           </label>
                         ) : null;

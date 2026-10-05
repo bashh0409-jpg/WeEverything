@@ -24,6 +24,10 @@ import {
 import InputArea from "./InputArea";
 import { getProfileHandle } from "@/lib/profile-handle";
 import { isSafeExternalUrl } from "@/lib/safe-url";
+import {
+  getActiveCustomProfileSections,
+  type CustomProfileSection,
+} from "@/lib/profile-sections";
 
 type TurnstileWidget = {
   render: (
@@ -53,6 +57,7 @@ type ProfileModalProps = {
   location?: string | null;
   awards?: string | null;
   experience?: string | null;
+  customSections?: CustomProfileSection[];
   image?: string | null;
   hoverMedia?: {
     type: "image" | "video";
@@ -109,9 +114,12 @@ const parseExperienceEntries = (
             typeof candidate.company === "string" ? candidate.company : "",
           startDate:
             typeof candidate.startDate === "string" ? candidate.startDate : "",
-          endDate: typeof candidate.endDate === "string" ? candidate.endDate : "",
+          endDate:
+            typeof candidate.endDate === "string" ? candidate.endDate : "",
           description:
-            typeof candidate.description === "string" ? candidate.description : "",
+            typeof candidate.description === "string"
+              ? candidate.description
+              : "",
         },
       ];
     }
@@ -160,6 +168,7 @@ const ProfileModal = ({
   location,
   awards,
   experience,
+  customSections = [],
   image,
   hoverMedia,
   socialLinks,
@@ -330,6 +339,7 @@ const ProfileModal = ({
     tiktok: "TikTok",
     x: "X",
     threads: "Threads",
+    booking: "Booking link",
   };
 
   const socialIcons: Record<string, React.ReactNode> = {
@@ -365,7 +375,24 @@ const ProfileModal = ({
     tiktok: <FaTiktok aria-hidden="true" />,
     x: <FaXTwitter aria-hidden="true" />,
     threads: <FaThreads aria-hidden="true" />,
+    booking: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-4 w-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+        aria-hidden="true"
+      >
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M16 3v4M8 3v4M3 11h18M8 15h3" />
+      </svg>
+    ),
   };
+  const visibleSocialLinks = socialLinks.filter(
+    (link) => isSafeExternalUrl(link.url),
+  );
 
   useEffect(() => {
     const previousBodyOverflow = document.body.style.overflow;
@@ -445,7 +472,7 @@ const ProfileModal = ({
 
             <span className=" flex flex-col gap-1 text-sm font-medium capitalize tracking-tight">
               <span className="flex flex-wrap gap-1">
-                {(profileRoles.length ? profileRoles : ["Designer"]).map(
+                {(profileRoles.length ? profileRoles : ["Developer"]).map(
                   (profileRole, index, rolesToDisplay) => (
                     <span key={profileRole} className="w-fit rounded-full">
                       {profileRole}
@@ -455,38 +482,36 @@ const ProfileModal = ({
                 )}
               </span>
             </span>
-            <span className=" -mt-2 flex flex-col gap-1 text-sm font-medium capitalize tracking-tight">
-              <span className="w-fit rounded-full  mono  uppercase text-[#999] ">
+            <span className=" -mt-2 flex flex-col gap-1 text-xs mono font-medium capitalize tracking-tighter">
+              <span className="w-fit rounded-full uppercase text-[#999] ">
                 {location || "Unknown location"}
               </span>
             </span>
-            <span className=" flex gap-2">
-              {socialLinks.length ? (
-                <div className="mt-6 flex flex-col ">
+            <span className=" flex mt-10 gap-2">
+              {visibleSocialLinks.length ? (
+                <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
                   <span className="text-sm font-medium tracking-tight text-[#999]">
                     Let&apos;s Connect
                   </span>
 
                   <div className="flex flex-wrap gap-2">
-                    {socialLinks
-                      .filter((link) => isSafeExternalUrl(link.url))
-                      .map((link) => (
-                        <a
-                          key={link.id}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={socialLabels[link.type] ?? link.type}
-                          title={socialLabels[link.type] ?? link.type}
-                          className="flex h-7 w-5 items-center justify-center rounded-full text-base transition"
-                        >
-                          {socialIcons[link.type] ?? (
-                            <span className="text-xl font-semibold uppercase">
-                              {link.type.slice(0, 2)}
-                            </span>
-                          )}
-                        </a>
-                      ))}
+                    {visibleSocialLinks.map((link) => (
+                      <a
+                        key={link.id}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={socialLabels[link.type] ?? link.type}
+                        title={socialLabels[link.type] ?? link.type}
+                        className="flex h-7 w-5 items-center justify-center rounded-full text-base transition"
+                      >
+                        {socialIcons[link.type] ?? (
+                          <span className="text-xl font-semibold uppercase">
+                            {link.type.slice(0, 2)}
+                          </span>
+                        )}
+                      </a>
+                    ))}
                   </div>
                 </div>
               ) : null}
@@ -527,7 +552,7 @@ const ProfileModal = ({
                   >
                     {dateRange ? (
                       <span className=" text-xs  font-semibold  uppercase tracking-tight text-black/45">
-                        {dateRange} {" "}
+                        {dateRange}{" "}
                       </span>
                     ) : (
                       <span className=" text-sm font-medium tracking-tight text-black/45">
@@ -540,7 +565,7 @@ const ProfileModal = ({
                       </span>
 
                       {experienceEntry.description ? (
-                        <p className="mt-2 geist font-medium text-justify whitespace-pre-line text-sm leading-4 tracking-tight  text-[#999]">
+                        <p className="mt-2 geist font-medium text-justify whitespace-pre-line text-sm leading-4 tracking-tight  text-[#000]">
                           {experienceEntry.description}
                         </p>
                       ) : null}
@@ -550,6 +575,21 @@ const ProfileModal = ({
               })}
             </div>
           ) : null}
+          {getActiveCustomProfileSections(customSections).map(
+            (section, index) => (
+              <div
+                key={`${section.title}-${index}`}
+                className="grid gap-3  border-black/10 pt-5 sm:grid-cols-[140px_minmax(0,1fr)]"
+              >
+                <span className="text-sm font-medium tracking-tight text-[#999]">
+                  {section.title}
+                </span>
+                <span className="whitespace-pre-line text-justify text-sm font-medium leading-4 tracking-tight">
+                  {section.content}
+                </span>
+              </div>
+            ),
+          )}
 
           <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
             <span className="text-sm font-medium tracking-tight text-[#999]">
@@ -583,7 +623,7 @@ const ProfileModal = ({
           {awards ? (
             <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
               <span className="text-sm font-medium tracking-tight text-[#999]">
-                Recognitions
+                Honours
               </span>
               <span className="whitespace-pre-line text-sm font-medium leading-4 tracking-tight">
                 {awards}
@@ -611,18 +651,7 @@ const ProfileModal = ({
                   onClick={() => onToggleSave(profileId)}
                   className={`flex h-7 w-fit px-3 uppercase font-semibold mono text-xs tracking-tight items-center flex cursor-pointer items-center justify-center rounded-full border transition ${isSaved ? "border-black bg-black text-white" : "border-black/20 text-black hover:border-black"}`}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 -960 960 960"
-                    width="17"
-                    height="17"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path d="M200-120v-640h560v640L480-240 200-120Zm80-122 200-86 200 86v-438H280v438Z" />
-                  </svg>
                   {isSaved ? "Saved" : "Save"}
-                  
                 </button>
                 <button
                   type="button"
