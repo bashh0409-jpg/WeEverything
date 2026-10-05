@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
 import {
@@ -45,6 +44,7 @@ type ProfileRecord = {
   bio: string | null;
   location: string | null;
   awards: string | null;
+  experience: string | null;
   avatar_url: string | null;
   is_published: boolean | null;
 };
@@ -115,6 +115,7 @@ type ProfileForm = {
   bio: string;
   location: string;
   awards: string;
+  experience: string;
   avatar_url: string;
   is_published: boolean;
 };
@@ -150,6 +151,8 @@ const roles = [
 const ROLE_SEPARATOR = " | ";
 const MIN_BIO_WORDS = 20;
 const MAX_BIO_WORDS = 350;
+const MAX_EXPERIENCE_DESCRIPTION_WORDS = 80;
+const MAX_BIO_STYLE_INSTRUCTION_LENGTH = 300;
 const standardRoles = new Set<string>(roles.filter((role) => role !== "Other"));
 
 const parseRoles = (value: string) =>
@@ -206,32 +209,6 @@ const getDeviceTypeLabel = () => {
   return "Desktop computer";
 };
 
-const getBrowserRegionLabel = () => {
-  if (typeof navigator === "undefined") return "";
-
-  const locale = navigator.languages?.[0] ?? navigator.language ?? "";
-
-  const region = (() => {
-    try {
-      const localeObject = new Intl.Locale(locale);
-      if (localeObject.region) return localeObject.region;
-    } catch {}
-
-    const match = locale.match(/-([A-Z]{2,3})$/i);
-    return match?.[1]?.toUpperCase() ?? "";
-  })();
-
-  if (!region) return "";
-
-  try {
-    return (
-      new Intl.DisplayNames(["en"], { type: "region" }).of(region) ?? region
-    );
-  } catch {
-    return region;
-  }
-};
-
 const getBrowserDetails = () => {
   if (typeof navigator === "undefined") return "Unknown";
 
@@ -269,6 +246,84 @@ const parseAwards = (value: string) =>
     .split("\n")
     .map((award) => award.trim())
     .filter(Boolean);
+
+type ExperienceEntry = {
+  role: string;
+  company: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+};
+
+const emptyExperienceEntry = (): ExperienceEntry => ({
+  role: "",
+  company: "",
+  startDate: "",
+  endDate: "",
+  description: "",
+});
+
+const parseExperienceEntries = (
+  value: string | null | undefined,
+): ExperienceEntry[] => {
+  if (!value || !value.trim()) return [emptyExperienceEntry()];
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter((item): item is Partial<ExperienceEntry> => !!item && typeof item === "object")
+        .map((item) => ({
+          role: typeof item.role === "string" ? item.role : "",
+          company: typeof item.company === "string" ? item.company : "",
+          startDate: typeof item.startDate === "string" ? item.startDate : "",
+          endDate: typeof item.endDate === "string" ? item.endDate : "",
+          description:
+            typeof item.description === "string" ? item.description : "",
+        }));
+    }
+
+    if (parsed && typeof parsed === "object") {
+      const candidate = parsed as Partial<ExperienceEntry>;
+      return [{
+        role: typeof candidate.role === "string" ? candidate.role : "",
+        company: typeof candidate.company === "string" ? candidate.company : "",
+        startDate:
+          typeof candidate.startDate === "string" ? candidate.startDate : "",
+        endDate: typeof candidate.endDate === "string" ? candidate.endDate : "",
+        description:
+          typeof candidate.description === "string" ? candidate.description : "",
+      }];
+    }
+  } catch {
+    // Legacy plain-text values are preserved as a single entry.
+  }
+
+  return [{
+    role: "",
+    company: "",
+    startDate: "",
+    endDate: "",
+    description: value.trim(),
+  }];
+};
+
+const serializeExperienceEntries = (entries: ExperienceEntry[]) =>
+  JSON.stringify(
+    entries
+      .map((entry) => ({
+        role: entry.role.trim(),
+        company: entry.company.trim(),
+        startDate: entry.startDate.trim(),
+        endDate: entry.endDate.trim(),
+        description: entry.description.trim(),
+      }))
+      .filter(
+        (entry) =>
+          entry.role || entry.company || entry.startDate || entry.endDate || entry.description,
+      ),
+  );
 
 const socialOptions: { type: SocialType; label: string }[] = [
   { type: "portfolio", label: "Portfolio" },
@@ -367,13 +422,19 @@ const getSocialInputIcon = (type: SocialType) => {
 };
 
 const getProfileFieldIcon = (
-  field: "name" | "location" | "award" | "discipline",
+  field: "name" | "company" | "location" | "award" | "discipline" | "time",
 ) => {
   const paths = {
     name: (
       <>
         <circle cx="12" cy="8" r="4" />
         <path d="M5 21a7 7 0 0114 0" />
+      </>
+    ),
+    company: (
+      <>
+        <rect x="3" y="7" width="18" height="14" rx="1" />
+        <path d="M9 21V3h6v18M3 11h6m6 0h6M3 15h6m6 0h6" />
       </>
     ),
     location: (
@@ -392,6 +453,12 @@ const getProfileFieldIcon = (
       <>
         <rect x="3" y="7" width="18" height="14" rx="2" />
         <path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M3 12h18" />
+      </>
+    ),
+    time: (
+      <>
+        <circle cx="12" cy="12" r="8" />
+        <path d="M12 8v4l3 2" />
       </>
     ),
   };
@@ -429,6 +496,7 @@ const toForm = (user: User, profile: ProfileRecord | null): ProfileForm => ({
   bio: profile?.bio ?? "",
   location: profile?.location ?? "",
   awards: profile?.awards ?? "",
+  experience: profile?.experience ?? "",
   avatar_url:
     profile?.avatar_url ??
     (typeof user.user_metadata.avatar_url === "string"
@@ -568,6 +636,12 @@ const ProfilePage = () => {
   const [isInquiryDrawerOpen, setIsInquiryDrawerOpen] = useState(false);
   const [socials, setSocials] = useState<SocialForm>(emptySocials);
   const [newAward, setNewAward] = useState("");
+  const [newExperience, setNewExperience] = useState<ExperienceEntry>(
+    emptyExperienceEntry(),
+  );
+  const [editingExperienceIndex, setEditingExperienceIndex] = useState<
+    number | null
+  >(null);
   const [customRoleInput, setCustomRoleInput] = useState("");
   const [sponsored, setSponsored] = useState(false);
   const [profileViews, setProfileViews] = useState(0);
@@ -586,6 +660,9 @@ const ProfilePage = () => {
   );
   const [saving, setSaving] = useState(false);
   const [enhancingBio, setEnhancingBio] = useState(false);
+  const [showBioStyleInstruction, setShowBioStyleInstruction] =
+    useState(false);
+  const [bioStyleInstruction, setBioStyleInstruction] = useState("");
   const [bioSuggestion, setBioSuggestion] = useState<{
     original: string;
     enhanced: string;
@@ -595,6 +672,7 @@ const ProfilePage = () => {
   const [draggingSlot, setDraggingSlot] = useState<number | null>(null);
   const [shareLabel, setShareLabel] = useState("Share profile");
   const bioInputRef = useRef<HTMLTextAreaElement>(null);
+  const bioStyleInstructionRef = useRef<HTMLTextAreaElement>(null);
   const profileFormRef = useRef<HTMLFormElement>(null);
   const loadedProfileUserId = useRef<string | null>(null);
   const [message, setMessage] = useState(() =>
@@ -602,6 +680,12 @@ const ProfilePage = () => {
       ? ""
       : "Supabase is not configured yet. Add your public environment variables first.",
   );
+
+  useEffect(() => {
+    if (showBioStyleInstruction) {
+      bioStyleInstructionRef.current?.focus();
+    }
+  }, [showBioStyleInstruction]);
 
   useEffect(() => {
     const client = supabase;
@@ -647,7 +731,7 @@ const ProfilePage = () => {
         client
           .from("profiles")
           .select(
-            "id, handle, name, role, bio, location, awards, avatar_url, is_published",
+            "id, handle, name, role, bio, location, awards, experience, avatar_url, is_published",
           )
           .eq("id", currentUser.id)
           .maybeSingle(),
@@ -826,7 +910,10 @@ const ProfilePage = () => {
       const response = await fetch("/api/ai/enhance-bio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bio: form.bio }),
+        body: JSON.stringify({
+          bio: form.bio,
+          styleInstruction: bioStyleInstruction,
+        }),
       });
       const result = (await response.json()) as {
         bio?: string;
@@ -858,11 +945,13 @@ const ProfilePage = () => {
       current ? { ...current, bio: bioSuggestion.original } : current,
     );
     setBioSuggestion(null);
+    setShowBioStyleInstruction(false);
     setMessage("Enhanced bio rejected. Your original bio was restored.");
   };
 
   const approveBioSuggestion = () => {
     setBioSuggestion(null);
+    setShowBioStyleInstruction(false);
     setMessage("Enhanced bio approved. Review it once more before saving.");
   };
 
@@ -960,6 +1049,86 @@ const ProfilePage = () => {
     );
   };
 
+  const addExperience = () => {
+    const description = truncateToWordLimit(
+      newExperience.description.trim(),
+      MAX_EXPERIENCE_DESCRIPTION_WORDS,
+    );
+
+    const nextEntry = {
+      role: newExperience.role.trim(),
+      company: newExperience.company.trim(),
+      startDate: newExperience.startDate.trim(),
+      endDate: newExperience.endDate.trim(),
+      description,
+    };
+
+    if (
+      !nextEntry.role &&
+      !nextEntry.company &&
+      !nextEntry.startDate &&
+      !nextEntry.endDate &&
+      !nextEntry.description
+    ) {
+      return;
+    }
+
+    setForm((current) => {
+      if (!current) return current;
+
+      const nextEntries = parseExperienceEntries(current.experience);
+      if (editingExperienceIndex !== null) {
+        nextEntries[editingExperienceIndex] = nextEntry;
+        return {
+          ...current,
+          experience: serializeExperienceEntries(nextEntries),
+        };
+      }
+
+      return {
+        ...current,
+        experience: serializeExperienceEntries([...nextEntries, nextEntry]),
+      };
+    });
+
+    setNewExperience(emptyExperienceEntry());
+    setEditingExperienceIndex(null);
+  };
+
+  const removeExperience = (experienceIndex: number) => {
+    setForm((current) => {
+      if (!current) return current;
+
+      const nextEntries = parseExperienceEntries(current.experience).filter(
+        (_, index) => index !== experienceIndex,
+      );
+
+      return {
+        ...current,
+        experience: serializeExperienceEntries(nextEntries),
+      };
+    });
+
+    if (editingExperienceIndex === experienceIndex) {
+      setNewExperience(emptyExperienceEntry());
+      setEditingExperienceIndex(null);
+    } else {
+      setEditingExperienceIndex((current) =>
+        current !== null && current > experienceIndex ? current - 1 : current,
+      );
+    }
+  };
+
+  const editExperience = (experienceIndex: number, entry: ExperienceEntry) => {
+    setNewExperience(entry);
+    setEditingExperienceIndex(experienceIndex);
+  };
+
+  const cancelExperienceEdit = () => {
+    setNewExperience(emptyExperienceEntry());
+    setEditingExperienceIndex(null);
+  };
+
   const handleSponsorProfile = () => {
     setIsSponsorModalOpen(true);
     setSponsorshipIdempotencyKey(crypto.randomUUID());
@@ -1049,6 +1218,11 @@ const ProfilePage = () => {
     setSaving(true);
     setMessage("");
 
+    const experienceValue =
+      form.experience.trim() && form.experience !== "[]"
+        ? form.experience
+        : null;
+
     const profilePayload = {
       handle: profile?.handle ?? getProfileHandle(getHandle(user)),
       name: form.name.trim(),
@@ -1056,6 +1230,7 @@ const ProfilePage = () => {
       bio: form.bio.trim() || null,
       location: form.location.trim() || null,
       awards: form.awards.trim() || null,
+      experience: experienceValue,
       avatar_url: form.avatar_url.trim() || null,
       is_published: form.is_published,
     };
@@ -1065,14 +1240,14 @@ const ProfilePage = () => {
           .update(profilePayload)
           .eq("id", user.id)
           .select(
-            "id, handle, name, role, bio, location, awards, avatar_url, is_published",
+            "id, handle, name, role, bio, location, awards, experience, avatar_url, is_published",
           )
           .single()
       : await supabase
           .from("profiles")
           .insert({ id: user.id, ...profilePayload })
           .select(
-            "id, handle, name, role, bio, location, awards, avatar_url, is_published",
+            "id, handle, name, role, bio, location, awards, experience, avatar_url, is_published",
           )
           .single();
     const { data, error } = profileResult;
@@ -1199,7 +1374,7 @@ const ProfilePage = () => {
       .update({ is_published: nextPublishedState })
       .eq("id", user.id)
       .select(
-        "id, handle, name, role, bio, location, awards, avatar_url, is_published",
+        "id, handle, name, role, bio, location, awards, experience, avatar_url, is_published",
       )
       .single();
 
@@ -1472,14 +1647,24 @@ const ProfilePage = () => {
   const profileName = profile?.name || getFallbackName(user);
   const handle = getHandle(user);
   const avatarUrl = activeForm.avatar_url;
-  const initial = profileName.charAt(0).toUpperCase() || "U";
+  const visibleExperienceEntries = parseExperienceEntries(
+    activeForm.experience,
+  )
+    .map((entry, index) => ({ entry, index }))
+    .filter(
+      ({ entry }) =>
+        entry.role ||
+        entry.company ||
+        entry.startDate ||
+        entry.endDate ||
+        entry.description,
+    );
   const visibleSocials = socialLinks.filter(
     (link) => link.url && isSafeExternalUrl(link.url),
   );
   const mediaByPosition = new Map(media.map((item) => [item.position, item]));
   const deviceType = getDeviceTypeLabel();
   const browserDetails = getBrowserDetails();
-  const browserRegion = getBrowserRegionLabel();
   const thisDeviceLocation =
     profile?.location || user?.user_metadata?.location || "Unknown location";
   const unreadInquiryCount = inquiries.filter(
@@ -1567,6 +1752,8 @@ const ProfilePage = () => {
     setSocials(toSocialForm(socialLinks));
     setEditingSocialType(null);
     setNewAward("");
+    setNewExperience(emptyExperienceEntry());
+    setEditingExperienceIndex(null);
     setIsEditing(true);
     window.setTimeout(() => bioInputRef.current?.focus(), 0);
   };
@@ -1580,6 +1767,8 @@ const ProfilePage = () => {
     setSocials(toSocialForm(socialLinks));
     setEditingSocialType(null);
     setNewAward("");
+    setNewExperience(emptyExperienceEntry());
+    setEditingExperienceIndex(null);
     setIsEditing(shouldOpen);
   };
 
@@ -1824,6 +2013,72 @@ const ProfilePage = () => {
                   <p className="mt-4 geist whitespace-pre-line text-sm leading-tight font-medium tracking-tight text-[#444]">
                     {profile.awards}
                   </p>
+                </section>
+              ) : null}
+              {parseExperienceEntries(profile?.experience).length ? (
+                <section className="mt-14 max-w-2xl border-t border-black/10 pt-5">
+                  <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
+                    Work Experiences
+                  </p>
+
+                  <div className="mt-5 space-y-8">
+                    {parseExperienceEntries(profile?.experience).map(
+                      (experienceEntry, index) => {
+                        const hasDetail =
+                          experienceEntry.role ||
+                          experienceEntry.company ||
+                          experienceEntry.startDate ||
+                          experienceEntry.endDate ||
+                          experienceEntry.description;
+
+                        if (!hasDetail) return null;
+
+                        const dateRange = (() => {
+                          const startDate = experienceEntry.startDate.trim();
+                          const endDate = experienceEntry.endDate.trim();
+
+                          if (!startDate && !endDate) return "";
+                          if (startDate && endDate)
+                            return `${startDate} – ${endDate}`;
+                          if (startDate) return `${startDate} – Present`;
+                          return endDate;
+                        })();
+
+                        return (
+                          <div
+                            key={`${experienceEntry.company}-${experienceEntry.role}-${index}`}
+                            className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]"
+                          >
+                            <div className="mon geist text-sm font-medium tracking-tight text-black/45">
+                              {dateRange || "—"}
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="geist text-lg capitalize font-medium leading-tight tracking-tight text-black sm:text-lg">
+                                {(() => {
+                                  const role = experienceEntry.role.trim();
+                                  const company =
+                                    experienceEntry.company.trim();
+
+                                  if (role && company) {
+                                    return `${company} — ${role}`;
+                                  }
+
+                                  return role || company;
+                                })()}
+                              </p>
+
+                              {experienceEntry.description ? (
+                                <p className="mt-2 geist font-medium whitespace-pre-line text-sm leading-4 text-justify tracking-tight text-[#999]">
+                                  {experienceEntry.description}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      },
+                    )}
+                  </div>
                 </section>
               ) : null}
               {visibleSocials.length ? (
@@ -2179,9 +2434,9 @@ const ProfilePage = () => {
                     </fieldset>
                   </div>
 
-                  <label className="mt-8 block mono text-sm font-Medium uppercase tracking-tight text-[#999]">
+                  <div className="mt-8 mono text-sm font-Medium uppercase tracking-tight text-[#999]">
                     <div className="flex items-center justify-between">
-                      <span>About Me *</span>
+                      <label htmlFor="profile-bio">About Me *</label>
                       <div className="flex items-center gap-3">
                         <p
                           id="bio-word-count"
@@ -2193,6 +2448,7 @@ const ProfilePage = () => {
                     </div>{" "}
                     <textarea
                       ref={bioInputRef}
+                      id="profile-bio"
                       required
                       name="bio"
                       aria-describedby="bio-word-count"
@@ -2201,21 +2457,88 @@ const ProfilePage = () => {
                       rows={4}
                       minLength={20}
                       placeholder="Tell people what you do in at least 20 words."
-                      className="mt-2 w-full text-justify  min-h-50 text-black geist resize-none scrollbar-none bg-black/5 rounded p-3 outline-none transition placeholder:text-[#aaa] focus:border-[#1c40f2]/50  focus:border-2"
+                      className="mt-2 w-full text-justify  min-h-50 text-black geist resize-none scrollbar-none bg-black/5 rounded p-3 outline-none transition placeholder:text-[#aaa] "
                     />
-                    {!bioSuggestion ? (
-                      <button
-                        type="button"
-                        onClick={() => void handleEnhanceBio()}
-                        disabled={
-                          enhancingBio ||
-                          countWords(activeForm.bio) < MIN_BIO_WORDS
-                        }
-                        className="rounded-full border border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {enhancingBio ? "Enhancing..." : "Enhance bio"}
-                      </button>
-                    ) : null}
+                    <div
+                      id="bio-style-instruction-panel"
+                      aria-hidden={
+                        !showBioStyleInstruction ||
+                        enhancingBio ||
+                        bioSuggestion !== null
+                      }
+                      inert={
+                        !showBioStyleInstruction ||
+                        enhancingBio ||
+                        bioSuggestion !== null
+                      }
+                      className={`grid overflow-hidden transition-[grid-template-rows,opacity,transform,margin] duration-300 ease-out motion-reduce:transition-none ${
+                        showBioStyleInstruction &&
+                        !enhancingBio &&
+                        !bioSuggestion
+                          ? "mt-3 translate-y-0 grid-rows-[1fr] opacity-100"
+                          : "mt-0 -translate-y-1 grid-rows-[0fr] opacity-0"
+                      }`}
+                    >
+                      <div className="min-h-0 overflow-hidden">
+                        <label
+                          htmlFor="bio-style-instruction"
+                          className="mono text-xs font-medium uppercase tracking-tight text-[#999]"
+                        >
+                          Tone (optional)
+                        </label>
+                        <textarea
+                          ref={bioStyleInstructionRef}
+                          id="bio-style-instruction"
+                          tabIndex={
+                            showBioStyleInstruction &&
+                            !enhancingBio &&
+                            !bioSuggestion
+                              ? 0
+                              : -1
+                          }
+                          value={bioStyleInstruction}
+                          onChange={(event) =>
+                            setBioStyleInstruction(event.target.value)
+                          }
+                          maxLength={MAX_BIO_STYLE_INSTRUCTION_LENGTH}
+                          rows={2}
+                          placeholder="e.g. Warm and confident, while staying professional."
+                          className="mt-2 w-full geist resize-none rounded bg-black/5 p-3 text-sm normal-case tracking-tight text-black outline-none transition placeholder:text-[#aaa] "
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {!bioSuggestion ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleEnhanceBio()}
+                          disabled={
+                            enhancingBio ||
+                            countWords(activeForm.bio) < MIN_BIO_WORDS
+                          }
+                          className="rounded-full border border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {enhancingBio ? "Enhancing..." : "Enhance bio"}
+                        </button>
+                      ) : null}
+                      {!enhancingBio && !bioSuggestion ? (
+                        <button
+                          type="button"
+                          aria-expanded={showBioStyleInstruction}
+                          aria-controls="bio-style-instruction-panel"
+                          onClick={() =>
+                            setShowBioStyleInstruction((visible) => !visible)
+                          }
+                          className="rounded-full uppercase border border-black/10 px-3 py-1 text-xs font-medium normal-case tracking-tight text-[#666] transition hover:border-black/30 hover:text-black"
+                        >
+                          {showBioStyleInstruction
+                            ? "Hide tone"
+                            : bioStyleInstruction.trim()
+                              ? "Set tone"
+                              : "Set tone"}
+                        </button>
+                      ) : null}
+                    </div>
                     {bioSuggestion ? (
                       <div className="mt-2 flex flex-col gap-2  ">
                         <p className="text-xs hidden font-semibold normal-case tracking-tight geist text-[#666]">
@@ -2240,7 +2563,190 @@ const ProfilePage = () => {
                         </div>
                       </div>
                     ) : null}
-                  </label>
+                  </div>
+
+                  <section className="mt-8 pt-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="mono text-sm font-medium uppercase tracking-tight text-[#999]">
+                        experience
+                      </p>
+                    </div>
+
+                    <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                      <InputArea
+                        leadingIcon={getProfileFieldIcon("discipline")}
+                        wrapperClassName="flex min-w-0 items-center gap-1 rounded bg-black/5 px-2"
+                        variant="plain"
+                        value={newExperience.role}
+                        onChange={(event) =>
+                          setNewExperience((current) => ({
+                            ...current,
+                            role: event.target.value,
+                          }))
+                        }
+                        placeholder="Role"
+                        className="min-w-0 capitalize text-sm placeholder:text-[#aaa]"
+                      />
+
+                      <InputArea
+                        leadingIcon={getProfileFieldIcon("company")}
+                        wrapperClassName="flex min-w-0 items-center gap-1 rounded bg-black/5 px-2"
+                        variant="plain"
+                        value={newExperience.company}
+                        onChange={(event) =>
+                          setNewExperience((current) => ({
+                            ...current,
+                            company: event.target.value,
+                          }))
+                        }
+                        placeholder="Company"
+                        className="min-w-0 capitalize text-sm placeholder:text-[#aaa]"
+                      />
+
+                      <InputArea
+                        leadingIcon={getProfileFieldIcon("time")}
+                        wrapperClassName="flex min-w-0 items-center gap-1 rounded bg-black/5 px-2"
+                        variant="plain"
+                        value={newExperience.startDate}
+                        onChange={(event) =>
+                          setNewExperience((current) => ({
+                            ...current,
+                            startDate: event.target.value,
+                          }))
+                        }
+                        placeholder="Start date"
+                        className="min-w-0 capitalize text-sm placeholder:text-[#aaa]"
+                      />
+
+                      <InputArea
+                        leadingIcon={getProfileFieldIcon("time")}
+                        wrapperClassName="flex min-w-0 items-center gap-1 rounded bg-black/5 px-2"
+                        variant="plain"
+                        value={newExperience.endDate}
+                        onChange={(event) =>
+                          setNewExperience((current) => ({
+                            ...current,
+                            endDate: event.target.value,
+                          }))
+                        }
+                        placeholder="End date"
+                        className="min-w-0 capitalize text-sm placeholder:text-[#aaa]"
+                      />
+                    </div>
+
+                    <textarea
+                      value={newExperience.description}
+                      onChange={(event) =>
+                        setNewExperience((current) => ({
+                          ...current,
+                          description: truncateToWordLimit(
+                            event.target.value,
+                            MAX_EXPERIENCE_DESCRIPTION_WORDS,
+                          ),
+                        }))
+                      }
+                      rows={4}
+                      placeholder="Short description of your work, impact, or notable projects."
+                      className="mt-3 w-full resize-none rounded bg-black/5 p-3 text-sm normal-case tracking-tight text-black outline-none transition placeholder:text-[#aaa] "
+                    />
+
+                   
+
+                    <div className="mt-2 w-full flex justify-between items-center">
+                      <button
+                        type="button"
+                        onClick={addExperience}
+                        className="rounded-full border mono border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {editingExperienceIndex === null
+                          ? "Save experience"
+                          : "Update experience"}
+                      </button>
+                      {editingExperienceIndex !== null ? (
+                        <button
+                          type="button"
+                          onClick={cancelExperienceEdit}
+                          className="rounded-full border border-black/20 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#666] transition hover:border-black hover:text-black"
+                        >
+                          Cancel
+                        </button>
+                      ) : null}
+
+                      <span className="mt-2 text-xs geist tracking-tighter font-semibold capitalize mon uppercase text-[#999]">
+                        {countWords(newExperience.description)} /{" "}
+                        {MAX_EXPERIENCE_DESCRIPTION_WORDS}
+                      </span>
+                    </div>
+
+                    {visibleExperienceEntries.length ? (
+                      <div className="mt-5">
+                        <p className="mono text-xs hidden font-medium uppercase tracking-tight text-[#999]">
+                          Added experience
+                        </p>
+
+                        <ul className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                          {visibleExperienceEntries.map(({ entry, index }) => (
+                            <li
+                              key={`${entry.company}-${entry.role}-${index}`}
+                              className={`rounded bg-black/5 p-3 transition hover:bg-black/[0.08] ${
+                                editingExperienceIndex === index
+                                  ? "ring-1 ring-[#1c40f2]/40"
+                                  : ""
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => editExperience(index, entry)}
+                                  aria-label={`Edit ${entry.role || entry.company || "experience"}`}
+                                  className="min-w-0 flex-1 cursor-pointer text-left text-sm tracking-tight text-[#444] outline-none focus-visible:ring-2 focus-visible:ring-[#1c40f2]"
+                                >
+                                  {(entry.role || entry.company) && (
+                                    <p className="font-medium tracking-tight capitalize text-[#999]">
+                                      {entry.role}
+                                      {entry.role && entry.company ? " • " : ""}
+                                      {entry.company}
+                                    </p>
+                                  )}
+                                  {(entry.startDate || entry.endDate) && (
+                                    <p className="mt-1 text-[#666]">
+                                      {entry.startDate}
+                                      {entry.startDate && entry.endDate
+                                        ? " – "
+                                        : ""}
+                                      {entry.endDate || " - Present"}
+                                    </p>
+                                  )}
+                                  {entry.description ? (
+                                    <p className="mt-2 whitespace-pre-line leading-4  text-justify text-xs text-[#999]">
+                                      {entry.description}
+                                    </p>
+                                  ) : null}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => removeExperience(index)}
+                                  aria-label={`Remove ${entry.role || entry.company || "experience"}`}
+                                  className="shrink-0 text-[10px] font-semibold uppercase tracking-tight text-[#666] transition hover:text-black"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    height="18px"
+                                    viewBox="0 -960 960 960"
+                                    width="18px"
+                                    fill="#999"
+                                  >
+                                    <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </section>
 
                   <section className="mt-4 pt-5">
                     <p className="mono text-sm font-medium uppercase tracking-tight text-[#999]">

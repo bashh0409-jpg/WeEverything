@@ -52,6 +52,7 @@ type ProfileModalProps = {
   bio: string | null;
   location?: string | null;
   awards?: string | null;
+  experience?: string | null;
   image?: string | null;
   hoverMedia?: {
     type: "image" | "video";
@@ -67,6 +68,89 @@ type ProfileModalProps = {
   onClose: () => void;
 };
 
+type ExperienceEntry = {
+  role: string;
+  company: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+};
+
+const parseExperienceEntries = (
+  value: string | null | undefined,
+): ExperienceEntry[] => {
+  if (!value || !value.trim()) return [];
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter(
+          (item): item is Partial<ExperienceEntry> =>
+            !!item && typeof item === "object",
+        )
+        .map((item) => ({
+          role: typeof item.role === "string" ? item.role : "",
+          company: typeof item.company === "string" ? item.company : "",
+          startDate: typeof item.startDate === "string" ? item.startDate : "",
+          endDate: typeof item.endDate === "string" ? item.endDate : "",
+          description:
+            typeof item.description === "string" ? item.description : "",
+        }));
+    }
+
+    if (parsed && typeof parsed === "object") {
+      const candidate = parsed as Partial<ExperienceEntry>;
+      return [
+        {
+          role: typeof candidate.role === "string" ? candidate.role : "",
+          company:
+            typeof candidate.company === "string" ? candidate.company : "",
+          startDate:
+            typeof candidate.startDate === "string" ? candidate.startDate : "",
+          endDate: typeof candidate.endDate === "string" ? candidate.endDate : "",
+          description:
+            typeof candidate.description === "string" ? candidate.description : "",
+        },
+      ];
+    }
+  } catch {
+    // Legacy plain-text values are rendered as a single description.
+  }
+
+  return [
+    {
+      role: "",
+      company: "",
+      startDate: "",
+      endDate: "",
+      description: value.trim(),
+    },
+  ];
+};
+
+const formatExperienceDateRange = (entry: ExperienceEntry) => {
+  const startDate = entry.startDate.trim();
+  const endDate = entry.endDate.trim();
+
+  if (!startDate && !endDate) return "";
+  if (startDate && endDate) return `${startDate} – ${endDate}`;
+  if (startDate) return `${startDate} – Present`;
+  return endDate;
+};
+
+const formatExperienceTitle = (entry: ExperienceEntry) => {
+  const role = entry.role.trim();
+  const company = entry.company.trim();
+
+  if (role && company) {
+    return `${company} — ${role}`;
+  }
+
+  return role || company;
+};
+
 const ProfileModal = ({
   profileId,
   handle,
@@ -75,6 +159,7 @@ const ProfileModal = ({
   bio,
   location,
   awards,
+  experience,
   image,
   hoverMedia,
   socialLinks,
@@ -93,6 +178,7 @@ const ProfileModal = ({
     .split(/[|,]/)
     .map((value) => value.trim())
     .filter(Boolean);
+  const experienceEntries = parseExperienceEntries(experience);
 
   const [isClosing, setIsClosing] = useState(false);
   const [shareLabel, setShareLabel] = useState("Share profile");
@@ -374,34 +460,40 @@ const ProfileModal = ({
                 {location || "Unknown location"}
               </span>
             </span>
-            <span className="flex  gap-2 -mt-4">
+            <span className=" flex gap-2">
               {socialLinks.length ? (
-                <div className="flex mt-6 flex-wrap gap-2">
-                  {socialLinks
-                    .filter((link) => isSafeExternalUrl(link.url))
-                    .map((link) => (
-                      <a
-                        key={link.id}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={socialLabels[link.type] ?? link.type}
-                        title={socialLabels[link.type] ?? link.type}
-                        className="flex w- h-7 items-center justify-center rounded-full text-base transition "
-                      >
-                        {socialIcons[link.type] ?? (
-                          <span className="text-lg font-semibold uppercase">
-                            {link.type.slice(0, 2)}
-                          </span>
-                        )}
-                      </a>
-                    ))}
+                <div className="mt-6 flex flex-col ">
+                  <span className="text-sm font-medium tracking-tight text-[#999]">
+                    Let&apos;s Connect
+                  </span>
+
+                  <div className="flex flex-wrap gap-2">
+                    {socialLinks
+                      .filter((link) => isSafeExternalUrl(link.url))
+                      .map((link) => (
+                        <a
+                          key={link.id}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={socialLabels[link.type] ?? link.type}
+                          title={socialLabels[link.type] ?? link.type}
+                          className="flex h-7 w-5 items-center justify-center rounded-full text-base transition"
+                        >
+                          {socialIcons[link.type] ?? (
+                            <span className="text-xl font-semibold uppercase">
+                              {link.type.slice(0, 2)}
+                            </span>
+                          )}
+                        </a>
+                      ))}
+                  </div>
                 </div>
               ) : null}
             </span>
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
             <span className="text-sm font-medium tracking-tight text-[#999]">
               About Me
             </span>
@@ -410,19 +502,58 @@ const ProfileModal = ({
               {formattedBio}
             </span>
           </div>
-          {awards ? (
-            <div className="flex flex-col gap-2">
+          {experienceEntries.length ? (
+            <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
               <span className="text-sm font-medium tracking-tight text-[#999]">
-                Awards & Recognitions
+                Work Experiences
               </span>
-              <span className="whitespace-pre-line text-sm font-medium leading-4 tracking-tight">
-                {awards}
-              </span>
+
+              {experienceEntries.map((experienceEntry, index) => {
+                const hasDetail =
+                  experienceEntry.role ||
+                  experienceEntry.company ||
+                  experienceEntry.startDate ||
+                  experienceEntry.endDate ||
+                  experienceEntry.description;
+
+                if (!hasDetail) return null;
+
+                const dateRange = formatExperienceDateRange(experienceEntry);
+
+                return (
+                  <div
+                    key={`${experienceEntry.company}-${experienceEntry.role}-${index}`}
+                    className=" "
+                  >
+                    {dateRange ? (
+                      <span className=" text-xs  font-semibold  uppercase tracking-tight text-black/45">
+                        {dateRange} {" "}
+                      </span>
+                    ) : (
+                      <span className=" text-sm font-medium tracking-tight text-black/45">
+                        —
+                      </span>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-medium leading-tight capitalize tracking-tight text-black">
+                        {experienceEntry.company}
+                      </span>
+
+                      {experienceEntry.description ? (
+                        <p className="mt-2 geist font-medium text-justify whitespace-pre-line text-sm leading-4 tracking-tight  text-[#999]">
+                          {experienceEntry.description}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : null}
-          <div className="flex flex-col gap-5">
+
+          <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
             <span className="text-sm font-medium tracking-tight text-[#999]">
-              Media
+              Gallery
             </span>
 
             {hoverMedia?.type === "video" ? (
@@ -440,7 +571,7 @@ const ProfileModal = ({
               <CachedImage
                 src={image}
                 alt={`${name} profile`}
-                className="aspect-[4/5] w-80 object-cover"
+                className="aspect-[4/5] w-70 object-cover"
               />
             ) : (
               <div className="flex aspect-[4/5] w-80 items-center justify-center bg-black/10 text-sm font-medium text-[#999]">
@@ -449,83 +580,70 @@ const ProfileModal = ({
             )}
           </div>
 
-          <div className="flex flex-col hidden gap-2">
-            <span className="text-sm font-medium tracking-tight text-[#999]">
-              Find Me On
-            </span>
-
-            {socialLinks.length ? (
-              <div className="flex flex-wrap">
-                {socialLinks
-                  .filter((link) => isSafeExternalUrl(link.url))
-                  .map((link) => (
-                    <a
-                      key={link.id}
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={socialLabels[link.type] ?? link.type}
-                      title={socialLabels[link.type] ?? link.type}
-                      className="flex h-9 w-9 items-center justify-center rounded-full text-base transition hover:bg-black hover:text-white"
-                    >
-                      {socialIcons[link.type] ?? (
-                        <span className="text-xs font-semibold uppercase">
-                          {link.type.slice(0, 2)}
-                        </span>
-                      )}
-                    </a>
-                  ))}
-              </div>
-            ) : (
-              <span className="text-sm font-medium">
-                No social links added.
+          {awards ? (
+            <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+              <span className="text-sm font-medium tracking-tight text-[#999]">
+                Recognitions
               </span>
-            )}
-          </div>
-          <div className="flex w-80 justify-between">
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={() => void handleShare()}
-                className="w-fit cursor-pointer text-xs mono text-white   font-semibold uppercase tracking-tight  bg-black p-1 rounded-full px-3 transition hover:bg-black/50 "
-              >
-                {shareLabel === "Share profile" ? "Share" : shareLabel}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsContactOpen(true);
-                  setInquiryStatus("idle");
-                  setInquiryMessage("");
-                }}
-                className="w-fit cursor-pointer rounded-full bg-[#1c40f2] p-1 px-3 mono text-xs font-semibold uppercase tracking-tight text-white transition hover:bg-[#1c40f2]/50"
-              >
-                Contact
-              </button>
-            </div>{" "}
-            <button
-              type="button"
-              aria-label={
-                isSaved
-                  ? `Remove ${name} from saved profiles`
-                  : `Save ${name} profile`
-              }
-              aria-pressed={isSaved}
-              title={isSaved ? "Remove from saved profiles" : "Save profile"}
-              onClick={() => onToggleSave(profileId)}
-              className={`flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border transition ${isSaved ? "border-black bg-black text-white" : "border-black/20 text-black hover:border-black"}`}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 -960 960 960"
-                width="17"
-                height="17"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M200-120v-640h560v640L480-240 200-120Zm80-122 200-86 200 86v-438H280v438Z" />
-              </svg>
-            </button>
+              <span className="whitespace-pre-line text-sm font-medium leading-4 tracking-tight">
+                {awards}
+              </span>
+            </div>
+          ) : null}
+
+          <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+            <span className="text-sm font-medium tracking-tight text-[#999]">
+              Quick Actions
+            </span>
+            <div className=" flex items-center justify-between w-full">
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  aria-label={
+                    isSaved
+                      ? `Remove ${name} from saved profiles`
+                      : `Save ${name} profile`
+                  }
+                  aria-pressed={isSaved}
+                  title={
+                    isSaved ? "Remove from saved profiles" : "Save profile"
+                  }
+                  onClick={() => onToggleSave(profileId)}
+                  className={`flex h-7 w-fit px-3 uppercase font-semibold mono text-xs tracking-tight items-center flex cursor-pointer items-center justify-center rounded-full border transition ${isSaved ? "border-black bg-black text-white" : "border-black/20 text-black hover:border-black"}`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 -960 960 960"
+                    width="17"
+                    height="17"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M200-120v-640h560v640L480-240 200-120Zm80-122 200-86 200 86v-438H280v438Z" />
+                  </svg>
+                  {isSaved ? "Saved" : "Save"}
+                  
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleShare()}
+                  className="w-fit cursor-pointer text-xs mono text-white   font-semibold uppercase tracking-tight  bg-black p-1 rounded-full px-3 transition hover:bg-black/50 "
+                >
+                  {shareLabel === "Share profile" ? "Share" : shareLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsContactOpen(true);
+                    setInquiryStatus("idle");
+                    setInquiryMessage("");
+                  }}
+                  className="w-fit cursor-pointer rounded-full bg-[#1c40f2] p-1 px-3 mono text-xs font-semibold uppercase tracking-tight text-white transition hover:bg-[#1c40f2]/50"
+                >
+                  Contact
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         {isContactOpen ? (

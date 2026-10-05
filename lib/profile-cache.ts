@@ -7,6 +7,7 @@ export type CachedProfile = {
   role: string;
   location: string | null;
   awards: string | null;
+  experience: string | null;
   is_sponsored: boolean;
   uploaded_image: string | null;
   hover_media: {

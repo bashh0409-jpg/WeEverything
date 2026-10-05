@@ -54,6 +54,7 @@ type Profile = {
   role: string;
   location: string | null;
   awards: string | null;
+  experience: string | null;
   is_sponsored: boolean;
   uploaded_image: string | null;
   hover_media: { type: "image" | "video"; url: string } | null;
@@ -630,8 +631,8 @@ const Page = () => {
                   }}
                   className={
                     roleFilter === role
-                      ? "cursor-pointer uppercas text-sm  tracking-tighter  text-black transition-all duration-500"
-                      : "cursor-pointer uppercas text-sm  tracking-tighter text-[#999] transition-all duration-400 hover:text-black"
+                      ? "cursor-pointer uppercas text-xs  tracking-tight  text-black transition-all duration-500"
+                      : "cursor-pointer uppercas text-xs  tracking-tight text-[#999] transition-all duration-400 hover:text-black"
                   }
                 >
                   {role}
@@ -887,6 +888,7 @@ const Page = () => {
           bio={selectedProfile.bio}
           location={selectedProfile.location}
           awards={selectedProfile.awards}
+          experience={selectedProfile.experience}
           image={selectedProfile.uploaded_image ?? selectedProfile.avatar_url}
           hoverMedia={selectedProfile.hover_media}
           socialLinks={selectedProfile.socialLinks}
