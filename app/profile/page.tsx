@@ -28,6 +28,7 @@ import Navbar from "../components/Navbar";
 import InputArea from "../components/InputArea";
 import { supabase } from "@/lib/supabase/client";
 import { getProfileHandle } from "@/lib/profile-handle";
+import { roles } from "@/lib/roles";
 import { isSafeExternalUrl } from "@/lib/safe-url";
 import {
   getSocialInputValue,
@@ -133,26 +134,13 @@ const acceptedMediaTypes = [
   "video/webm",
 ];
 
-const roles = [
-  "Designer",
-  "Developer",
-  "Illustrator",
-  "Photographer",
-  "Animator",
-  "Art Director",
-  "Copywriter",
-  "Filmmaker",
-  "Musician",
-  "Stylist",
-  "Writer",
-  "Other",
-] as const;
-
 const ROLE_SEPARATOR = " | ";
+const MAX_DISCIPLINES = 6;
 const MIN_BIO_WORDS = 20;
 const MAX_BIO_WORDS = 350;
 const MAX_EXPERIENCE_DESCRIPTION_WORDS = 80;
 const MAX_BIO_STYLE_INSTRUCTION_LENGTH = 300;
+const MIN_LOCATION_QUERY_LENGTH = 3;
 const standardRoles = new Set<string>(roles.filter((role) => role !== "Other"));
 
 const parseRoles = (value: string) =>
@@ -176,6 +164,18 @@ const getCustomRole = (value: string) =>
   parseRoles(value).find(
     (role) => role !== "Other" && !standardRoles.has(role),
   ) ?? "";
+
+const getDisciplineCount = (value: string) => {
+  const selectedRoles = new Set(
+    parseRoles(value).filter((role) => role !== "Other"),
+  );
+
+  if (parseRoles(value).includes("Other") && !getCustomRole(value)) {
+    selectedRoles.add("Other");
+  }
+
+  return selectedRoles.size;
+};
 
 const countWords = (value: string) =>
   value.trim().split(/\s+/).filter(Boolean).length;
@@ -253,6 +253,38 @@ type ExperienceEntry = {
   startDate: string;
   endDate: string;
   description: string;
+};
+
+type LocationSearchStatus = "idle" | "loading" | "error";
+
+const parseLocationSuggestions = (value: unknown): string[] => {
+  if (!value || typeof value !== "object" || !("features" in value)) {
+    return [];
+  }
+
+  const features = value.features;
+  if (!Array.isArray(features)) return [];
+
+  const suggestions = features.flatMap((feature): string[] => {
+    if (!feature || typeof feature !== "object" || !("properties" in feature)) {
+      return [];
+    }
+
+    const properties = feature.properties;
+    if (!properties || typeof properties !== "object") return [];
+
+    const location = properties as Record<string, unknown>;
+    const city =
+      (typeof location.city === "string" && location.city.trim()) ||
+      (typeof location.name === "string" && location.name.trim());
+    const country =
+      typeof location.country === "string" ? location.country.trim() : "";
+
+    if (!city || !country) return [];
+    return [`${city}, ${country}`];
+  });
+
+  return Array.from(new Set(suggestions));
 };
 
 const emptyExperienceEntry = (): ExperienceEntry => ({
@@ -642,7 +674,25 @@ const ProfilePage = () => {
   const [editingExperienceIndex, setEditingExperienceIndex] = useState<
     number | null
   >(null);
+  const [enteringExperienceIndex, setEnteringExperienceIndex] = useState<
+    number | null
+  >(null);
+  const [removingExperienceIndex, setRemovingExperienceIndex] = useState<
+    number | null
+  >(null);
   const [customRoleInput, setCustomRoleInput] = useState("");
+  const [disciplineSearch, setDisciplineSearch] = useState("");
+  const [isDisciplineMenuOpen, setIsDisciplineMenuOpen] = useState(false);
+  const [enteringRole, setEnteringRole] = useState<string | null>(null);
+  const [removingRole, setRemovingRole] = useState<string | null>(null);
+  const [locationSearch, setLocationSearch] = useState("");
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
+  const [locationSearchStatus, setLocationSearchStatus] =
+    useState<LocationSearchStatus>("idle");
+  const [isLocationMenuOpen, setIsLocationMenuOpen] = useState(false);
+  const [selectedLocationSuggestion, setSelectedLocationSuggestion] = useState<
+    string | null
+  >(null);
   const [sponsored, setSponsored] = useState(false);
   const [profileViews, setProfileViews] = useState(0);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -674,6 +724,8 @@ const ProfilePage = () => {
   const bioInputRef = useRef<HTMLTextAreaElement>(null);
   const bioStyleInstructionRef = useRef<HTMLTextAreaElement>(null);
   const profileFormRef = useRef<HTMLFormElement>(null);
+  const disciplinePickerRef = useRef<HTMLDivElement>(null);
+  const locationPickerRef = useRef<HTMLDivElement>(null);
   const loadedProfileUserId = useRef<string | null>(null);
   const [message, setMessage] = useState(() =>
     supabase
@@ -686,6 +738,85 @@ const ProfilePage = () => {
       bioStyleInstructionRef.current?.focus();
     }
   }, [showBioStyleInstruction]);
+
+  useEffect(() => {
+    const query = locationSearch.trim();
+    if (
+      !isEditing ||
+      query.length < MIN_LOCATION_QUERY_LENGTH ||
+      selectedLocationSuggestion === query
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      setLocationSearchStatus("loading");
+
+      try {
+        const response = await fetch(
+          `/api/locations?q=${encodeURIComponent(query)}`,
+          { signal: controller.signal },
+        );
+        if (!response.ok) {
+          const result = (await response.json()) as { error?: string };
+          throw new Error(
+            result.error ?? `Location search failed with status ${response.status}`,
+          );
+        }
+
+        const result: unknown = await response.json();
+        setLocationSuggestions(parseLocationSuggestions(result));
+        setLocationSearchStatus("idle");
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        if (!(error instanceof Error)) {
+          console.error("Could not load location suggestions", error);
+        }
+        setLocationSuggestions([]);
+        setLocationSearchStatus("error");
+      }
+    }, 200);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [isEditing, locationSearch, selectedLocationSuggestion]);
+
+  useEffect(() => {
+    if (!isLocationMenuOpen) return;
+
+    const handleOutsidePointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !locationPickerRef.current?.contains(event.target)
+      ) {
+        setIsLocationMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handleOutsidePointerDown);
+    return () =>
+      document.removeEventListener("pointerdown", handleOutsidePointerDown);
+  }, [isLocationMenuOpen]);
+
+  useEffect(() => {
+    if (!isDisciplineMenuOpen) return;
+
+    const handleOutsidePointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !disciplinePickerRef.current?.contains(event.target)
+      ) {
+        setIsDisciplineMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handleOutsidePointerDown);
+    return () =>
+      document.removeEventListener("pointerdown", handleOutsidePointerDown);
+  }, [isDisciplineMenuOpen]);
 
   useEffect(() => {
     const client = supabase;
@@ -956,13 +1087,28 @@ const ProfilePage = () => {
   };
 
   const handleRoleToggle = (role: string) => {
+    const selectedRoles = parseRoles(form?.role ?? "");
+    const alreadySelected =
+      role === "Other"
+        ? selectedRoles.includes("Other") || Boolean(getCustomRole(form?.role ?? ""))
+        : selectedRoles.includes(role);
+
+    if (
+      !alreadySelected &&
+      getDisciplineCount(form?.role ?? "") >= MAX_DISCIPLINES
+    ) {
+      setMessage(`You can select up to ${MAX_DISCIPLINES} roles.`);
+      return;
+    }
+
+    setMessage("");
     setForm((current) => {
       if (!current) return current;
 
-      const selectedRoles = parseRoles(current.role);
+      const currentRoles = parseRoles(current.role);
       if (role === "Other") {
         const hasOther =
-          selectedRoles.includes("Other") ||
+          currentRoles.includes("Other") ||
           Boolean(getCustomRole(current.role));
 
         if (hasOther) {
@@ -970,7 +1116,7 @@ const ProfilePage = () => {
           return {
             ...current,
             role: formatRoles(
-              selectedRoles.filter((selectedRole) =>
+              currentRoles.filter((selectedRole) =>
                 standardRoles.has(selectedRole),
               ),
             ),
@@ -979,14 +1125,14 @@ const ProfilePage = () => {
 
         return {
           ...current,
-          role: formatRoles([...selectedRoles, "Other"]),
+          role: formatRoles([...currentRoles, "Other"]),
         };
       }
 
-      const isSelected = selectedRoles.includes(role);
+      const isSelected = currentRoles.includes(role);
       const nextRoles = isSelected
-        ? selectedRoles.filter((selectedRole) => selectedRole !== role)
-        : [...selectedRoles, role];
+        ? currentRoles.filter((selectedRole) => selectedRole !== role)
+        : [...currentRoles, role];
 
       return { ...current, role: formatRoles(nextRoles) };
     });
@@ -1012,6 +1158,48 @@ const ProfilePage = () => {
         role: formatRoles(nextRoles),
       };
     });
+  };
+
+  const removeCustomRole = () => {
+    setCustomRoleInput("");
+    setForm((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        role: formatRoles(
+          parseRoles(current.role).filter((role) => standardRoles.has(role)),
+        ),
+      };
+    });
+  };
+
+  const addRoleWithAnimation = (role: string) => {
+    if (removingRole) return;
+
+    setEnteringRole(role);
+    handleRoleToggle(role);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => setEnteringRole(null));
+    });
+  };
+
+  const removeRoleWithAnimation = (role: string) => {
+    if (removingRole) return;
+
+    setRemovingRole(role);
+    const delay = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? 0
+      : 300;
+
+    window.setTimeout(() => {
+      if (role !== "Other" && !standardRoles.has(role)) {
+        removeCustomRole();
+      } else {
+        handleRoleToggle(role);
+      }
+      setRemovingRole(null);
+    }, delay);
   };
 
   const handleSocialChange = (
@@ -1050,6 +1238,8 @@ const ProfilePage = () => {
   };
 
   const addExperience = () => {
+    if (!form || removingExperienceIndex !== null) return;
+
     const description = truncateToWordLimit(
       newExperience.description.trim(),
       MAX_EXPERIENCE_DESCRIPTION_WORDS,
@@ -1071,6 +1261,21 @@ const ProfilePage = () => {
       !nextEntry.description
     ) {
       return;
+    }
+
+    if (editingExperienceIndex === null) {
+      const nextIndex = parseExperienceEntries(form.experience).filter(
+        (entry) =>
+          entry.role ||
+          entry.company ||
+          entry.startDate ||
+          entry.endDate ||
+          entry.description,
+      ).length;
+      setEnteringExperienceIndex(nextIndex);
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => setEnteringExperienceIndex(null));
+      });
     }
 
     setForm((current) => {
@@ -1096,27 +1301,35 @@ const ProfilePage = () => {
   };
 
   const removeExperience = (experienceIndex: number) => {
-    setForm((current) => {
-      if (!current) return current;
+    if (removingExperienceIndex !== null) return;
+    setRemovingExperienceIndex(experienceIndex);
 
-      const nextEntries = parseExperienceEntries(current.experience).filter(
-        (_, index) => index !== experienceIndex,
-      );
+    window.setTimeout(() => {
+      setForm((current) => {
+        if (!current) return current;
 
-      return {
-        ...current,
-        experience: serializeExperienceEntries(nextEntries),
-      };
-    });
+        const nextEntries = parseExperienceEntries(current.experience).filter(
+          (_, index) => index !== experienceIndex,
+        );
 
-    if (editingExperienceIndex === experienceIndex) {
-      setNewExperience(emptyExperienceEntry());
-      setEditingExperienceIndex(null);
-    } else {
-      setEditingExperienceIndex((current) =>
-        current !== null && current > experienceIndex ? current - 1 : current,
-      );
-    }
+        return {
+          ...current,
+          experience: serializeExperienceEntries(nextEntries),
+        };
+      });
+
+      if (editingExperienceIndex === experienceIndex) {
+        setNewExperience(emptyExperienceEntry());
+        setEditingExperienceIndex(null);
+      } else {
+        setEditingExperienceIndex((current) =>
+          current !== null && current > experienceIndex
+            ? current - 1
+            : current,
+        );
+      }
+      setRemovingExperienceIndex(null);
+    }, 300);
   };
 
   const editExperience = (experienceIndex: number, entry: ExperienceEntry) => {
@@ -1189,6 +1402,7 @@ const ProfilePage = () => {
     event.preventDefault();
 
     if (!supabase || !user || !form) return;
+    if (removingExperienceIndex !== null) return;
 
     const bioWordCount = countWords(form.bio);
 
@@ -1748,6 +1962,11 @@ const ProfilePage = () => {
 
     setMessage("");
     setForm(toForm(user, profile));
+    setLocationSearch(profile?.location ?? "");
+    setSelectedLocationSuggestion(profile?.location ?? null);
+    setLocationSuggestions([]);
+    setLocationSearchStatus("idle");
+    setIsLocationMenuOpen(false);
     setCustomRoleInput(getCustomRole(profile?.role ?? ""));
     setSocials(toSocialForm(socialLinks));
     setEditingSocialType(null);
@@ -1763,6 +1982,11 @@ const ProfilePage = () => {
 
     setMessage("");
     setForm(toForm(user, profile));
+    setLocationSearch(profile?.location ?? "");
+    setSelectedLocationSuggestion(profile?.location ?? null);
+    setLocationSuggestions([]);
+    setLocationSearchStatus("idle");
+    setIsLocationMenuOpen(false);
     setCustomRoleInput(getCustomRole(profile?.role ?? ""));
     setSocials(toSocialForm(socialLinks));
     setEditingSocialType(null);
@@ -1956,7 +2180,7 @@ const ProfilePage = () => {
                     {handle}
                   </p>
                   <p className="mt-2 geis mono text-xl font-medium tracking-tight">
-                    {profile?.role || "Add your discipline"}
+                    {profile?.role || "Add your role"}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <span className="rounded-full mono tracking-tight bg-black px-3 py-1 text-xs font-semibold text-white">
@@ -2326,13 +2550,13 @@ const ProfilePage = () => {
                 data-lenis-prevent
                 onWheelCapture={(event) => event.stopPropagation()}
                 onTouchMoveCapture={(event) => event.stopPropagation()}
-                className="  pointer-events-auto fixed bottom-0 left-0 right-0 z-50 flex h-[90vh] max-h-[90dvh] min-h-0 touch-pan-y flex-col overflow-y-auto overscroll-contain rounded-t bg-white px-6 py-10 shadow-2xl sm:px-10"
+                className="  pointer-events-auto fixed bottom-0 left-0 right-0 z-50 flex h-[90vh] max-h-[90dvh] scrollbar-hide min-h-0 touch-pan-y flex-col overflow-y-auto overscroll-contain rounded-t bg-white px-6 py-10 shadow-2xl sm:px-10"
               >
                 <div className="max-w-3xl mx-auto w-full geist tracking-tight font-medium">
                   <div className="flex flex-wrap items-end justify-between gap-4">
                     <div>
                       <p className="mono text-sm font-medium tracking-tighter uppercase tracking-tight text-[#999]">
-                        your Profile
+                        update your Profile
                       </p>
                       <h2
                         id="profile-editor-title"
@@ -2343,7 +2567,7 @@ const ProfilePage = () => {
                     </div>
                     <button
                       type="submit"
-                      disabled={saving}
+                      disabled={saving || removingExperienceIndex !== null}
                       className="rounded-full bg-[#1c40f2] mono uppercase cursor-pointer px-3 py-1 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-[#9caeff]"
                     >
                       {saving ? "Saving..." : "Save changes"}
@@ -2364,73 +2588,290 @@ const ProfilePage = () => {
                         className="geist text-sm"
                       />
                     </label>
-                    <label className="text-sm mono uppercase tracking-tight text-[#999] font-medium ">
-                      Location <span>*</span>
-                      <InputArea
-                        leadingIcon={getProfileFieldIcon("location")}
-                        wrapperClassName="mt-2 flex min-w-0 items-center gap-2 rounded bg-black/5 px-2"
-                        variant="plain"
-                        required
-                        name="location"
-                        value={activeForm.location}
-                        onChange={handleChange}
-                        placeholder="City, country"
-                        className="geist text-sm placeholder:text-[#aaa]"
-                      />
-                    </label>
+                    <div className="text-sm font-medium">
+                      <label
+                        htmlFor="profile-location"
+                        className="mono uppercase tracking-tight text-[#999]"
+                      >
+                        Location <span>*</span>
+                      </label>
+                      <div
+                        ref={locationPickerRef}
+                        className="relative mt-2"
+                      >
+                        <InputArea
+                          id="profile-location"
+                          leadingIcon={getProfileFieldIcon("location")}
+                          wrapperClassName="flex min-w-0 items-center gap-2 rounded bg-black/5 px-2"
+                          variant="plain"
+                          required
+                          name="location"
+                          autoComplete="off"
+                          role="combobox"
+                          aria-expanded={
+                            isLocationMenuOpen &&
+                            locationSearch.trim().length >=
+                              MIN_LOCATION_QUERY_LENGTH
+                          }
+                          aria-controls="location-suggestions"
+                          aria-autocomplete="list"
+                          value={locationSearch}
+                          onFocus={() => {
+                            if (selectedLocationSuggestion !== locationSearch) {
+                              setIsLocationMenuOpen(true);
+                            }
+                          }}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setLocationSearch(value);
+                            setSelectedLocationSuggestion(null);
+                            setLocationSuggestions([]);
+                            setLocationSearchStatus("idle");
+                            setIsLocationMenuOpen(true);
+                            setForm((current) =>
+                              current
+                                ? { ...current, location: value }
+                                : current,
+                            );
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Escape") {
+                              setIsLocationMenuOpen(false);
+                            }
+                          }}
+                          placeholder="Type at least 3 letters to search places"
+                          className="geist text-sm placeholder:text-[#aaa]"
+                        />
+                        {isLocationMenuOpen &&
+                        locationSearch.trim().length >=
+                          MIN_LOCATION_QUERY_LENGTH ? (
+                          <div
+                            id="location-suggestions"
+                            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded border border-black/10 bg-white p-1 shadow-lg"
+                          >
+                            {locationSearchStatus === "loading" ? (
+                              <p className="px-3 py-2 text-sm text-[#999]">
+                                Searching places...
+                              </p>
+                            ) : null}
+                            {locationSearchStatus === "error" ? (
+                              <p
+                                role="status"
+                                className="px-3 py-2 text-sm text-[#666]"
+                              >
+                                Couldn&apos;t load places. Check your connection
+                                and try again.
+                              </p>
+                            ) : null}
+                            {locationSearchStatus === "idle" &&
+                            locationSuggestions.length ? (
+                              <ul>
+                                {locationSuggestions.map((suggestion) => (
+                                  <li key={suggestion}>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setLocationSearch(suggestion);
+                                        setSelectedLocationSuggestion(
+                                          suggestion,
+                                        );
+                                        setLocationSuggestions([]);
+                                        setIsLocationMenuOpen(false);
+                                        setForm((current) =>
+                                          current
+                                            ? {
+                                                ...current,
+                                                location: suggestion,
+                                              }
+                                            : current,
+                                        );
+                                      }}
+                                      className="block w-full rounded px-3 py-2 text-left text-sm text-[#666] transition hover:bg-black/5 hover:text-black focus-visible:bg-black/5 focus-visible:outline-none"
+                                    >
+                                      {suggestion}
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
+                            {locationSearchStatus === "idle" &&
+                            !locationSuggestions.length ? (
+                              <p className="px-3 py-2 text-sm text-[#999]">
+                                No matching cities or towns found.
+                              </p>
+                            ) : null}
+                            <p className="border-none border-black/5 px-3 py-2 text-[10px]  text-[#999]">
+                              Search powered by Photon. Map data ©{" "}
+                              <a
+                                href="https://www.openstreetmap.org/copyright"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline underline-offset-2"
+                              >
+                                OpenStreetMap contributors
+                              </a>
+                              .
+                            </p>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
                     <fieldset className="text-sm font-semibold">
                       <legend className="mono uppercase tracking-tight text-[#999] font-medium">
-                        Disciplines <span>*</span>
+                        What do you do? <span>*</span>
                       </legend>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {roles.map((role) => {
-                          const selectedRoles = parseRoles(activeForm.role);
-                          const checked =
-                            role === "Other"
-                              ? Boolean(getCustomRole(activeForm.role)) ||
-                                selectedRoles.includes("Other")
-                              : selectedRoles.includes(role);
 
-                          return (
-                            <button
-                              key={role}
-                              type="button"
-                              aria-pressed={checked}
-                              onClick={() => handleRoleToggle(role)}
-                              className={`rounded-full border tracking-tight px-3 py-1 text-sm  font-medium transition ${
-                                checked
-                                  ? " bg-[#1c40f2] border-none transition-colors duration-500 text-white"
-                                  : "border-none bg-black/5 transition-colors duration-500 hover:bg-black/10 text-[#999]"
-                              }`}
-                            >
-                              {role}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {Boolean(getCustomRole(activeForm.role)) ||
-                      parseRoles(activeForm.role).includes("Other") ? (
-                        <div className="mt-4">
-                          <label
-                            htmlFor="custom-discipline"
-                            className="mono text-xs font-medium uppercase tracking-tight text-[#999]"
-                          >
-                            Custom discipline
-                          </label>
-                          <InputArea
-                            id="custom-discipline"
-                            leadingIcon={getProfileFieldIcon("discipline")}
-                            wrapperClassName="mt-1 flex min-w-0 items-center gap-2 rounded bg-black/5 px-2"
-                            variant="plain"
-                            value={customRoleInput}
-                            onChange={(event) =>
-                              handleCustomRoleChange(event.target.value)
+                      <div
+                        ref={disciplinePickerRef}
+                        className="relative mt-3 space-y-3"
+                      >
+                        <InputArea
+                          id="discipline-search"
+                          leadingIcon={getProfileFieldIcon("discipline")}
+                          wrapperClassName="flex min-w-0 items-center gap-2 rounded bg-black/5 px-2"
+                          variant="plain"
+                          role="combobox"
+                          aria-expanded={isDisciplineMenuOpen}
+                          aria-controls="discipline-search-menu"
+                          aria-autocomplete="list"
+                          aria-label="Search and add a role"
+                          value={disciplineSearch}
+                          onFocus={() => setIsDisciplineMenuOpen(true)}
+                          onChange={(event) => {
+                            setDisciplineSearch(event.target.value);
+                            setIsDisciplineMenuOpen(true);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Escape") {
+                              setIsDisciplineMenuOpen(false);
                             }
-                            placeholder="Type your discipline"
-                            className="geist text-sm placeholder:text-[#aaa]"
-                          />
+                          }}
+                          placeholder="Designer or developer"
+                          className="geist text-sm placeholder:text-[#aaa]"
+                        />
+                        <div className="flex flex-wrap items-center gap-2">
+                          {parseRoles(activeForm.role)
+                            .filter(
+                              (role) =>
+                                role === "Other" ||
+                                standardRoles.has(role) ||
+                                role === getCustomRole(activeForm.role),
+                            )
+                            .map((role) => (
+                              <div
+                                key={role}
+                                className={`inline-grid overflow-hidden transition-[grid-template-rows,opacity,transform,margin] duration-300 ease-out motion-reduce:transition-none ${
+                                  enteringRole === role ||
+                                  removingRole === role
+                                    ? "grid-rows-[0fr] -translate-y-1 opacity-0"
+                                    : "grid-rows-[1fr] translate-y-0 opacity-100"
+                                }`}
+                              >
+                                <div className="min-h-0 overflow-hidden">
+                                  <button
+                                    type="button"
+                                    onClick={() => removeRoleWithAnimation(role)}
+                                    disabled={removingRole !== null}
+                                    aria-label={`Remove ${role} role`}
+                                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[#1c40f2] px-3 py-1 text-sm font-medium tracking-tight text-white transition hover:bg-black disabled:pointer-events-none"
+                                  >
+                                    {role}
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
                         </div>
-                      ) : null}
+                        {isDisciplineMenuOpen ? (
+                          <div
+                            id="discipline-search-menu"
+                            className="absolute left-0 top-full z-20 mt-1 w-full max-w-sm rounded border border-black/10 bg-white p-1 shadow-lg"
+                          >
+                            <div
+                              role="group"
+                              aria-label="Available roles"
+                              className=" max-h-40 scrollbar-hide  overflow-y-auto"
+                            >
+                              {roles
+                                .filter((role) => {
+                                  const selectedRoles = parseRoles(
+                                    activeForm.role,
+                                  );
+                                  const isSelected =
+                                    role === "Other"
+                                      ? selectedRoles.includes("Other") ||
+                                        Boolean(getCustomRole(activeForm.role))
+                                      : selectedRoles.includes(role);
+
+                                  return (
+                                    !isSelected &&
+                                    role
+                                      .toLowerCase()
+                                      .includes(
+                                        disciplineSearch.trim().toLowerCase(),
+                                      )
+                                  );
+                                })
+                                .map((role) => (
+                                  <button
+                                    key={role}
+                                    type="button"
+                                    disabled={
+                                      removingRole !== null ||
+                                      getDisciplineCount(activeForm.role) >=
+                                      MAX_DISCIPLINES
+                                    }
+                                    onClick={() => {
+                                      addRoleWithAnimation(role);
+                                      setDisciplineSearch("");
+                                      setIsDisciplineMenuOpen(true);
+                                    }}
+                                    className="block w-full rounded px-2 py-2 text-left text-sm font-medium tracking-tight text-[#999] transition hover:bg-black/5 hover:text-black focus-visible:bg-black/5 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                                  >
+                                    {role}
+                                  </button>
+                                ))}
+                              {!roles.some((role) => {
+                                const selectedRoles = parseRoles(
+                                  activeForm.role,
+                                );
+                                const isSelected =
+                                  role === "Other"
+                                    ? selectedRoles.includes("Other") ||
+                                      Boolean(getCustomRole(activeForm.role))
+                                    : selectedRoles.includes(role);
+
+                                return (
+                                  !isSelected &&
+                                  role
+                                    .toLowerCase()
+                                    .includes(
+                                      disciplineSearch.trim().toLowerCase(),
+                                    )
+                                );
+                              }) ? (
+                                <p className="px-3 py-2 text-sm font-medium text-[#999]">
+                                  No matching roles.
+                                </p>
+                              ) : null}
+                            {getDisciplineCount(activeForm.role) >=
+                            MAX_DISCIPLINES ? (
+                              <p className="px-2 py-2 text-xs font-medium text-[#999]">
+                                You&apos;ve reached the {MAX_DISCIPLINES}-role limit.
+                                Remove a role to add another.
+                              </p>
+                            ) : null}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setIsDisciplineMenuOpen(false)}
+                              className="mt-3 px-3 text-xs font-semibold uppercase tracking-tight text-[#666] transition hover:text-black"
+                            >
+                              Done
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+
                     </fieldset>
                   </div>
 
@@ -2568,7 +3009,7 @@ const ProfilePage = () => {
                   <section className="mt-8 pt-5">
                     <div className="flex items-center justify-between gap-3">
                       <p className="mono text-sm font-medium uppercase tracking-tight text-[#999]">
-                        experience
+                        work experience
                       </p>
                     </div>
 
@@ -2650,12 +3091,11 @@ const ProfilePage = () => {
                       className="mt-3 w-full resize-none rounded bg-black/5 p-3 text-sm normal-case tracking-tight text-black outline-none transition placeholder:text-[#aaa] "
                     />
 
-                   
-
                     <div className="mt-2 w-full flex justify-between items-center">
                       <button
                         type="button"
                         onClick={addExperience}
+                        disabled={removingExperienceIndex !== null}
                         className="rounded-full border mono border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {editingExperienceIndex === null
@@ -2688,58 +3128,73 @@ const ProfilePage = () => {
                           {visibleExperienceEntries.map(({ entry, index }) => (
                             <li
                               key={`${entry.company}-${entry.role}-${index}`}
-                              className={`rounded bg-black/5 p-3 transition hover:bg-black/[0.08] ${
+                              className={`grid overflow-hidden rounded bg-black/5 transition-[grid-template-rows,opacity,transform,margin] duration-300 ease-out motion-reduce:transition-none ${
+                                removingExperienceIndex === index ||
+                                enteringExperienceIndex === index
+                                  ? "grid-rows-[0fr] -translate-y-1 opacity-0"
+                                  : "grid-rows-[1fr] translate-y-0 opacity-100"
+                              } ${
                                 editingExperienceIndex === index
                                   ? "ring-1 ring-[#1c40f2]/40"
                                   : ""
+                              } ${
+                                removingExperienceIndex === null
+                                  ? "hover:bg-black/[0.08]"
+                                  : "pointer-events-none"
                               }`}
                             >
-                              <div className="flex items-start justify-between gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() => editExperience(index, entry)}
-                                  aria-label={`Edit ${entry.role || entry.company || "experience"}`}
-                                  className="min-w-0 flex-1 cursor-pointer text-left text-sm tracking-tight text-[#444] outline-none focus-visible:ring-2 focus-visible:ring-[#1c40f2]"
-                                >
-                                  {(entry.role || entry.company) && (
-                                    <p className="font-medium tracking-tight capitalize text-[#999]">
-                                      {entry.role}
-                                      {entry.role && entry.company ? " • " : ""}
-                                      {entry.company}
-                                    </p>
-                                  )}
-                                  {(entry.startDate || entry.endDate) && (
-                                    <p className="mt-1 text-[#666]">
-                                      {entry.startDate}
-                                      {entry.startDate && entry.endDate
-                                        ? " – "
-                                        : ""}
-                                      {entry.endDate || " - Present"}
-                                    </p>
-                                  )}
-                                  {entry.description ? (
-                                    <p className="mt-2 whitespace-pre-line leading-4  text-justify text-xs text-[#999]">
-                                      {entry.description}
-                                    </p>
-                                  ) : null}
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => removeExperience(index)}
-                                  aria-label={`Remove ${entry.role || entry.company || "experience"}`}
-                                  className="shrink-0 text-[10px] font-semibold uppercase tracking-tight text-[#666] transition hover:text-black"
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    height="18px"
-                                    viewBox="0 -960 960 960"
-                                    width="18px"
-                                    fill="#999"
+                              <div className="min-h-0 overflow-hidden p-3">
+                                <div className="flex items-start justify-between gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => editExperience(index, entry)}
+                                    disabled={removingExperienceIndex !== null}
+                                    aria-label={`Edit ${entry.role || entry.company || "experience"}`}
+                                    className="min-w-0 flex-1 cursor-pointer text-left text-sm tracking-tight text-[#444] outline-none focus-visible:ring-2 focus-visible:ring-[#1c40f2]"
                                   >
-                                    <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
-                                  </svg>
-                                </button>
+                                    {(entry.role || entry.company) && (
+                                      <p className="font-medium tracking-tight capitalize text-[#999]">
+                                        {entry.role}
+                                        {entry.role && entry.company
+                                          ? " • "
+                                          : ""}
+                                        {entry.company}
+                                      </p>
+                                    )}
+                                    {(entry.startDate || entry.endDate) && (
+                                      <p className="mt-1 text-[#666]">
+                                        {entry.startDate}
+                                        {entry.startDate && entry.endDate
+                                          ? " – "
+                                          : ""}
+                                        {entry.endDate || " - Present"}
+                                      </p>
+                                    )}
+                                    {entry.description ? (
+                                      <p className="mt-2 whitespace-pre-line leading-4 text-justify text-xs text-[#999]">
+                                        {entry.description}
+                                      </p>
+                                    ) : null}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => removeExperience(index)}
+                                    disabled={removingExperienceIndex !== null}
+                                    aria-label={`Remove ${entry.role || entry.company || "experience"}`}
+                                    className="shrink-0 text-[10px] font-semibold uppercase tracking-tight text-[#666] transition hover:text-black"
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      height="18px"
+                                      viewBox="0 -960 960 960"
+                                      width="18px"
+                                      fill="#999"
+                                    >
+                                      <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
+                                    </svg>
+                                  </button>
+                                </div>
                               </div>
                             </li>
                           ))}
