@@ -150,7 +150,7 @@ const ROLE_SEPARATOR = " | ";
 const MAX_DISCIPLINES = 6;
 const MIN_BIO_WORDS = 20;
 const MAX_BIO_WORDS = 350;
-const MAX_EXPERIENCE_DESCRIPTION_WORDS = 80;
+const MAX_EXPERIENCE_DESCRIPTION_WORDS = 50;
 const EMPTY_CUSTOM_PROFILE_SECTION: CustomProfileSection = {
   title: "",
   content: "",

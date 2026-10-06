@@ -390,8 +390,8 @@ const ProfileModal = ({
       </svg>
     ),
   };
-  const visibleSocialLinks = socialLinks.filter(
-    (link) => isSafeExternalUrl(link.url),
+  const visibleSocialLinks = socialLinks.filter((link) =>
+    isSafeExternalUrl(link.url),
   );
 
   useEffect(() => {
@@ -533,46 +533,59 @@ const ProfileModal = ({
                 Work Experiences
               </span>
 
-              {experienceEntries.map((experienceEntry, index) => {
-                const hasDetail =
-                  experienceEntry.role ||
-                  experienceEntry.company ||
-                  experienceEntry.startDate ||
-                  experienceEntry.endDate ||
-                  experienceEntry.description;
+              <div className="flex flex-col gap-6">
+                {experienceEntries.map((experienceEntry, index) => {
+                  const hasDetail =
+                    experienceEntry.role ||
+                    experienceEntry.company ||
+                    experienceEntry.startDate ||
+                    experienceEntry.endDate ||
+                    experienceEntry.description;
 
-                if (!hasDetail) return null;
+                  if (!hasDetail) return null;
 
-                const dateRange = formatExperienceDateRange(experienceEntry);
+                  const dateRange = formatExperienceDateRange(experienceEntry);
 
-                return (
-                  <div
-                    key={`${experienceEntry.company}-${experienceEntry.role}-${index}`}
-                    className=" "
-                  >
-                    {dateRange ? (
-                      <span className=" text-xs  font-semibold  uppercase tracking-tight text-black/45">
-                        {dateRange}{" "}
-                      </span>
-                    ) : (
-                      <span className=" text-sm font-medium tracking-tight text-black/45">
-                        —
-                      </span>
-                    )}
-                    <div className="flex flex-col gap-2">
-                      <span className="text-sm font-medium leading-tight capitalize tracking-tight text-black">
-                        {experienceEntry.company}
-                      </span>
+                  return (
+                    <div
+                      key={`${experienceEntry.company}-${experienceEntry.role}-${index}`}
+                      className=" flex flex-col gap-1"
+                    >
+                      <div className="flex flex-col ">
+                        <span className="text-sm font-medium leading-tight capitalize tracking-tight text-black">
+                          {experienceEntry.company}
+                        </span>
+                        {dateRange ? (
+                          <span className=" text-xs  font-medium uppercase tracking-tight text-[#999]">
+                            {dateRange}{" "}
+                          </span>
+                        ) : (
+                          <span className=" text-sm font-medium tracking-tight text-black/45">
+                            —
+                          </span>
+                        )}
 
-                      {experienceEntry.description ? (
-                        <p className="mt-2 geist font-medium text-justify whitespace-pre-line text-sm leading-4 tracking-tight  text-[#000]">
-                          {experienceEntry.description}
-                        </p>
-                      ) : null}
+                        {experienceEntry.description ? (
+                          <p className="mt-2 geist font-medium text-justify whitespace-pre-line text-sm leading-4 tracking-tight  text-[#000]">
+                            {experienceEntry.description}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {awards ? (
+            <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+              <span className="text-sm font-medium tracking-tight text-[#999]">
+                Honours
+              </span>
+              <span className="whitespace-pre-line text-sm font-medium leading-4 tracking-tight">
+                {awards}
+              </span>
             </div>
           ) : null}
           {getActiveCustomProfileSections(customSections).map(
@@ -581,7 +594,7 @@ const ProfileModal = ({
                 key={`${section.title}-${index}`}
                 className="grid gap-3  border-black/10 pt-5 sm:grid-cols-[140px_minmax(0,1fr)]"
               >
-                <span className="text-sm font-medium tracking-tight text-[#999]">
+                <span className="text-sm capitalize font-medium tracking-tight text-[#999]">
                   {section.title}
                 </span>
                 <span className="whitespace-pre-line text-justify text-sm font-medium leading-4 tracking-tight">
@@ -619,17 +632,6 @@ const ProfileModal = ({
               </div>
             )}
           </div>
-
-          {awards ? (
-            <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-              <span className="text-sm font-medium tracking-tight text-[#999]">
-                Honours
-              </span>
-              <span className="whitespace-pre-line text-sm font-medium leading-4 tracking-tight">
-                {awards}
-              </span>
-            </div>
-          ) : null}
 
           <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
             <span className="text-sm font-medium tracking-tight text-[#999]">
