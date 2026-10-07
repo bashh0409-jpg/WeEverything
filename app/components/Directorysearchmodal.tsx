@@ -1,7 +1,7 @@
 "use client";
 
 import { gsap } from "gsap";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import posthog from "posthog-js";
 
 export interface DirectoryProfile {
@@ -103,20 +103,20 @@ export default function DirectorySearchModal<
 
       gsap.fromTo(
         dialog,
-        { autoAlpha: 0 },
-        { autoAlpha: 1, duration: 0.32, ease: "power2.out" },
+        { opacity: 0 },
+        { opacity: 1, duration: 0.32, ease: "power2.out" },
       );
       gsap.fromTo(
         content,
-        { y: 18, autoAlpha: 0 },
-        { y: 0, autoAlpha: 1, duration: 0.48, ease: "power3.out" },
+        { y: 18, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.48, ease: "power3.out" },
       );
     }, dialog);
 
     return () => context.revert();
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isOpen) return;
 
     inputRef.current?.focus();
