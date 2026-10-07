@@ -151,6 +151,22 @@ const formatExperienceDateRange = (entry: ExperienceEntry) => {
   return endDate;
 };
 
+const getExperienceRecency = (entry: ExperienceEntry) => {
+  const startDate = entry.startDate.trim();
+  const endDate = entry.endDate.trim();
+
+  if (!startDate && !endDate) return null;
+  if (!endDate || /^(present|current)$/i.test(endDate)) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const endTimestamp = Date.parse(endDate);
+  if (Number.isFinite(endTimestamp)) return endTimestamp;
+
+  const startTimestamp = Date.parse(startDate);
+  return Number.isFinite(startTimestamp) ? startTimestamp : null;
+};
+
 const formatExperienceTitle = (entry: ExperienceEntry) => {
   const role = entry.role.trim();
   const company = entry.company.trim();
@@ -190,7 +206,17 @@ const ProfileModal = ({
     .split(/[|,]/)
     .map((value) => value.trim())
     .filter(Boolean);
-  const experienceEntries = parseExperienceEntries(experience);
+  const experienceEntries = parseExperienceEntries(experience).sort(
+    (left, right) => {
+      const leftRecency = getExperienceRecency(left);
+      const rightRecency = getExperienceRecency(right);
+
+      if (leftRecency === rightRecency) return 0;
+      if (leftRecency === null) return 1;
+      if (rightRecency === null) return -1;
+      return rightRecency - leftRecency;
+    },
+  );
   const hasAwards = parseProfileAwards(awards).length > 0;
 
   const [isClosing, setIsClosing] = useState(false);
