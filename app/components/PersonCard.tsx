@@ -113,7 +113,7 @@ const PersonCard = ({
               <video
                 ref={videoRef}
                 src={hoverMedia.url}
-                muted
+               
                 loop
                 playsInline
                 aria-label={`${name} preview`}

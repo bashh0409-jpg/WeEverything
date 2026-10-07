@@ -2,7 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
+import gsap from "gsap";
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -151,6 +153,8 @@ const acceptedMediaTypes = [
   "image/webp",
   "image/avif",
   "video/mp4",
+  "video/quicktime",
+  "video/mov",
   "video/webm",
 ];
 
@@ -762,6 +766,86 @@ const ProfileVideo = ({
   );
 };
 
+const ProfileMessage = ({
+  message,
+  onDismiss,
+}: {
+  message: string;
+  onDismiss: () => void;
+}) => {
+  const messageRef = useRef<HTMLDivElement>(null);
+  const [isExiting, setIsExiting] = useState(false);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setIsExiting(true), 5000);
+    return () => window.clearTimeout(timeoutId);
+  }, [message]);
+
+  useEffect(() => {
+    const element = messageRef.current;
+    if (!element) return;
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const animation = isExiting
+      ? gsap.to(element, {
+          autoAlpha: 0,
+          y: -8,
+          duration: reduceMotion ? 0 : 0.2,
+          ease: "power2.in",
+          onComplete: onDismiss,
+        })
+      : gsap.fromTo(
+          element,
+          { autoAlpha: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : -8 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: reduceMotion ? 0 : 0.32,
+            ease: "power2.out",
+          },
+        );
+
+    return () => {
+      animation.kill();
+    };
+  }, [isExiting, onDismiss]);
+
+  return (
+    <div
+      ref={messageRef}
+      role="status"
+      aria-live="polite"
+      aria-hidden={isExiting}
+      className="mt-6 flex items-start justify-between gap-3 rounded-md border border-[#1c40f2]/20 bg-[#1c40f2]/5 px-3 py-1 text-sm font-medium tracking-tight text-[#1734a9] geist"
+    >
+      <p>{message}</p>
+      <button
+        type="button"
+        aria-label="Dismiss message"
+        onClick={onDismiss}
+        disabled={isExiting}
+        className="shrink-0 cursor-pointer rounded p-1 text-[#1734a9] transition hover:bg-[#1c40f2]/10 disabled:cursor-default"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          aria-hidden="true"
+        >
+          <path d="m18 6-12 12M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
+};
+
 const ProfilePage = () => {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -826,6 +910,7 @@ const ProfilePage = () => {
     string | null
   >(null);
   const [sponsored, setSponsored] = useState(false);
+  const [sponsoredUntil, setSponsoredUntil] = useState<string | null>(null);
   const [profileViews, setProfileViews] = useState(0);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -865,6 +950,7 @@ const ProfilePage = () => {
       ? ""
       : "Supabase is not configured yet. Add your public environment variables first.",
   );
+  const dismissProfileMessage = useCallback(() => setMessage(""), []);
 
   useEffect(() => {
     if (showBioStyleInstruction) {
@@ -983,6 +1069,7 @@ const ProfilePage = () => {
         setReadInquiryIds([]);
         setSocials(emptySocials());
         setSponsored(false);
+        setSponsoredUntil(null);
         setProfileViews(0);
         setLoading(false);
         return;
@@ -1075,8 +1162,15 @@ const ProfilePage = () => {
       setMediaUrls(signedMediaUrls);
       setSocialLinks(loadedLinks);
       setSocials(toSocialForm(loadedLinks));
-      setSponsored(
-        isActiveSponsorship(paymentResult.data as SponsorshipPayment | null),
+      const sponsorshipPayment = paymentResult.data as SponsorshipPayment | null;
+      setSponsored(isActiveSponsorship(sponsorshipPayment));
+      const paidAt = sponsorshipPayment?.paid_at
+        ? Date.parse(sponsorshipPayment.paid_at)
+        : Number.NaN;
+      setSponsoredUntil(
+        Number.isFinite(paidAt)
+          ? new Date(paidAt + SPONSORSHIP_TTL_MS).toISOString()
+          : null,
       );
       setProfileViews(viewsResult.count ?? 0);
       const loadedInquiries = (inquiriesResult.data ?? []) as ProfileInquiry[];
@@ -1925,8 +2019,10 @@ const ProfilePage = () => {
 
     setGalleryMessage("");
 
-    if (!acceptedMediaTypes.includes(file.type)) {
-      setGalleryMessage("Use a JPG, PNG, WebP, AVIF, MP4, or WebM file.");
+    const isMovFile = file.name.toLowerCase().endsWith(".mov");
+
+    if (!acceptedMediaTypes.includes(file.type) && !isMovFile) {
+      setGalleryMessage("Use a JPG, PNG, WebP, AVIF, MP4, MOV, or WebM file.");
       return;
     }
 
@@ -1935,7 +2031,8 @@ const ProfilePage = () => {
       return;
     }
 
-    const mediaType = file.type.startsWith("video/") ? "video" : "image";
+    const mediaType =
+      file.type.startsWith("video/") || isMovFile ? "video" : "image";
 
     if (mediaType === "video") {
       try {
@@ -1981,7 +2078,11 @@ const ProfilePage = () => {
 
     const { error: uploadError } = await supabase.storage
       .from(MEDIA_BUCKET)
-      .upload(storagePath, file, { cacheControl: "3600", upsert: false });
+      .upload(storagePath, file, {
+        cacheControl: "3600",
+        contentType: isMovFile ? "video/quicktime" : file.type,
+        upsert: false,
+      });
 
     if (uploadError) {
       setUploadingSlot(null);
@@ -2177,19 +2278,47 @@ const ProfilePage = () => {
   }
 
   const activeForm = form ?? toForm(user, profile);
-  const profileName = profile?.name || getFallbackName(user);
+  const profileName = activeForm.name.trim() || getFallbackName(user);
   const handle = getHandle(user);
   const avatarUrl = activeForm.avatar_url;
+  const profileRoles = activeForm.role
+    .split(/[|,]/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const formattedBio = activeForm.bio
+    ? activeForm.bio.replace(
+        /^(\s*)(\S)/,
+        (_, whitespace, firstCharacter) =>
+          `${whitespace}${firstCharacter.toUpperCase()}`,
+      )
+    : "No bio available.";
   const visibleExperienceEntries = parseExperienceEntries(activeForm.experience)
     .map((entry, index) => ({ entry, index }))
-    .filter(
-      ({ entry }) =>
-        entry.role ||
-        entry.company ||
-        entry.startDate ||
-        entry.endDate ||
-        entry.description,
-    );
+    .filter(({ entry }) => hasExperienceEntryData(entry))
+    .sort(({ entry: left }, { entry: right }) => {
+      const getRecency = (entry: ExperienceEntry) => {
+        const startDate = entry.startDate.trim();
+        const endDate = entry.endDate.trim();
+
+        if (!startDate && !endDate) return null;
+        if (!endDate || /^(present|current)$/i.test(endDate)) {
+          return Number.POSITIVE_INFINITY;
+        }
+
+        const endTimestamp = Date.parse(endDate);
+        if (Number.isFinite(endTimestamp)) return endTimestamp;
+
+        const startTimestamp = Date.parse(startDate);
+        return Number.isFinite(startTimestamp) ? startTimestamp : null;
+      };
+      const leftRecency = getRecency(left);
+      const rightRecency = getRecency(right);
+
+      if (leftRecency === rightRecency) return 0;
+      if (leftRecency === null) return 1;
+      if (rightRecency === null) return -1;
+      return rightRecency - leftRecency;
+    });
   const visibleSocials = socialLinks.filter(
     (link) => link.url && isSafeExternalUrl(link.url),
   );
@@ -2323,7 +2452,7 @@ const ProfilePage = () => {
     <div>
       <Navbar />
 
-      <main className="min-h-screen px-6 pb-28 pt-32 text-black sm:px-10">
+      <main className="min-h-screen geist px-6 pb-28 pt-32 text-black sm:px-10">
         <section className="mx-auto w-full max-w-6xl border- mt-10 border-black pt-5">
           <div className="flex flex-wrap items-center justify-between gap-5">
             <div>
@@ -2394,9 +2523,11 @@ const ProfilePage = () => {
           </div>
 
           {message ? (
-            <p className="mt-6 border geist uppercas tracking-tight rounded-md font-medium border-[#1c40f2]/20 bg-[#1c40f2]/5 px-3 py-1 text-sm text-[#1734a9]">
-              {message}
-            </p>
+            <ProfileMessage
+              key={message}
+              message={message}
+              onDismiss={dismissProfileMessage}
+            />
           ) : null}
 
           <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-20">
@@ -2502,156 +2633,44 @@ const ProfilePage = () => {
                     </svg>
                     {handle}
                   </p>
-                  <p className="mt-2 geis mono text-xl font-medium tracking-tight">
-                    {profile?.role || "Add your role"}
+
+                  <p className="mt-1 mono text-xs font-medium uppercase tracking-tight text-[#999]">
+                    {activeForm.location.trim() || "Unknown location"}
                   </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="rounded-full mono tracking-tight bg-black px-3 py-1 text-xs font-semibold text-white">
-                      {profile?.is_published ? "Live profile" : "Draft profile"}
-                    </span>
-                    {profile?.location ? (
-                      <span className="rounded-full mono tracking-tight border border-black/15 px-3 py-1 text-xs font-semibold text-[#666]">
-                        {profile.location}
-                      </span>
-                    ) : null}
-                  </div>
+                  <p
+                    className={`mt-1 mon text-xs font-semibold uppercase tracking-tight ${
+                      profile?.is_published ? "text-green-500" : "text-amber-500"
+                    }`}
+                  >
+                    {profile?.is_published
+                      ? "Public"
+                      : "Private (Not Published)"}
+                  </p>
                 </div>
               </div>{" "}
-              <div className="grid mt-10 gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-                <div className="flex justify-between ">
-                  <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                    About me
-                  </p>
-                </div>
-                <div>
-                  <p className=" whitespace-pre-line text-justify text-sm geist leading-4 tracking-tight font-medium text-[#444]">
-                    {activeForm.bio ||
-                      "Add a short introduction so the community knows what you make and how you work."}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={openBioEditor}
-                    aria-label="Edit bio"
-                    title="Edit bio"
-                    className="flex h-5 justify-end mt-1 w-full cursor-pointer items-center justify-center rounded-full text-black transition "
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              {profile?.awards ? (
-                <section className="grid geist tracking-tight gap-3 sm:grid-cols-[140px_minmax(0,1fr)] mt-10">
-                  <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                    Honors
-                  </p>
-                  <ProfileAwardsList value={profile.awards} />
-                </section>
-              ) : null}
-              {parseExperienceEntries(profile?.experience).length ? (
-                <section className="mt-14 max-w-2xl border-t border-black/10 pt-5">
-                  <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                    Work Experiences
-                  </p>
-
-                  <div className="mt-5 space-y-8">
-                    {parseExperienceEntries(profile?.experience).map(
-                      (experienceEntry, index) => {
-                        const hasDetail =
-                          experienceEntry.role ||
-                          experienceEntry.company ||
-                          experienceEntry.startDate ||
-                          experienceEntry.endDate ||
-                          experienceEntry.description;
-
-                        if (!hasDetail) return null;
-
-                        const dateRange = (() => {
-                          const startDate = experienceEntry.startDate.trim();
-                          const endDate = experienceEntry.endDate.trim();
-
-                          if (!startDate && !endDate) return "";
-                          if (startDate && endDate)
-                            return `${startDate} – ${endDate}`;
-                          if (startDate) return `${startDate} – Present`;
-                          return endDate;
-                        })();
-
-                        return (
-                          <div
-                            key={`${experienceEntry.company}-${experienceEntry.role}-${index}`}
-                            className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]"
-                          >
-                            <div className="mon geist text-sm font-medium tracking-tight text-black/45">
-                              {dateRange || "—"}
-                            </div>
-
-                            <div className="min-w-0">
-                              <p className="geist text-lg capitalize font-medium leading-tight tracking-tight text-black sm:text-lg">
-                                {(() => {
-                                  const role = experienceEntry.role.trim();
-                                  const company =
-                                    experienceEntry.company.trim();
-
-                                  if (role && company) {
-                                    return `${company} — ${role}`;
-                                  }
-
-                                  return role || company;
-                                })()}
-                              </p>
-
-                              {experienceEntry.description ? (
-                                <p className="mt-2 geist font-medium whitespace-pre-line text-sm leading-4 text-justify tracking-tight text-[#999]">
-                                  {experienceEntry.description}
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
-                        );
-                      },
+              <section className="mt-10 grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                <p className="text-sm font-medium tracking-tight text-[#999]">
+                  What I do
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <p className="flex flex-wrap gap-1 text-sm font-medium capitalize tracking-tight">
+                    {(profileRoles.length ? profileRoles : ["Developer"]).map(
+                      (role, index, rolesToDisplay) => (
+                        <span key={`${role}-${index}`}>
+                          {role}
+                          {index < rolesToDisplay.length - 1 ? "," : ""}
+                        </span>
+                      ),
                     )}
-                  </div>
-                </section>
-              ) : null}
-              {getActiveCustomProfileSections(profile?.custom_sections).map(
-                (section, index) => (
-                  <section
-                    key={`${section.title}-${index}`}
-                    className="grid gap-3 geist sm:grid-cols-[140px_minmax(0,1fr)] mt-10"
-                  >
-                    <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                      {section.title}
-                    </p>
-                    <div>
-                      <CustomProfileSectionContent content={section.content} />
-                      {section.expiresOn ? (
-                        <p className="mt-2 geist geist text-xs font-medium uppercase tracking-tight text-[#999]">
-                          {section.expiresOn}
-                        </p>
-                      ) : null}
-                    </div>
-                  </section>
-                ),
-              )}
-              {visibleSocials.length ? (
-                <section className="mt-14 border-t border-black/10 pt-5">
-                  <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                    Let&apos;s connect
                   </p>
-                  <div className="mt-4 flex flex-wrap gap-x-1 gap-y-3">
+                </div>
+              </section>
+              {visibleSocials.length ? (
+                <section className="mt-10 grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                  <p className="text-sm font-medium tracking-tight text-[#999]">
+                    Let&apos;s Connect
+                  </p>
+                  <div className="flex flex-wrap gap-2">
                     {visibleSocials.map((link) => {
                       const option = socialOptions.find(
                         (entry) => entry.type === link.type,
@@ -2660,7 +2679,7 @@ const ProfilePage = () => {
                       return (
                         <div
                           key={link.id}
-                          className="group relative flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-black/[0.04] text-black transition hover:border-black hover:bg-black hover:text-white"
+                          className="group relative flex h-7 w- mr-3.5 items-center justify-center text-black"
                         >
                           <a
                             href={link.url}
@@ -2668,7 +2687,7 @@ const ProfilePage = () => {
                             rel="noreferrer"
                             title={option?.label ?? link.type}
                             aria-label={option?.label ?? link.type}
-                            className="flex h-full w-full items-center justify-center rounded-full"
+                            className="flex h-full w-full items-center justify-center rounded-full text-base transition"
                           >
                             {getSocialIcon(link.type)}
                           </a>
@@ -2724,10 +2743,113 @@ const ProfilePage = () => {
                   </div>
                 </section>
               ) : null}
+              <div className="grid mt-10 gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                <div className="flex justify-between ">
+                  <p className="text-sm font-medium tracking-tight text-[#999]">
+                    About Me
+                  </p>
+                </div>
+                <div>
+                  <p className="whitespace-pre-line text-justify text-sm geist leading-4 tracking-tight font-medium text-[#444]">
+                    {formattedBio}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openBioEditor}
+                    aria-label="Edit bio"
+                    title="Edit bio"
+                    className="flex h-5 justify-end mt-1 w-full cursor-pointer items-center justify-center rounded-full text-black transition "
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              {visibleExperienceEntries.length ? (
+                <section className="mt-10 grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                  <p className="text-sm font-medium tracking-tight text-[#999]">
+                    Work Experiences
+                  </p>
+
+                  <div className="flex flex-col gap-6">
+                    {visibleExperienceEntries.map(
+                      ({ entry: experienceEntry, index }) => {
+                        const dateRange = (() => {
+                          const startDate = experienceEntry.startDate.trim();
+                          const endDate = experienceEntry.endDate.trim();
+
+                          if (!startDate && !endDate) return "";
+                          if (startDate && endDate)
+                            return `${startDate} – ${endDate}`;
+                          if (startDate) return `${startDate} – Present`;
+                          return endDate;
+                        })();
+
+                        return (
+                          <div
+                            key={`${experienceEntry.company}-${experienceEntry.role}-${index}`}
+                            className="flex flex-col gap-1"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium leading-tight capitalize tracking-tight text-black">
+                                {experienceEntry.company ||
+                                  experienceEntry.role}
+                              </p>
+                              {dateRange ? (
+                                <p className="mt-1 text-xs font-semibold uppercase tracking-tight text-[#999]">
+                                  {dateRange}
+                                </p>
+                              ) : null}
+                              {experienceEntry.description ? (
+                                <p className="mt-2 geist font-medium whitespace-pre-line text-sm leading-4 text-justify tracking-tight text-black">
+                                  {experienceEntry.description}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      },
+                    )}
+                  </div>
+                </section>
+              ) : null}
+              {parseProfileAwards(activeForm.awards).length ? (
+                <section className="mt-10 grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                  <p className="text-sm font-medium tracking-tight text-[#999]">
+                    Honours
+                  </p>
+                  <ProfileAwardsList value={activeForm.awards} />
+                </section>
+              ) : null}
+              {getActiveCustomProfileSections(activeForm.custom_sections).map(
+                (section, index) => (
+                  <section
+                    key={`${section.title}-${index}`}
+                    className="grid gap-3 geist sm:grid-cols-[140px_minmax(0,1fr)] mt-10"
+                  >
+                    <p className="text-sm font-medium capitalize tracking-tight text-[#999]">
+                      {section.title}
+                    </p>
+                    <CustomProfileSectionContent content={section.content} />
+                  </section>
+                ),
+              )}
               {media.length ? (
-                <section className="mt-14 border-t border-black/10 pt-5">
-                  <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                    Profile media
+                <section className="grid gap-3 geist sm:grid-cols-[140px_minmax(0,1fr)] mt-10">
+                  <p className="text-sm font-medium tracking-tight text-[#999]">
+                    Gallery
                   </p>
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
                     {media.map((item) => {
@@ -2755,48 +2877,58 @@ const ProfilePage = () => {
               ) : null}
             </div>
 
-            <aside className="border-t border-black pt-5 h-fit lg:border-t-0 lg:border-l lg:pl-8">
-              <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
+            <aside className="h-fit border-t border-[#ccc] pt-5 lg:border-l-2 lg:border-t-0 lg:pl-8">
+              <p className="geist text-sm font-medium  tracking-tight text-black">
                 Profile status
               </p>
-              <p className="mt-4 text-lg mono font-medium tracking-tighter text-[#1c40f2]">
-                {profile?.is_published
-                  ? "Visible to everyone"
-                  : "Only visible to you"}
-              </p>
-              {sponsored ? (
-                <span className="mt-3 mono inline-flex rounded-full bg-[#1c40f2] px-3 py-1 text-xs font-semibold uppercase tracking-tight text-white">
-                  Sponsored profile
-                </span>
-              ) : null}
-              <p className="mt-4 text-xs mono uppercase font-medium text-[#666]">
-                <span className="geist">{profileViews.toLocaleString()}</span>{" "}
-                profile views
-              </p>
-              <p className="mt-2 text-[#1734a9] geist text-sm leading-tight tracking-tight font-medium text-[#666]">
-                {profile?.is_published
-                  ? "Your profile is ready to appear in the directory."
-                  : "Finish your details, then switch on public visibility when you are ready."}
+              <p
+                className={` text-xs uppercase mt-1 leading-4 mb-4  font-medium tracking-tight ${
+                  profile?.is_published ? "text-green-500" : "text-amber-500"
+                }`}
+              >
+                {profile?.is_published ? "Public" : " Private (not published)"}
               </p>
 
-              <div className="mt-8 border-t border-black/10 pt-5">
-                <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
-                  Signed in as
+              {sponsored ? (
+                <span className="flex flex-col gap-1">
+                  <p className="geist text-sm font-medium tracking-tight text-black">
+                    Sponsored
+                  </p>
+                  <p className="geist capitalize text-sm font-medium tracking-tight text-[#999]">
+                    Expires on:{" "}
+                    {sponsoredUntil
+                      ? new Date(sponsoredUntil).toLocaleDateString()
+                      : "Unknown"}
+                  </p>
+                </span>
+              ) : null}
+
+              <span className="flex mt-4 flex-col gap-1">
+                <p className="text-sm  font-medium tracking-tight text-black">
+                  Total views
                 </p>
-                <div>
-                  <p className="mono hidden text-xs mt-1 font-medium uppercase tracking-tight text-[#1c40f2]">
-                    Name:{" "}
-                    {user.user_metadata.full_name || user.user_metadata.name}
+                <p className="geist text-sm font-medium tracking-tight text-[#999]">
+                  {profileViews.toLocaleString()}
+                </p>
+              </span>
+
+              <div className="mt-8 border-t border-black/10 pt-5">
+                <span className="flex flex-col gap-1">
+                  <p className="text-sm  font-medium tracking-tight text-black">
+                    Signed in as:
                   </p>
-                  <p className="mono text-[#1c40f2] text-xs font-medium uppercase tracking-tight ">
-                    Email: {user.email}
+                  <p className="geist text-sm font-medium tracking-tight text-[#999]">
+                    {user.email}
                   </p>
-                </div>
-                <p className="mono mt-4 text-xs font-medium uppercase tracking-tight text-[#999]">
+                </span>
+
+                <p className="text-sm mt-4  font-medium tracking-tight text-black">
                   Active Device
                 </p>
-                <div className="mt-2 flex rounded text-[#1c40f2] border border-[#1c40f2]/20 bg-[#1c40f2]/5 items-center gap-2 bg-[#1c40f2]/5 p-1">
-                  <div className="flex h-5 w-5 items-center justify-center">
+
+                <p className="geist text-sm font-medium tracking-tight text-[#999]">
+                  <span className="flex gap-2 mt-1 capitalize items-center">
+                    {" "}
                     {deviceType === "Mobile phone" ? (
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -2827,22 +2959,15 @@ const ProfilePage = () => {
                           d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                         />
                       </svg>
-                    )}
-                  </div>
-                  <div>
-                    <p className="mono text-[#1c40f2] text-xs font-medium uppercase tracking-tight ">
-                      {browserDetails || user.user_metadata.device || "Unknown"}
-                    </p>
-                    <p className="mono hidden text-[#1c40f2] text-xs font-medium uppercase tracking-tight ">
-                      {thisDeviceLocation}
-                    </p>
-                  </div>
-                </div>
+                    )}{" "}
+                    {browserDetails || user.user_metadata.device || "Unknown"}
+                  </span>
+                </p>
               </div>
 
               <div className="mt-8 border-t border-red-200 pt-5">
-                <p className="mono text-xs font-medium uppercase tracking-tight text-red-500">
-                  Danger zone
+                <p className="text-sm capitalize font-medium tracking-tight text-[#999]">
+                  Delete account
                 </p>
                 <button
                   type="button"
@@ -3761,7 +3886,9 @@ const ProfilePage = () => {
                             >
                               <input
                                 type="file"
-                                accept={acceptedMediaTypes.join(",")}
+                                accept={[...acceptedMediaTypes, ".mov"].join(
+                                  ",",
+                                )}
                                 onChange={(event) => {
                                   void handleMediaUpload(position, event);
                                 }}

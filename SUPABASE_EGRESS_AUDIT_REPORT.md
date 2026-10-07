@@ -197,6 +197,7 @@ const acceptedMediaTypes = [
   "image/avif",
   "video/mp4",
   "video/webm",
+  "video/mov",
 ];
 ```
 
@@ -214,7 +215,7 @@ This means the system allows up to 15 MB per asset, which is large enough to cau
 ### File types in use
 
 - images: JPG, PNG, WebP, AVIF
-- video: MP4, WebM
+- video: MP4, WebM, MOV
 
 This is a high-cost combination because browser gallery pages can include both still images and videos. Video, especially, is much more expensive than still images.
 
@@ -337,7 +338,7 @@ Video is a major cost multiplier.
 Action:
 
 - use a static poster image instead of autoplay video preview
-- or generate a very small MP4/WebM preview
+- or generate a very small MP4/WebM/MOV preview
 
 ### Option F: Tighten query payloads
 

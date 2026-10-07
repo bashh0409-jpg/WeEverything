@@ -321,23 +321,24 @@ const Navbar = forwardRef<
             10 Most Awarded Profiles
           </a>
           <div className="grid grid-cols-2 mt-2 gap-x-5 leading-none">
-            {[mostAwardedProfiles.slice(0, 5), mostAwardedProfiles.slice(5)].map(
-              (column, columnIndex) => (
-                <div key={columnIndex} className="flex flex-col items-start">
-                  {column.map((profile) => (
-                    <a
-                      key={profile.name}
-                      href={profile.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-bold tracking-tighter hover:underline"
-                    >
-                      {profile.name}
-                    </a>
-                  ))}
-                </div>
-              ),
-            )}
+            {[
+              mostAwardedProfiles.slice(0, 5),
+              mostAwardedProfiles.slice(5),
+            ].map((column, columnIndex) => (
+              <div key={columnIndex} className="flex flex-col items-start">
+                {column.map((profile) => (
+                  <a
+                    key={profile.name}
+                    href={profile.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold tracking-tighter hover:underline"
+                  >
+                    {profile.name}
+                  </a>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -365,7 +366,7 @@ const Navbar = forwardRef<
                   href="/profile"
                   aria-label={`View profile for ${user?.email ?? "your account"}`}
                   title={user?.email ?? "Your profile"}
-                  className={`hover:bg-[#1c40f2] transition-colors duration-300 cursor-pointer rounded-full p-0.5 ${isSponsored ? "bg-[#1c40f2]" : ""}`}
+                  className={`hover:bg-[#1c40f2] max-w-8 transition-colors duration-300 cursor-pointer rounded-full p-0.5 ${isSponsored ? "bg-[#1c40f2]" : ""}`}
                 >
                   <span className="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white text-xs font-bold uppercase text-black">
                     <span
@@ -481,10 +482,8 @@ const Navbar = forwardRef<
       >
         <div className="flex shrink-0 items-center justify-between">
           <div className="flex items-center gap-3">
-           
             <div>
               <p className="font-bold italic tracking-tighter">WeEverything</p>
-              
             </div>
           </div>
 
@@ -506,10 +505,7 @@ const Navbar = forwardRef<
           </button>
         </div>
 
-        <div
-          ref={linksContainerRef}
-          className="my-auto flex shrink-0 flex-col"
-        >
+        <div ref={linksContainerRef} className="my-auto flex shrink-0 flex-col">
           {links.map((link, index) => (
             <Link
               key={link.href}
@@ -564,13 +560,9 @@ const Navbar = forwardRef<
             }}
             className="flex min-h-10  items-center rounded-full bg-white px-5 text-center text-sm font-semibold text-[#1c40f2] transition-transform hover:scale-[1.01] active:scale-[0.99]"
           >
-            
-              <span className=" text-center w-full geist tracking-tight text-sm">
-                {isAuthenticated ? "Log out" : "Sign in"}
-              </span>
-            
-            
-          
+            <span className=" text-center w-full geist tracking-tight text-sm">
+              {isAuthenticated ? "Log out" : "Sign in"}
+            </span>
           </button>
           <p className="mono text-center font-medium text-xs hidden uppercase tracking-[0.18em] text-white/55">
             Make something. Find your people.

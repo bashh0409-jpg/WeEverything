@@ -218,6 +218,7 @@ const ProfileModal = ({
   const hasAwards = parseProfileAwards(awards).length > 0;
 
   const [isClosing, setIsClosing] = useState(false);
+  const [isGalleryHovered, setIsGalleryHovered] = useState(false);
   const [shareLabel, setShareLabel] = useState("Share profile");
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [inquiryStatus, setInquiryStatus] = useState<
@@ -584,17 +585,17 @@ const ProfileModal = ({
                           {experienceEntry.company}
                         </span>
                         {dateRange ? (
-                          <span className=" text-xs  font-medium uppercase tracking-tight text-[#999]">
+                          <span className=" text-xs  font-semibold uppercase tracking-tight text-[#999]">
                             {dateRange}{" "}
                           </span>
                         ) : (
-                          <span className=" text-sm font-medium tracking-tight text-black/45">
+                          <span className=" text-sm font-semibold tracking-tight text-black/45">
                             —
                           </span>
                         )}
 
                         {experienceEntry.description ? (
-                          <p className="mt-2 geist font-medium text-justify whitespace-pre-line text-sm leading-4 tracking-tight  text-[#000]">
+                          <p className="mt-4 geist font-medium text-justify whitespace-pre-line text-sm leading-4 tracking-tight  text-[#000]">
                             {experienceEntry.description}
                           </p>
                         ) : null}
@@ -633,28 +634,56 @@ const ProfileModal = ({
               Gallery
             </span>
 
-            {hoverMedia?.type === "video" ? (
-              <video
-                src={hoverMedia.url}
-                autoPlay
-                loop
-                muted
-                playsInline
-                controls={false}
-                aria-label={`${name} profile video`}
-                className="aspect-[4/5] w-80 object-cover"
-              />
-            ) : image ? (
-              <CachedImage
-                src={image}
-                alt={`${name} profile`}
-                className="aspect-[4/5] w-70 object-cover"
-              />
-            ) : (
-              <div className="flex aspect-[4/5] w-80 items-center justify-center bg-black/10 text-sm font-medium text-[#999]">
-                No profile image.
-              </div>
-            )}
+            <div
+              className="group relative aspect-[4/5] w-70 overflow-hidden bg-black/5"
+              role="group"
+              onMouseEnter={() => setIsGalleryHovered(true)}
+              onMouseLeave={() => setIsGalleryHovered(false)}
+              onFocus={() => setIsGalleryHovered(true)}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setIsGalleryHovered(false);
+                }
+              }}
+              tabIndex={hoverMedia ? 0 : undefined}
+              aria-label={`${name} profile image${hoverMedia ? ". Hover or focus to view alternate media." : ""}`}
+            >
+              {image ? (
+                <CachedImage
+                  src={image}
+                  alt={`${name} profile`}
+                  className={`absolute cursor-pointer inset-0 h-full w-full object-cover transition-opacity duration-300 ${
+                    isGalleryHovered && hoverMedia ? "opacity-0" : "opacity-100"
+                  }`}
+                />
+              ) : null}
+              {hoverMedia?.type === "image" ? (
+                <CachedImage
+                  src={hoverMedia.url}
+                  alt={`${name} alternate profile image`}
+                  className={`absolute cursor-pointer inset-0 h-full w-full object-cover transition-opacity duration-300 ${
+                    isGalleryHovered ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+              ) : null}
+              {isGalleryHovered && hoverMedia?.type === "video" ? (
+                <video
+                  src={hoverMedia.url}
+                  autoPlay
+                  loop
+                  
+                  playsInline
+                  controls={false}
+                  aria-label={`${name} profile video`}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              ) : null}
+              {!image && !isGalleryHovered ? (
+                <div className="flex h-full w-full items-center justify-center text-sm font-medium text-[#999]">
+                  No profile image.
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">

@@ -8,18 +8,20 @@ const ProfileAwardsList = ({ value }: { value: string }) => {
       {awards.map((award, index) => (
         <li
           key={`${award.name}-${index}`}
-          className="flex min-w-0 flex-col gap-1"
+          className="flex min-w-0 flex-col gap-"
         >
           <span className="text-sm capitalize font-medium leading-tight tracking-tight text-[#444]">
             {award.name}
           </span>
           {award.date ? (
-            <span className="text-xs font-medium uppercase tracking-tight text-[#999]">
+            <span className="text-xs font-semibold uppercase tracking-tight text-[#999]">
               {award.date}
             </span>
           ) : null}
         </li>
       ))}
+
+      
     </ul>
   );
 };
