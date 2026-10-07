@@ -144,6 +144,7 @@ type SocialForm = Record<SocialType, string>;
 
 const MEDIA_BUCKET = "profile-media";
 const MAX_MEDIA_BYTES = 8 * 1024 * 1024;
+const MAX_VIDEO_DURATION_SECONDS = 30;
 const acceptedMediaTypes = [
   "image/jpeg",
   "image/png",
@@ -152,6 +153,50 @@ const acceptedMediaTypes = [
   "video/mp4",
   "video/webm",
 ];
+
+const getVideoDuration = (file: File) =>
+  new Promise<number>((resolve, reject) => {
+    const video = document.createElement("video");
+    const objectUrl = URL.createObjectURL(file);
+    const timeoutId = window.setTimeout(() => {
+      finish(() =>
+        reject(new Error("Could not read video duration. Try another video.")),
+      );
+    }, 10_000);
+    const cleanup = () => {
+      window.clearTimeout(timeoutId);
+      video.onloadedmetadata = null;
+      video.onerror = null;
+      video.removeAttribute("src");
+      video.load();
+      URL.revokeObjectURL(objectUrl);
+    };
+    const finish = (callback: () => void) => {
+      cleanup();
+      callback();
+    };
+
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      const duration = video.duration;
+
+      if (!Number.isFinite(duration) || duration <= 0) {
+        finish(() =>
+          reject(new Error("Could not read video duration. Try another video.")),
+        );
+        return;
+      }
+
+      finish(() => resolve(duration));
+    };
+    video.onerror = () => {
+      finish(() =>
+        reject(new Error("Could not read video duration. Try another video.")),
+      );
+    };
+    video.src = objectUrl;
+    video.load();
+  });
 
 const ROLE_SEPARATOR = " | ";
 const MAX_DISCIPLINES = 6;
@@ -805,6 +850,7 @@ const ProfilePage = () => {
   } | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
+  const [galleryMessage, setGalleryMessage] = useState("");
   const [draggingSlot, setDraggingSlot] = useState<number | null>(null);
   const [shareLabel, setShareLabel] = useState("Share profile");
   const bioInputRef = useRef<HTMLTextAreaElement>(null);
@@ -1877,28 +1923,49 @@ const ProfilePage = () => {
   const processMediaFile = async (position: number, file: File | undefined) => {
     if (!file || !supabase || !user) return;
 
+    setGalleryMessage("");
+
     if (!acceptedMediaTypes.includes(file.type)) {
-      setMessage("Use a JPG, PNG, WebP, AVIF, MP4, or WebM file.");
+      setGalleryMessage("Use a JPG, PNG, WebP, AVIF, MP4, or WebM file.");
       return;
     }
 
     if (file.size > MAX_MEDIA_BYTES) {
-      setMessage("Media files must be 8 MB or smaller.");
+      setGalleryMessage("Media files must be 8 MB or smaller.");
       return;
     }
 
     const mediaType = file.type.startsWith("video/") ? "video" : "image";
+
+    if (mediaType === "video") {
+      try {
+        const duration = await getVideoDuration(file);
+
+        if (duration > MAX_VIDEO_DURATION_SECONDS) {
+          setGalleryMessage("Videos must be 30 seconds or shorter.");
+          return;
+        }
+      } catch (error) {
+        setGalleryMessage(
+          error instanceof Error
+            ? error.message
+            : "Could not read video duration. Try another video.",
+        );
+        return;
+      }
+    }
+
     const hasPrimaryImage = media.some(
       (item) => item.position === 0 && item.media_type === "image",
     );
 
     if (position === 0 && mediaType !== "image") {
-      setMessage("Container 1 must be an image.");
+      setGalleryMessage("Container 1 must be an image.");
       return;
     }
 
     if (position === 1 && !hasPrimaryImage) {
-      setMessage(
+      setGalleryMessage(
         "Upload an image in container 1 first, then choose container 2.",
       );
       return;
@@ -1906,7 +1973,6 @@ const ProfilePage = () => {
 
     setUploadingSlot(position);
     setDraggingSlot(null);
-    setMessage("");
 
     const extension =
       file.name.split(".").pop()?.toLowerCase() ?? file.type.split("/")[1];
@@ -1919,7 +1985,7 @@ const ProfilePage = () => {
 
     if (uploadError) {
       setUploadingSlot(null);
-      setMessage(uploadError.message);
+      setGalleryMessage(uploadError.message);
       return;
     }
 
@@ -1940,7 +2006,7 @@ const ProfilePage = () => {
     if (error) {
       await supabase.storage.from(MEDIA_BUCKET).remove([storagePath]);
       setUploadingSlot(null);
-      setMessage(error.message);
+      setGalleryMessage(error.message);
       return;
     }
 
@@ -1970,7 +2036,6 @@ const ProfilePage = () => {
       slot: position + 1,
       replaced_existing_media: Boolean(previousItem),
     });
-    setMessage("Media uploaded.");
   };
 
   const handleMediaDrop = async (
@@ -2019,14 +2084,14 @@ const ProfilePage = () => {
     if (!supabase) return;
 
     if (item.position === 0) {
-      setMessage(
+      setGalleryMessage(
         "Container 1 must remain an image. Replace it with a new image instead.",
       );
       return;
     }
 
+    setGalleryMessage("");
     setUploadingSlot(item.position);
-    setMessage("");
 
     const { error } = await supabase
       .from("profile_media")
@@ -2035,7 +2100,7 @@ const ProfilePage = () => {
 
     if (error) {
       setUploadingSlot(null);
-      setMessage(error.message);
+      setGalleryMessage(error.message);
       return;
     }
 
@@ -3772,6 +3837,15 @@ const ProfilePage = () => {
                         );
                       })}
                     </div>
+
+                    {galleryMessage ? (
+                      <p
+                        role="alert"
+                        className="mt-3 rounded tracking-tight border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium tracking-tight text-red-700"
+                      >
+                        {galleryMessage}
+                      </p>
+                    ) : null}
                   </section>
                   <section className="mt-8 pt-5">
                     <p className="text-xs font-medium uppercase tracking-tight text-[#999]">

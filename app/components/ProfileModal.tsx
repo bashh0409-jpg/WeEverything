@@ -206,17 +206,15 @@ const ProfileModal = ({
     .split(/[|,]/)
     .map((value) => value.trim())
     .filter(Boolean);
-  const experienceEntries = parseExperienceEntries(experience).sort(
-    (left, right) => {
-      const leftRecency = getExperienceRecency(left);
-      const rightRecency = getExperienceRecency(right);
+  const experienceEntries = parseExperienceEntries(experience).sort((left, right) => {
+    const leftRecency = getExperienceRecency(left);
+    const rightRecency = getExperienceRecency(right);
 
-      if (leftRecency === rightRecency) return 0;
-      if (leftRecency === null) return 1;
-      if (rightRecency === null) return -1;
-      return rightRecency - leftRecency;
-    },
-  );
+    if (leftRecency === rightRecency) return 0;
+    if (leftRecency === null) return 1;
+    if (rightRecency === null) return -1;
+    return rightRecency - leftRecency;
+  });
   const hasAwards = parseProfileAwards(awards).length > 0;
 
   const [isClosing, setIsClosing] = useState(false);
@@ -512,7 +510,7 @@ const ProfileModal = ({
                 )}
               </span>
             </span>
-            <span className=" -mt-2 flex flex-col gap-1 text-xs mono font-medium capitalize tracking-tighter">
+            <span className=" -mt-2 flex flex-col gap-1 text-xs mono font-medium capitalize tracking-tight text-[#999]">
               <span className="w-fit rounded-full uppercase text-[#999] ">
                 {location || "Unknown location"}
               </span>

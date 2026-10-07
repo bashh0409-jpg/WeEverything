@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
@@ -37,6 +37,11 @@ export const metadata: Metadata = {
   description:
     "Discover developers, designers, photographers, illustrators, and other creative professionals for your next project.",
   applicationName: "WeEverything",
+  appleWebApp: {
+    capable: true,
+    title: "WeEverything",
+    statusBarStyle: "default",
+  },
   openGraph: {
     siteName: "WeEverything",
     title: "WeEverything | Creative talent directory",
@@ -44,6 +49,10 @@ export const metadata: Metadata = {
       "Discover and connect with creative professionals for your next project.",
     type: "website",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1c40f2",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
