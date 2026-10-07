@@ -587,7 +587,7 @@ const ProfileModal = ({
               <span className="text-sm font-medium tracking-tight text-[#999]">
                 Honours
               </span>
-              <ProfileAwardsList value={awards} />
+              <ProfileAwardsList value={awards ?? ""} />
             </div>
           ) : null}
           {getActiveCustomProfileSections(customSections).map(
