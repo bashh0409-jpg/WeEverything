@@ -4,9 +4,41 @@ export type CustomProfileSection = {
   expiresOn: string | null;
 };
 
+export type CustomProfileSectionRow = {
+  label: string | null;
+  content: string;
+};
+
 export const MAX_CUSTOM_PROFILE_SECTIONS = 5;
 export const MAX_CUSTOM_PROFILE_SECTION_TITLE_LENGTH = 40;
 export const MAX_CUSTOM_PROFILE_SECTION_CONTENT_LENGTH = 600;
+
+export const parseCustomProfileSectionRows = (
+  content: string,
+): CustomProfileSectionRow[] => {
+  const lines = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const hasLabeledRows = lines.some((line) => {
+    const separator = line.indexOf(":");
+    return separator > 0 && line.slice(separator + 1).trim().length > 0;
+  });
+
+  if (!hasLabeledRows) return [];
+
+  return lines.map((line) => {
+    const separator = line.indexOf(":");
+    if (separator <= 0 || !line.slice(separator + 1).trim()) {
+      return { label: null, content: line };
+    }
+
+    return {
+      label: line.slice(0, separator).trim(),
+      content: line.slice(separator + 1).trim(),
+    };
+  });
+};
 
 const isDateOnly = (value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;

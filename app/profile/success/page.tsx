@@ -11,7 +11,6 @@ export default function BillingSuccess() {
   useEffect(() => {
     const client = supabase;
     if (!client) {
-      setUser(null);
       return;
     }
 

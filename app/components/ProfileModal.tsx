@@ -16,13 +16,16 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import posthog from "posthog-js";
 import CachedImage from "./CachedImage";
+import ProfileAwardsList from "./ProfileAwardsList";
 import {
   getCountries,
   getCountryCallingCode,
   type CountryCode,
 } from "libphonenumber-js";
 import InputArea from "./InputArea";
+import CustomProfileSectionContent from "./CustomProfileSectionContent";
 import { getProfileHandle } from "@/lib/profile-handle";
+import { parseProfileAwards } from "@/lib/profile-awards";
 import { isSafeExternalUrl } from "@/lib/safe-url";
 import {
   getActiveCustomProfileSections,
@@ -188,6 +191,7 @@ const ProfileModal = ({
     .map((value) => value.trim())
     .filter(Boolean);
   const experienceEntries = parseExperienceEntries(experience);
+  const hasAwards = parseProfileAwards(awards).length > 0;
 
   const [isClosing, setIsClosing] = useState(false);
   const [shareLabel, setShareLabel] = useState("Share profile");
@@ -578,14 +582,12 @@ const ProfileModal = ({
             </div>
           ) : null}
 
-          {awards ? (
+          {hasAwards ? (
             <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
               <span className="text-sm font-medium tracking-tight text-[#999]">
                 Honours
               </span>
-              <span className="whitespace-pre-line text-sm font-medium leading-4 tracking-tight">
-                {awards}
-              </span>
+              <ProfileAwardsList value={awards} />
             </div>
           ) : null}
           {getActiveCustomProfileSections(customSections).map(
@@ -597,9 +599,7 @@ const ProfileModal = ({
                 <span className="text-sm capitalize font-medium tracking-tight text-[#999]">
                   {section.title}
                 </span>
-                <span className="whitespace-pre-line text-justify text-sm font-medium leading-4 tracking-tight">
-                  {section.content}
-                </span>
+                <CustomProfileSectionContent content={section.content} />
               </div>
             ),
           )}

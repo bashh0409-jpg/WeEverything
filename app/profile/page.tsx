@@ -26,10 +26,17 @@ import {
 import type { User } from "@supabase/supabase-js";
 import Navbar from "../components/Navbar";
 import InputArea from "../components/InputArea";
+import CustomProfileSectionContent from "../components/CustomProfileSectionContent";
+import ProfileAwardsList from "../components/ProfileAwardsList";
 import { supabase } from "@/lib/supabase/client";
 import { getProfileHandle } from "@/lib/profile-handle";
 import { roles } from "@/lib/roles";
 import { isSafeExternalUrl } from "@/lib/safe-url";
+import {
+  parseProfileAwards,
+  serializeProfileAwards,
+  type ProfileAward,
+} from "@/lib/profile-awards";
 import {
   getSocialInputValue,
   getSocialUrl,
@@ -257,12 +264,6 @@ const getBrowserDetails = () => {
 
   return `${browser} on ${os}`;
 };
-
-const parseAwards = (value: string) =>
-  value
-    .split("\n")
-    .map((award) => award.trim())
-    .filter(Boolean);
 
 type ExperienceEntry = {
   role: string;
@@ -735,7 +736,13 @@ const ProfilePage = () => {
   const [isWelcomeOverlayOpen, setIsWelcomeOverlayOpen] = useState(false);
   const [isInquiryDrawerOpen, setIsInquiryDrawerOpen] = useState(false);
   const [socials, setSocials] = useState<SocialForm>(emptySocials);
-  const [newAward, setNewAward] = useState("");
+  const [newAward, setNewAward] = useState<ProfileAward>({
+    name: "",
+    date: "",
+  });
+  const [editingAwardIndex, setEditingAwardIndex] = useState<number | null>(
+    null,
+  );
   const [newExperience, setNewExperience] = useState<ExperienceEntry>(
     emptyExperienceEntry(),
   );
@@ -1301,18 +1308,21 @@ const ProfilePage = () => {
   };
 
   const addAward = () => {
-    const award = newAward.trim();
-    if (!award) return;
+    const award = {
+      name: newAward.name.trim(),
+      date: newAward.date.trim(),
+    };
+    if (!award.name) return;
 
-    setForm((current) =>
-      current
-        ? {
-            ...current,
-            awards: [...parseAwards(current.awards), award].join("\n"),
-          }
-        : current,
-    );
-    setNewAward("");
+    setForm((current) => {
+      if (!current) return current;
+      const awards = parseProfileAwards(current.awards);
+      if (editingAwardIndex !== null) awards[editingAwardIndex] = award;
+      else awards.push(award);
+      return { ...current, awards: serializeProfileAwards(awards) };
+    });
+    setNewAward({ name: "", date: "" });
+    setEditingAwardIndex(null);
   };
 
   const removeAward = (awardIndex: number) => {
@@ -1320,12 +1330,27 @@ const ProfilePage = () => {
       current
         ? {
             ...current,
-            awards: parseAwards(current.awards)
-              .filter((_, index) => index !== awardIndex)
-              .join("\n"),
+            awards: serializeProfileAwards(
+              parseProfileAwards(current.awards).filter(
+                (_, index) => index !== awardIndex,
+              ),
+            ),
           }
         : current,
     );
+    if (editingAwardIndex === awardIndex) {
+      setNewAward({ name: "", date: "" });
+      setEditingAwardIndex(null);
+    } else if (editingAwardIndex !== null && editingAwardIndex > awardIndex) {
+      setEditingAwardIndex((index) =>
+        index === null ? null : index - 1,
+      );
+    }
+  };
+
+  const editAward = (index: number, award: ProfileAward) => {
+    setNewAward(award);
+    setEditingAwardIndex(index);
   };
 
   const addExperience = () => {
@@ -2197,7 +2222,8 @@ const ProfilePage = () => {
     setCustomRoleInput(getCustomRole(profile?.role ?? ""));
     setSocials(toSocialForm(socialLinks));
     setEditingSocialType(null);
-    setNewAward("");
+    setNewAward({ name: "", date: "" });
+    setEditingAwardIndex(null);
     setNewExperience(emptyExperienceEntry());
     setEditingExperienceIndex(null);
     setNewCustomSection(EMPTY_CUSTOM_PROFILE_SECTION);
@@ -2219,7 +2245,8 @@ const ProfilePage = () => {
     setCustomRoleInput(getCustomRole(profile?.role ?? ""));
     setSocials(toSocialForm(socialLinks));
     setEditingSocialType(null);
-    setNewAward("");
+    setNewAward({ name: "", date: "" });
+    setEditingAwardIndex(null);
     setNewExperience(emptyExperienceEntry());
     setEditingExperienceIndex(null);
     setNewCustomSection(EMPTY_CUSTOM_PROFILE_SECTION);
@@ -2461,13 +2488,11 @@ const ProfilePage = () => {
                 </div>
               </div>
               {profile?.awards ? (
-                <section className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)] mt-10">
+                <section className="grid geist tracking-tight gap-3 sm:grid-cols-[140px_minmax(0,1fr)] mt-10">
                   <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
                     Honors
                   </p>
-                  <p className=" geist whitespace-pre-line text-sm leading-tight font-medium tracking-tight text-[#444]">
-                    {profile.awards}
-                  </p>
+                  <ProfileAwardsList value={profile.awards} />
                 </section>
               ) : null}
               {parseExperienceEntries(profile?.experience).length ? (
@@ -2540,17 +2565,15 @@ const ProfilePage = () => {
                 (section, index) => (
                   <section
                     key={`${section.title}-${index}`}
-                    className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)] mt-10"
+                    className="grid gap-3 geist sm:grid-cols-[140px_minmax(0,1fr)] mt-10"
                   >
                     <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
                       {section.title}
                     </p>
                     <div>
-                      <p className=" geist whitespace-pre-line text-sm leading-tight font-medium tracking-tight text-[#444]">
-                        {section.content}
-                      </p>
+                      <CustomProfileSectionContent content={section.content} />
                       {section.expiresOn ? (
-                        <p className="mt-2 geist text-xs font-medium uppercase tracking-tight text-[#999]">
+                        <p className="mt-2 geist geist text-xs font-medium uppercase tracking-tight text-[#999]">
                           {section.expiresOn}
                         </p>
                       ) : null}
@@ -2804,7 +2827,7 @@ const ProfilePage = () => {
                 onTouchMoveCapture={(event) => event.stopPropagation()}
                 className="  pointer-events-auto fixed bottom-0 left-0 right-0 z-50 flex h-[90vh] max-h-[90dvh] scrollbar-hide min-h-0 touch-pan-y flex-col overflow-y-auto overscroll-contain rounded-t bg-white px-6 py-10 shadow-2xl sm:px-10"
               >
-                <div className="max-w-3xl mx-auto w-full geist tracking-tight font-medium">
+                <div className="max-w-2xl mx-auto w-full geist tracking-tight font-medium">
                   <div className="flex flex-wrap items-end justify-between gap-4">
                     <div>
                       <p className="mono text-sm font-medium tracking-tighter uppercase tracking-tight text-[#999]">
@@ -3023,7 +3046,7 @@ const ProfilePage = () => {
                                     }
                                     disabled={removingRole !== null}
                                     aria-label={`Remove ${role} role`}
-                                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[#1c40f2] px-3 py-1 text-sm font-medium tracking-tight text-white transition hover:bg-black disabled:pointer-events-none"
+                                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-black/10 px-3 py-1 text-sm font-medium tracking-tight text-black transition hover:bg-[#1c40f2]/40 hover:text-white disabled:pointer-events-none"
                                   >
                                     {role}
                                   </button>
@@ -3476,7 +3499,7 @@ const ProfilePage = () => {
                       <div>
                         <p className="text-xs font-medium uppercase tracking-tight text-[#999]">
                           Custom sections
-                        </p>{" "}
+                        </p>
                       </div>
                     </div>
 
@@ -3495,7 +3518,7 @@ const ProfilePage = () => {
                         className="min-w-10 rounded max-h-8 px-3 py-2 text-sm placeholder:text-[#aaa]"
                       />
 
-                      <label className="flex min-w-0 flex-col gap-1 text-[10px] font-semibold capitalize tracking-tight text-[#999]">
+                      <label className="flex min-w-0 flex-col gap-1 text-[10px] font-semibold tracking-tight text-[#999]">
                         <input
                           type="date"
                           value={newCustomSection.expiresOn ?? ""}
@@ -3508,7 +3531,9 @@ const ProfilePage = () => {
                           }
                           className="min-w-0 max-h-8 rounded bg-black/5 px-3 py-2 text-sm font-medium normal-case tracking-tight text-black outline-none"
                         />{" "}
-                        optional
+                        <span className="mono tracking-tighter">
+                          Expiry date, optional
+                        </span>
                       </label>
                     </div>
 
@@ -3522,7 +3547,7 @@ const ProfilePage = () => {
                       }
                       maxLength={MAX_CUSTOM_PROFILE_SECTION_CONTENT_LENGTH}
                       rows={4}
-                      placeholder="Write the details you want to share."
+                      placeholder="For lists, use one category per line: Design & Collaboration: Figma, Slack, ClickUp."
                       aria-label="Custom section body"
                       className="mt-3 w-full resize-none rounded bg-black/5 p-3 text-sm leading-5 tracking-tight text-black outline-none placeholder:text-[#aaa]"
                     />
@@ -3591,7 +3616,7 @@ const ProfilePage = () => {
                                   aria-label={`Edit ${section.title || "custom section"}`}
                                   className="min-w-0 flex-1 cursor-pointer text-left text-sm tracking-tight text-[#444] outline-none focus-visible:ring-2 focus-visible:ring-[#1c40f2]"
                                 >
-                                  <p className="font-medium tracking-tight text-[#999]">
+                                  <p className="font-medium capitalize tracking-tight text-[#999]">
                                     {section.title || "Untitled section"}
                                   </p>
                                   <p className="mt-2 whitespace-pre-line font-medium tracking-tight text-xs leading-4 text-justify text-[#666]">
@@ -3748,78 +3773,126 @@ const ProfilePage = () => {
                       })}
                     </div>
                   </section>
-                  <section className="mt-8  w-full text-sm font-semibold">
-                    <div className="grid gap-6 lg:grid-cols-2">
-                      <div>
-                        <p className=" text-xs uppercase tracking-tight text-[#999] font-medium">
-                          Honours
-                        </p>
-                        <div className="mt-3 flex lg:items-center  gap-3 ">
-                          <InputArea
-                            leadingIcon={getProfileFieldIcon("award")}
-                            wrapperClassName="flex min-w-0 flex-1 items-center gap-1 rounded bg-black/5 px-2"
-                            variant="plain"
-                            value={newAward}
-                            onChange={(event) =>
-                              setNewAward(event.target.value)
-                            }
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter") {
-                                event.preventDefault();
-                                addAward();
-                              }
-                            }}
-                            placeholder="Award or recognition"
-                            className="min-w-0 capitalize text-sm placeholder:text-[#aaa]"
-                          />
-                          <button
-                            type="button"
-                            onClick={addAward}
-                            className="w-fit shrink-0  rounded mono uppercase border border-black px-2 py-1 text-xs font-medium transition hover:bg-black hover:text-white"
-                          >
-                            save
-                          </button>
-                        </div>
-                      </div>
+                  <section className="mt-8 pt-5">
+                    <p className="text-xs font-medium uppercase tracking-tight text-[#999]">
+                      Honours
+                    </p>
 
-                      <div className="min-w-0">
-                        {parseAwards(activeForm.awards).length ? (
-                          <ul className="mt-8  ">
-                            {parseAwards(activeForm.awards).map(
-                              (award, index) => (
-                                <li
-                                  key={`${award}-${index}`}
-                                  className="flex items-center mb-1  bg-black/0 rounded justify-between gap-4 py-1 px-2  text-sm font-normal"
-                                >
-                                  <span className="min-w-0 capitalize font-medium break-word">
-                                    {award}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => removeAward(index)}
-                                    className="shrink-0 mono uppercase cursor-pointer rounded-full bg-black/ px-1 py-1 text-xs font-medium text-[#777] transition hover:bg-black hover:text-white"
-                                  >
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      height="18px"
-                                      viewBox="0 -960 960 960"
-                                      width="18px"
-                                      fill="currentColor"
-                                    >
-                                      <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
-                                    </svg>
-                                  </button>
-                                </li>
-                              ),
-                            )}
-                          </ul>
-                        ) : (
-                          <div className="border-y border-dashed mt-8 border-black/15 py-2 mono uppercase text-sm font-medium text-[#999]">
-                            No awards added yet.
-                          </div>
-                        )}
-                      </div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      <InputArea
+                        value={newAward.name}
+                        onChange={(event) =>
+                          setNewAward((current) => ({
+                            ...current,
+                            name: event.target.value,
+                          }))
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            addAward();
+                          }
+                        }}
+                        placeholder="Award or credential"
+                        aria-label="Award or credential name"
+                        className="min-w-0 max-h-8 rounded px-3 py-2 text-sm placeholder:text-[#aaa]"
+                      />
+                      <label className="flex min-w-0 flex-col gap-1 text-[10px] font-semibold uppercas tracking-tight text-[#999]">
+                        <InputArea
+                          type="date"
+                          value={newAward.date}
+                          onChange={(event) =>
+                            setNewAward((current) => ({
+                              ...current,
+                              date: event.target.value,
+                            }))
+                          }
+                          aria-label="Recognition date, optional"
+                          className="min-w-0 max-h-8 rounded px-3 py-2 text-sm font-medium normal-case tracking-tight text-black"
+                        />
+                        <span className="mono tracking-tighter">
+                          Recognition date, optional
+                        </span>
+                      </label>
                     </div>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={addAward}
+                        disabled={!newAward.name.trim()}
+                        className="rounded-full border border-[#1c40f2]/30 px-3 py-1 mono text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {editingAwardIndex === null
+                          ? "Save recognition"
+                          : "Update recognition"}
+                      </button>
+                      {editingAwardIndex !== null ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewAward({ name: "", date: "" });
+                            setEditingAwardIndex(null);
+                          }}
+                          className="rounded-full border border-black/20 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#666] transition hover:border-black hover:text-black"
+                        >
+                          Cancel
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {parseProfileAwards(activeForm.awards).length ? (
+                      <ul className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+                        {parseProfileAwards(activeForm.awards).map(
+                          (award, index) => (
+                            <li
+                              key={`${award.name}-${index}`}
+                              className={`grid overflow-hidden rounded bg-black/5 transition ${
+                                editingAwardIndex === index
+                                  ? "ring-1 ring-[#1c40f2]/40"
+                                  : ""
+                              }`}
+                            >
+                              <div className="flex min-w-0 items-start justify-between gap-3 p-3">
+                                <button
+                                  type="button"
+                                  onClick={() => editAward(index, award)}
+                                  aria-label={`Edit ${award.name}`}
+                                  className="min-w-0 flex-1 cursor-pointer text-left text-sm tracking-tight text-[#444] outline-none focus-visible:ring-2 focus-visible:ring-[#1c40f2]"
+                                >
+                                  <span className="block font-medium">
+                                    {award.name}
+                                  </span>
+                                  {award.date ? (
+                                    <span className="mt-1 block text-xs font-medium text-[#999]">
+                                      {award.date}
+                                    </span>
+                                  ) : null}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeAward(index)}
+                                  aria-label={`Remove ${award.name}`}
+                                  title={`Remove ${award.name}`}
+                                  className="shrink-0 text-[10px] font-semibold uppercase tracking-tight text-[#666] transition hover:text-black"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    height="18px"
+                                    viewBox="0 -960 960 960"
+                                    width="18px"
+                                    fill="#999"
+                                    aria-hidden="true"
+                                  >
+                                    <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </li>
+                          ),
+                        )}
+                      </ul>
+                    ) : null}
                   </section>
                   <section className="mt-10 pt-5">
                     <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
