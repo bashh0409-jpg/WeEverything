@@ -53,7 +53,7 @@ const OpenToWorkTicker = () => {
   }, []);
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-2 z-30 overflow-hidden whitespace-nowrap">
+    <div className="pointer-events-none fixed inset-x-0 bottom-2 z-30 hidden overflow-hidden whitespace-nowrap lg:block">
       <div
         ref={trackRef}
         className="ticker-track mono text-sm inline-flex w-max items-center font-normal text-[#1c40f2]"
