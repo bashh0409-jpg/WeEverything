@@ -4072,6 +4072,7 @@ const ProfilePage = () => {
                         const mediaUrl = item
                           ? (mediaUrls[item.storage_path] ?? "")
                           : "";
+                        const hasMediaUrl = mediaUrl.trim().length > 0;
 
                         return (
                           <div key={position}>
@@ -4109,19 +4110,25 @@ const ProfilePage = () => {
                                 disabled={isUploading}
                                 className="sr-only"
                               />
-                              {item?.media_type === "video" ? (
-                                <video
-                                  src={mediaUrl}
-                                  muted
-                                  playsInline
-                                  className="h-full w-full object-cover"
-                                />
+                              {item && hasMediaUrl ? (
+                                item.media_type === "video" ? (
+                                  <video
+                                    src={hasMediaUrl ? mediaUrl : undefined}
+                                    muted
+                                    playsInline
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <img
+                                    src={hasMediaUrl ? mediaUrl : undefined}
+                                    alt={`Work media ${position + 1}`}
+                                    className="h-full w-full object-cover"
+                                  />
+                                )
                               ) : item ? (
-                                <img
-                                  src={mediaUrl}
-                                  alt={`Work media ${position + 1}`}
-                                  className="h-full w-full object-cover"
-                                />
+                                <div className="px-4 text-center text-xs font-medium uppercase tracking-tight text-[#999]">
+                                  Media preview unavailable
+                                </div>
                               ) : (
                                 <div className="flex flex-col items-center justify-center gap-3 px-4 text-center">
                                   <svg

@@ -80,7 +80,7 @@ const PersonCard = ({
           onOpen();
         }
       }}
-      className="block cursor-pointer"
+      className="block mt-4 cursor-pointer"
     >
       <div className="">
         <div
@@ -113,7 +113,6 @@ const PersonCard = ({
               <video
                 ref={videoRef}
                 src={hoverMedia.url}
-               
                 loop
                 playsInline
                 aria-label={`${name} preview`}

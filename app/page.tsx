@@ -568,335 +568,352 @@ const Page = () => {
 
   return (
     <div>
-      <Navbar onSearch={openSearch} />
+      <div className="hidden lg:block">
+        <Navbar onSearch={openSearch} />
 
-      <main className="flex min-h-screen flex-col items-center justify-center px-6 py-2">
-        <section className="mt-60 geist leading-8 text-4xl font-bold tracking-tighter capitalize text-[#000] flex max-w-xl flex-col items-center justify-center text-center uppercas ">
-          Find the best developers, photographers, illustrators, stylists and
-          designers for your project.
-        </section>
+        <main className="flex min-h-screen flex-col items-center justify-center px-6 py-2">
+          <section className="mt-60 geist leading-8 text-4xl font-bold tracking-tighter capitalize text-[#000] flex max-w-xl flex-col items-center justify-center text-center uppercas ">
+            Find the best developers, photographers, illustrators, stylists and
+            designers for your project.
+          </section>
 
-
-        <section className="w-full">
-          <div className="mt-20 flex w-full max-w-lg items-center justify-between gap-4">
-            <button
-              onClick={() => {
-                setRoleFilter("All");
-                setSearchQuery("");
-                setLocationFilter("");
-              }}
-              className={
-                roleFilter === "All"
-                  ? "flex cursor-pointer geist items-center gap-1 text-2xl font-bold tracking-tighter text-black transition-colors duration-500"
-                  : "flex cursor-pointer geist items-center gap-1 text-2xl font-bold tracking-tighter text-[#999] transition-colors duration-500 hover:text-black"
-              }
-            >
-              <span aria-hidden="true">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="18px"
-                  viewBox="0 -960 960 960"
-                  width="18px"
-                  fill="currentColor"
-                >
-                  <path d="m560-120-57-57 144-143H200v-480h80v400h367L503-544l56-57 241 241-240 240Z" />
-                </svg>
-              </span>
-              {searchQuery.trim() || locationFilter || roleFilter !== "All"
-                ? "Matching Profiles"
-                : "All Profiles"}{" "}
-              ({filteredProfiles.length})
-            </button>
-          </div>
-
-          <div className="mt-4 flex geist flex-wrap  flex-col  justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-4 overflow-y-auto text-xs font-semibold uppercase tracking-tight text-[#999]">
+          <section className="w-full">
+            <div className="mt-20 flex w-full max-w-lg items-center justify-between gap-4">
               <button
-                type="button"
-                onClick={() => setShowSavedProfiles((current) => !current)}
+                onClick={() => {
+                  setRoleFilter("All");
+                  setSearchQuery("");
+                  setLocationFilter("");
+                }}
                 className={
-                  showSavedProfiles
-                    ? "cursor-pointer hidden text-black transition-all duration-500"
-                    : "cursor-pointer hidden transition-all duration-400 hover:text-black"
+                  roleFilter === "All"
+                    ? "flex cursor-pointer geist items-center gap-1 text-2xl font-bold tracking-tighter text-black transition-colors duration-500"
+                    : "flex cursor-pointer geist items-center gap-1 text-2xl font-bold tracking-tighter text-[#999] transition-colors duration-500 hover:text-black"
                 }
               >
-                Saved ({savedProfileIds.length})
-              </button>
-              {roles.slice(1, 6).map((role) => (
-                <button
-                  key={role}
-                  type="button"
-                  onClick={() => {
-                    setRoleFilter(role);
-                  }}
-                  className={
-                    roleFilter === role
-                      ? "cursor-pointer uppercas text-xs  tracking-tight  text-black transition-all duration-500"
-                      : "cursor-pointer uppercas text-xs  tracking-tight text-[#999] transition-all duration-400 hover:text-black"
-                  }
-                >
-                  {role}
-                </button>
-              ))}
-            </div>{" "}
-            <div className="flex  items-center gap-2">
-              <button
-                type="button"
-                aria-label="Search profiles"
-                title="Search profiles"
-                onClick={(event) => openSearch(event.currentTarget)}
-                className={`cursor-pointer flex items-center gap-1 rounded px- transition-all duration-400 ${viewMode === "grid" ? "text-black" : "text-[#999] hover:text-black"}`}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="size-4 "
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-                  />
-                </svg>
-
-                <span className="text-xs  font-semibold uppercase tracking-tight text-[#999]">
-                  Search
+                <span aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="18px"
+                    viewBox="0 -960 960 960"
+                    width="18px"
+                    fill="currentColor"
+                  >
+                    <path d="m560-120-57-57 144-143H200v-480h80v400h367L503-544l56-57 241 241-240 240Z" />
+                  </svg>
                 </span>
+                {searchQuery.trim() || locationFilter || roleFilter !== "All"
+                  ? "Matching Profiles"
+                  : "All Profiles"}{" "}
+                ({filteredProfiles.length})
               </button>
             </div>
-          </div>
-        </section>
 
-        <section className="mt-10 grid w-full  grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {loading ? (
-            <div
-              role="status"
-              aria-live="polite"
-              className="fixed inset-0 z-[110] flex items-center justify-center bg-black/45 backdrop-blur-sm"
-            >
-              <div className="flex geist w-full h-full flex-col justify-center items-center gap-4 bg-white px-8 py-9 text-center shadow-2xl">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="24px"
-                  viewBox="0 -960 960 960"
-                  width="24px"
-                  fill="#999"
-                  className="animate-spin"
+            <div className="mt-4 flex geist flex-wrap  flex-col  justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-4 overflow-y-auto text-xs font-semibold uppercase tracking-tight text-[#999]">
+                <button
+                  type="button"
+                  onClick={() => setShowSavedProfiles((current) => !current)}
+                  className={
+                    showSavedProfiles
+                      ? "cursor-pointer hidden text-black transition-all duration-500"
+                      : "cursor-pointer hidden transition-all duration-400 hover:text-black"
+                  }
                 >
-                  <path d="M325-111.5q-73-31.5-127.5-86t-86-127.5Q80-398 80-480.5t31.5-155q31.5-72.5 86-127t127.5-86Q398-880 480-880q17 0 28.5 11.5T520-840q0 17-11.5 28.5T480-800q-133 0-226.5 93.5T160-480q0 133 93.5 226.5T480-160q133 0 226.5-93.5T800-480q0-17 11.5-28.5T840-520q17 0 28.5 11.5T880-480q0 82-31.5 155t-86 127.5q-54.5 54.5-127 86T480.5-80Q398-80 325-111.5Z" />
-                </svg>
+                  Saved ({savedProfileIds.length})
+                </button>
+                {roles.slice(1, 6).map((role) => (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => {
+                      setRoleFilter(role);
+                    }}
+                    className={
+                      roleFilter === role
+                        ? "cursor-pointer uppercas text-xs  tracking-tight  text-black transition-all duration-500"
+                        : "cursor-pointer uppercas text-xs  tracking-tight text-[#999] transition-all duration-400 hover:text-black"
+                    }
+                  >
+                    {role}
+                  </button>
+                ))}
+              </div>{" "}
+              <div className="flex  items-center gap-2">
+                <button
+                  type="button"
+                  aria-label="Search profiles"
+                  title="Search profiles"
+                  onClick={(event) => openSearch(event.currentTarget)}
+                  className={`cursor-pointer flex items-center gap-1 rounded px- transition-all duration-400 ${viewMode === "grid" ? "text-black" : "text-[#999] hover:text-black"}`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="size-4 "
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                    />
+                  </svg>
 
-                <div className="flex flex-col gap-1">
-                  <h2 className="text-sm hidden font-medium tracking-tight text-[#999]">
-                    Loading...
-                  </h2>
+                  <span className="text-xs  font-semibold uppercase tracking-tight text-[#999]">
+                    Search
+                  </span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-6 grid w-full  grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {loading ? (
+              <div
+                role="status"
+                aria-live="polite"
+                className="fixed inset-0 z-[110]  flex items-center justify-center bg-black/45 backdrop-blur-sm"
+              >
+                <div className="flex geist w-full h-full flex-col justify-center items-center gap-4 bg-white px-8 py-9 text-center shadow-2xl">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="24px"
+                    viewBox="0 -960 960 960"
+                    width="24px"
+                    fill="#999"
+                    className="animate-spin"
+                  >
+                    <path d="M325-111.5q-73-31.5-127.5-86t-86-127.5Q80-398 80-480.5t31.5-155q31.5-72.5 86-127t127.5-86Q398-880 480-880q17 0 28.5 11.5T520-840q0 17-11.5 28.5T480-800q-133 0-226.5 93.5T160-480q0 133 93.5 226.5T480-160q133 0 226.5-93.5T800-480q0-17 11.5-28.5T840-520q17 0 28.5 11.5T880-480q0 82-31.5 155t-86 127.5q-54.5 54.5-127 86T480.5-80Q398-80 325-111.5Z" />
+                  </svg>
+
+                  <div className="flex flex-col gap-1">
+                    <h2 className="text-sm hidden font-medium tracking-tight text-[#999]">
+                      Loading...
+                    </h2>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : error ? (
-            <p className="text-sm mono w-full font-medium tracking-tight uppercase text-[#999]">
-              {error}
-            </p>
-          ) : filteredProfiles.length === 0 ? (
-            <p className="text-sm mono  font-medium tracking-tight uppercase text-[#999]">
-              {searchQuery.trim() || locationFilter || roleFilter !== "All"
-                ? "No profiles match these filters."
-                : showSavedProfiles
-                  ? "No saved profiles yet."
-                  : "No published profiles yet."}
-            </p>
-          ) : (
-            filteredProfiles.map((profile) => (
-              <PersonCard
-                key={profile.id}
-                name={profile.name}
-                bio={profile.bio ?? ""}
-                image={profile.uploaded_image ?? profile.avatar_url ?? ""}
-                hoverMedia={profile.hover_media}
-                sponsored={profile.is_sponsored}
-                role={normalizeRole(profile.role)}
-                onOpen={() => openProfile(profile)}
-              />
-            ))
-          )}
-        </section>
-      </main>
-      <Footer />
-      {isSearchOpen ? (
-        <DirectorySearchModal
-          isOpen={isSearchOpen}
-          onClose={() => setIsSearchOpen(false)}
-          onClearRecents={clearRecentlyViewedProfiles}
-          onSelectProfile={openProfile}
-          profiles={profiles}
-          recentlyViewedProfileIds={recentlyViewedProfileIds}
-        />
-      ) : null}
-      {isSuggestionModalOpen ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-3xl rounded-[28px] bg-white p-6 shadow-2xl">
-            <div className="mb-6 flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#1c40f2]">
-                  Community
-                </p>
-                <h2 className="mt-2 text-2xl font-bold tracking-tighter text-black">
-                  Suggest an event
-                </h2>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsSuggestionModalOpen(false)}
-                aria-label="Close event suggestion modal"
-                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-black/10 text-xl text-black transition hover:bg-black/5"
-              >
-                ×
-              </button>
-            </div>
-
-            <form onSubmit={handleSuggestEvent} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <label className="flex flex-col gap-2 text-sm font-medium text-[#222]">
-                  Event name
-                  <input
-                    value={eventSuggestion.title}
-                    onChange={(event) =>
-                      handleSuggestionChange("title", event.target.value)
-                    }
-                    placeholder="Awwwards x Designers Meetup"
-                    className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none transition focus:border-[#1c40f2]"
-                  />
-                </label>
-
-                <label className="flex flex-col gap-2 text-sm font-medium text-[#222]">
-                  Organizer
-                  <input
-                    value={eventSuggestion.company}
-                    onChange={(event) =>
-                      handleSuggestionChange("company", event.target.value)
-                    }
-                    placeholder="WeEverything"
-                    className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none transition focus:border-[#1c40f2]"
-                  />
-                </label>
-
-                <label className="flex flex-col gap-2 text-sm font-medium text-[#222]">
-                  Date
-                  <input
-                    type="date"
-                    value={eventSuggestion.date}
-                    onChange={(event) =>
-                      handleSuggestionChange("date", event.target.value)
-                    }
-                    className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none transition focus:border-[#1c40f2]"
-                  />
-                </label>
-
-                <label className="flex flex-col gap-2 text-sm font-medium text-[#222]">
-                  City
-                  <input
-                    value={eventSuggestion.city}
-                    onChange={(event) =>
-                      handleSuggestionChange("city", event.target.value)
-                    }
-                    placeholder="New York, NY"
-                    className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none transition focus:border-[#1c40f2]"
-                  />
-                </label>
-
-                <label className="flex flex-col gap-2 text-sm font-medium text-[#222]">
-                  Ticket price
-                  <input
-                    value={eventSuggestion.price}
-                    onChange={(event) =>
-                      handleSuggestionChange("price", event.target.value)
-                    }
-                    placeholder="Free"
-                    className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none transition focus:border-[#1c40f2]"
-                  />
-                </label>
-
-                <label className="flex flex-col gap-2 text-sm font-medium text-[#222]">
-                  Event URL
-                  <input
-                    type="url"
-                    value={eventSuggestion.url}
-                    onChange={(event) =>
-                      handleSuggestionChange("url", event.target.value)
-                    }
-                    placeholder="https://example.com/event"
-                    className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none transition focus:border-[#1c40f2]"
-                  />
-                </label>
-              </div>
-
-              <label className="flex flex-col gap-2 text-sm font-medium text-[#222]">
-                Description
-                <textarea
-                  value={eventSuggestion.description}
-                  onChange={(event) =>
-                    handleSuggestionChange("description", event.target.value)
-                  }
-                  rows={4}
-                  placeholder="Tell people what the event is about, who it’s for, and why it matters."
-                  className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none transition focus:border-[#1c40f2]"
+            ) : error ? (
+              <p className="text-sm mono w-full font-medium tracking-tight uppercase text-[#999]">
+                {error}
+              </p>
+            ) : filteredProfiles.length === 0 ? (
+              <p className="text-sm mono  font-medium tracking-tight uppercase text-[#999]">
+                {searchQuery.trim() || locationFilter || roleFilter !== "All"
+                  ? "No profiles match these filters."
+                  : showSavedProfiles
+                    ? "No saved profiles yet."
+                    : "No published profiles yet."}
+              </p>
+            ) : (
+              filteredProfiles.map((profile) => (
+                <PersonCard
+                  key={profile.id}
+                  name={profile.name}
+                  bio={profile.bio ?? ""}
+                  image={profile.uploaded_image ?? profile.avatar_url ?? ""}
+                  hoverMedia={profile.hover_media}
+                  sponsored={profile.is_sponsored}
+                  role={normalizeRole(profile.role)}
+                  onOpen={() => openProfile(profile)}
                 />
-              </label>
-
-              {suggestionStatus ? (
-                <p
-                  className={`text-sm ${
-                    suggestionStatus.type === "success"
-                      ? "text-green-700"
-                      : "text-red-600"
-                  }`}
-                  aria-live="polite"
-                >
-                  {suggestionStatus.message}
-                </p>
-              ) : null}
-
-              <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-[#666]">
-                  We’ll add the approved submission to the community event feed.
-                </p>
+              ))
+            )}
+          </section>
+        </main>
+        <Footer />
+        {isSearchOpen ? (
+          <DirectorySearchModal
+            isOpen={isSearchOpen}
+            onClose={() => setIsSearchOpen(false)}
+            onClearRecents={clearRecentlyViewedProfiles}
+            onSelectProfile={openProfile}
+            profiles={profiles}
+            recentlyViewedProfileIds={recentlyViewedProfileIds}
+          />
+        ) : null}
+        {isSuggestionModalOpen ? (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-3xl rounded-[28px] bg-white p-6 shadow-2xl">
+              <div className="mb-6 flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#1c40f2]">
+                    Community
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold tracking-tighter text-black">
+                    Suggest an event
+                  </h2>
+                </div>
 
                 <button
-                  type="submit"
-                  disabled={isSubmittingSuggestion}
-                  className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[#1c40f2] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1535c3] disabled:cursor-not-allowed disabled:opacity-70"
+                  type="button"
+                  onClick={() => setIsSuggestionModalOpen(false)}
+                  aria-label="Close event suggestion modal"
+                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-black/10 text-xl text-black transition hover:bg-black/5"
                 >
-                  {isSubmittingSuggestion ? "Submitting..." : "Submit event"}
+                  ×
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
 
-      {selectedProfile ? (
-        <ProfileModal
-          profileId={selectedProfile.id}
-          handle={selectedProfile.handle}
-          name={selectedProfile.name}
-          role={selectedProfile.role}
-          bio={selectedProfile.bio}
-          location={selectedProfile.location}
-          awards={selectedProfile.awards}
-          experience={selectedProfile.experience}
-          customSections={selectedProfile.custom_sections}
-          image={selectedProfile.uploaded_image ?? selectedProfile.avatar_url}
-          hoverMedia={selectedProfile.hover_media}
-          socialLinks={selectedProfile.socialLinks}
-          isSaved={savedProfileIds.includes(selectedProfile.id)}
-          onToggleSave={toggleSavedProfile}
-          onClose={closeProfile}
-        />
-      ) : null}
+              <form onSubmit={handleSuggestEvent} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <label className="flex flex-col gap-2 text-sm font-medium text-[#222]">
+                    Event name
+                    <input
+                      value={eventSuggestion.title}
+                      onChange={(event) =>
+                        handleSuggestionChange("title", event.target.value)
+                      }
+                      placeholder="Awwwards x Designers Meetup"
+                      className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none transition focus:border-[#1c40f2]"
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-2 text-sm font-medium text-[#222]">
+                    Organizer
+                    <input
+                      value={eventSuggestion.company}
+                      onChange={(event) =>
+                        handleSuggestionChange("company", event.target.value)
+                      }
+                      placeholder="WeEverything"
+                      className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none transition focus:border-[#1c40f2]"
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-2 text-sm font-medium text-[#222]">
+                    Date
+                    <input
+                      type="date"
+                      value={eventSuggestion.date}
+                      onChange={(event) =>
+                        handleSuggestionChange("date", event.target.value)
+                      }
+                      className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none transition focus:border-[#1c40f2]"
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-2 text-sm font-medium text-[#222]">
+                    City
+                    <input
+                      value={eventSuggestion.city}
+                      onChange={(event) =>
+                        handleSuggestionChange("city", event.target.value)
+                      }
+                      placeholder="New York, NY"
+                      className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none transition focus:border-[#1c40f2]"
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-2 text-sm font-medium text-[#222]">
+                    Ticket price
+                    <input
+                      value={eventSuggestion.price}
+                      onChange={(event) =>
+                        handleSuggestionChange("price", event.target.value)
+                      }
+                      placeholder="Free"
+                      className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none transition focus:border-[#1c40f2]"
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-2 text-sm font-medium text-[#222]">
+                    Event URL
+                    <input
+                      type="url"
+                      value={eventSuggestion.url}
+                      onChange={(event) =>
+                        handleSuggestionChange("url", event.target.value)
+                      }
+                      placeholder="https://example.com/event"
+                      className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none transition focus:border-[#1c40f2]"
+                    />
+                  </label>
+                </div>
+
+                <label className="flex flex-col gap-2 text-sm font-medium text-[#222]">
+                  Description
+                  <textarea
+                    value={eventSuggestion.description}
+                    onChange={(event) =>
+                      handleSuggestionChange("description", event.target.value)
+                    }
+                    rows={4}
+                    placeholder="Tell people what the event is about, who it’s for, and why it matters."
+                    className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-black outline-none transition focus:border-[#1c40f2]"
+                  />
+                </label>
+
+                {suggestionStatus ? (
+                  <p
+                    className={`text-sm ${
+                      suggestionStatus.type === "success"
+                        ? "text-green-700"
+                        : "text-red-600"
+                    }`}
+                    aria-live="polite"
+                  >
+                    {suggestionStatus.message}
+                  </p>
+                ) : null}
+
+                <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-[#666]">
+                    We’ll add the approved submission to the community event
+                    feed.
+                  </p>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingSuggestion}
+                    className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[#1c40f2] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1535c3] disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {isSubmittingSuggestion ? "Submitting..." : "Submit event"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        ) : null}
+
+        {selectedProfile ? (
+          <ProfileModal
+            profileId={selectedProfile.id}
+            handle={selectedProfile.handle}
+            name={selectedProfile.name}
+            role={selectedProfile.role}
+            bio={selectedProfile.bio}
+            location={selectedProfile.location}
+            awards={selectedProfile.awards}
+            experience={selectedProfile.experience}
+            customSections={selectedProfile.custom_sections}
+            image={selectedProfile.uploaded_image ?? selectedProfile.avatar_url}
+            hoverMedia={selectedProfile.hover_media}
+            socialLinks={selectedProfile.socialLinks}
+            isSaved={savedProfileIds.includes(selectedProfile.id)}
+            onToggleSave={toggleSavedProfile}
+            onClose={closeProfile}
+          />
+        ) : null}
+      </div>
+      <main
+        className="flex min-h-screen items-center justify-center px-6 text-center lg:hidden"
+        aria-labelledby="desktop-only-title"
+      >
+        <div className="max-w-sm">
+          <p className="mon geist  max-w-xs text-center  overflow-hidden text-xl font-semibold tracking-tighter text-black mb-2 ">
+            Desktop experience only
+          </p>
+
+          <p className="geist max-w-xs text-center overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
+            Mobile optimization is still on the way. For now, please open
+            WeEverything on a larger screen for the best experience.
+          </p>
+        </div>
+      </main>
     </div>
   );
 };
