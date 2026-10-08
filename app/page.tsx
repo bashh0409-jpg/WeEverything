@@ -126,7 +126,7 @@ const Page = () => {
   const [recentlyViewedProfileIds, setRecentlyViewedProfileIds] = useState<
     string[]
   >([]);
-  const searchTriggerRef = useRef<HTMLButtonElement>(null);
+  const searchTriggerRef = useRef<HTMLElement | null>(null);
   const [savedProfileIds, setSavedProfileIds] = useState<string[]>([]);
   const [showSavedProfiles, setShowSavedProfiles] = useState(false);
   const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
@@ -159,7 +159,6 @@ const Page = () => {
   useEffect(() => {
     if (!isSearchOpen) return;
 
-    const searchTrigger = searchTriggerRef.current;
     const previousBodyOverflow = document.body.style.overflow;
     const previousHtmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
@@ -167,9 +166,14 @@ const Page = () => {
     return () => {
       document.body.style.overflow = previousBodyOverflow;
       document.documentElement.style.overflow = previousHtmlOverflow;
-      searchTrigger?.focus();
+      searchTriggerRef.current?.focus();
     };
   }, [isSearchOpen]);
+
+  const openSearch = (trigger: HTMLElement) => {
+    searchTriggerRef.current = trigger;
+    setIsSearchOpen(true);
+  };
 
   useEffect(() => {
     if (!filtersReady) return;
@@ -564,7 +568,7 @@ const Page = () => {
 
   return (
     <div>
-      <Navbar />
+      <Navbar onSearch={openSearch} />
 
       <main className="flex min-h-screen flex-col items-center justify-center px-6 py-2">
         <section className="mt-60 geist leading-8 text-4xl font-bold tracking-tighter capitalize text-[#000] flex max-w-xl flex-col items-center justify-center text-center uppercas ">
@@ -637,11 +641,10 @@ const Page = () => {
             </div>{" "}
             <div className="flex  items-center gap-2">
               <button
-                ref={searchTriggerRef}
                 type="button"
                 aria-label="Search profiles"
                 title="Search profiles"
-                onClick={() => setIsSearchOpen(true)}
+                onClick={(event) => openSearch(event.currentTarget)}
                 className={`cursor-pointer flex items-center gap-1 rounded px- transition-all duration-400 ${viewMode === "grid" ? "text-black" : "text-[#999] hover:text-black"}`}
               >
                 <svg

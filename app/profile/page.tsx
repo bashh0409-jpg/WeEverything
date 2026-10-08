@@ -825,8 +825,8 @@ const ProfileMessage = ({
       ref={messageRef}
       role="status"
       aria-live="polite"
-      aria-hidden={isExiting}
-      className="mt-6 flex items-start justify-between gap-3 rounded-md border border-[#1c40f2]/20 bg-[#1c40f2]/5 px-3 py-1 text-sm font-medium tracking-tight text-[#1734a9] geist"
+      
+      className="mt-6 flex items-start justify-between gap-3 rounded-md border border-[#1c40f2]/20 bg-[#1c40f2]/5 px-2 text-sm font-medium tracking-tight text-[#1734a9] geist"
     >
       <p>{message}</p>
       <button
@@ -2552,7 +2552,7 @@ const ProfilePage = () => {
         <section className="mx-auto w-full max-w-6xl border- mt-10 border-black pt-5">
           <div className="flex flex-wrap items-center justify-between gap-5">
             <div>
-              <h1 className="mt-3 geist text-2xl font-semibold tracking-tighter uppercase sm:text-4xl">
+              <h1 className="mt-3 geist text-2xl font-semibold tracking-tighter uppercas sm:text-4xl">
                 {profileName}
               </h1>
             </div>
@@ -2738,17 +2738,77 @@ const ProfilePage = () => {
                   <p className="mt-1 mono text-xs font-medium uppercase tracking-tight text-[#999]">
                     {activeForm.location.trim() || "Unknown location"}
                   </p>
-                  <p
-                    className={`mt-1 mon text-xs font-semibold uppercase tracking-tight ${
-                      profile?.is_published
-                        ? "text-green-500"
-                        : "text-amber-500"
-                    }`}
-                  >
-                    {profile?.is_published
-                      ? "Public"
-                      : "Private (Not Published)"}
-                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {visibleSocials.map((link) => {
+                      const option = socialOptions.find(
+                        (entry) => entry.type === link.type,
+                      );
+
+                      return (
+                        <div
+                          key={link.id}
+                          className="group relative flex h-7 w- mr-3.5 items-center justify-center text-black"
+                        >
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={option?.label ?? link.type}
+                            aria-label={option?.label ?? link.type}
+                            className="flex h-full w-full items-center justify-center rounded-full text-base transition"
+                          >
+                            {getSocialIcon(link.type)}
+                          </a>
+                          <span className="pointer-events-none absolute -right-1 -top-1 flex translate-y-1 gap-0.5 opacity-0 transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
+                            <button
+                              type="button"
+                              aria-label={`Edit ${option?.label ?? link.type} link`}
+                              title="Edit link"
+                              onClick={() => openSocialEditor(link)}
+                              className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-black bg-white text-black shadow-sm transition hover:bg-black hover:text-white"
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                width="11"
+                                height="11"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M12 20h9" />
+                                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Remove ${option?.label ?? link.type} link`}
+                              title="Remove link"
+                              onClick={() => void handleSocialRemove(link)}
+                              className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-red-600 bg-white text-red-600 shadow-sm transition hover:bg-red-600 hover:text-white"
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                width="11"
+                                height="11"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M3 6h18" />
+                                <path d="M8 6V4h8v2" />
+                                <path d="m19 6-1 14H6L5 6" />
+                              </svg>
+                            </button>
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>{" "}
               <section className="mt-10 grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
@@ -2769,7 +2829,7 @@ const ProfilePage = () => {
                 </div>
               </section>
               {visibleSocials.length ? (
-                <section className="mt-10 grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                <section className="mt-10 hidden grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
                   <p className="text-sm font-medium tracking-tight text-[#999]">
                     Let&apos;s Connect
                   </p>
@@ -3101,7 +3161,7 @@ const ProfilePage = () => {
                   type="button"
                   onClick={openDeleteAccountModal}
                   disabled={deletingAccount}
-                  className="mt-3 rounded-full mono tracking-tight uppercase cursor-pointer border border-red-300 px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="max-w-full capitalize geist max-h-7 mt-2 rounded-3xl border border-red-300  px-2 py-1 text-sm font-medium leading-4 tracking-tight text-red-600 hover:bg-red-600/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 [overflow-wrap:anywhere]"
                 >
                   {deletingAccount ? "Deleting account..." : "Delete account"}
                 </button>
@@ -3152,17 +3212,14 @@ const ProfilePage = () => {
                     : "profile-modal-sheet"
                 }`}
               >
-                <div className="max-w-2xl mx-auto w-full geist tracking-tight font-medium">
+                <div className="max-w-2xl  mx-auto w-full geist tracking-tight font-medium">
                   <div className="flex flex-wrap items-end justify-between gap-4">
                     <div>
-                      <p className="mono text-sm font-medium tracking-tighter uppercase tracking-tight text-[#999]">
-                        update your Profile
-                      </p>
                       <h2
                         id="profile-editor-title"
-                        className="mt-2 text-2xl font-semibold tracking-tighter"
+                        className="mt-2 uppercase text-2xl capitalize font-semibold tracking-tighter hidden"
                       >
-                        Make it yours.
+                        update your Profile
                       </h2>
                     </div>
 
@@ -3474,7 +3531,7 @@ const ProfilePage = () => {
                     </fieldset>
                   </div>
 
-                  <div className="mt-8 mono text-sm font-Medium uppercase tracking-tight text-[#999]">
+                  <div className="mt-8  text-sm font-Medium uppercase tracking-tight text-[#999]">
                     <div className="flex items-center justify-between">
                       <label htmlFor="profile-bio text-xs">About Me *</label>
                       <div className="flex items-center gap-3">
@@ -3556,7 +3613,7 @@ const ProfilePage = () => {
                             enhancingBio ||
                             countWords(activeForm.bio) < MIN_BIO_WORDS
                           }
-                          className="rounded-full border border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                          className="rounded-full geist border border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           {enhancingBio ? "Enhancing..." : "Enhance bio"}
                         </button>
@@ -3710,25 +3767,25 @@ const ProfilePage = () => {
                     />
 
                     <div className="mt-2 w-full flex justify-between items-center">
-                      <button
-                        type="button"
-                        onClick={addExperience}
-                        disabled={removingExperienceIndex !== null}
-                        className="rounded-full border mono border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {editingExperienceIndex === null
-                          ? "Save experience"
-                          : "Update experience"}
-                      </button>
-                      {editingExperienceIndex !== null ? (
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           type="button"
-                          onClick={cancelExperienceEdit}
-                          className="rounded-full border border-black/20 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#666] transition hover:border-black hover:text-black"
+                          onClick={addExperience}
+                          disabled={removingExperienceIndex !== null}
+                          className="rounded-full border  border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                          Cancel
+                          {editingExperienceIndex === null ? "Save experience" : "Update experience"}
                         </button>
-                      ) : null}
+                        {editingExperienceIndex !== null ? (
+                          <button
+                            type="button"
+                            onClick={cancelExperienceEdit}
+                            className="rounded-full border border-black/20 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#666] transition hover:border-black hover:text-black"
+                          >
+                            Cancel
+                          </button>
+                        ) : null}
+                      </div>
 
                       <span className="mt-2 text-xs geist tracking-tighter font-semibold capitalize mon uppercase text-[#999]">
                         {countWords(newExperience.description)} /{" "}
@@ -3738,7 +3795,7 @@ const ProfilePage = () => {
 
                     {visibleExperienceEntries.length ? (
                       <div className="mt-5">
-                        <p className="mono text-xs hidden font-medium uppercase tracking-tight text-[#999]">
+                        <p className=" text-xs hidden font-medium uppercase tracking-tight text-[#999]">
                           Added experience
                         </p>
 
@@ -3890,11 +3947,11 @@ const ProfilePage = () => {
                               activeForm.custom_sections.length >=
                                 MAX_CUSTOM_PROFILE_SECTIONS)
                           }
-                          className="rounded-full border mono border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                          className="rounded-full border border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           {editingCustomSectionIndex === null
                             ? "Save section"
-                            : "Update section"}
+                            : "Update"}
                         </button>
                         {editingCustomSectionIndex !== null ? (
                           <button
@@ -4159,11 +4216,11 @@ const ProfilePage = () => {
                         type="button"
                         onClick={addAward}
                         disabled={!newAward.name.trim()}
-                        className="rounded-full border border-[#1c40f2]/30 px-3 py-1 mono text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                        className="rounded-full border border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {editingAwardIndex === null
                           ? "Save recognition"
-                          : "Update recognition"}
+                          : "Update "}
                       </button>
                       {editingAwardIndex !== null ? (
                         <button

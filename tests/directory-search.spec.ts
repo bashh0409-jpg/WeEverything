@@ -16,9 +16,9 @@ test("a visitor can search profiles and dismiss the directory search", async ({
   await page.goto("/");
   await profilesResponse;
 
-  const searchTrigger = page.getByRole("button", {
-    name: "Search profiles",
-  });
+  const searchTrigger = page
+    .getByRole("navigation")
+    .getByRole("button", { name: "Search profiles" });
   await expect(searchTrigger).toBeVisible();
   await searchTrigger.click();
 

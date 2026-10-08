@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase/client";
 import { getActivePromotion } from "@/lib/sponsorship";
 import SignInModal from "./SignInModal";
 
+
 const links = [
   { href: "/", label: "Home," },
   { href: "/about", label: "About," },
@@ -22,29 +23,18 @@ const links = [
   { href: "/legal", label: "Legal," },
 ];
 
-const mostAwardedProfiles = [
-  { name: "Locomotive", href: "https://www.awwwards.com/locomotive/" },
-  {
-    name: "Immersive Garden",
-    href: "https://www.awwwards.com/immersivegarden/",
-  },
-  { name: "Resn", href: "https://www.awwwards.com/resn/" },
-  { name: "Monks", href: "https://www.awwwards.com/madebymonks/" },
-  { name: "Active Theory", href: "https://www.awwwards.com/active_theory/" },
-  { name: "Hello Monday", href: "https://www.awwwards.com/hellomonday/" },
-  { name: "AQuest", href: "https://www.awwwards.com/aquest/" },
-  { name: "Merci Michel", href: "https://www.awwwards.com/Merci-Michel/" },
-  { name: "makemepulse", href: "https://www.awwwards.com/makemepulse/" },
-  { name: "dogstudio", href: "https://www.awwwards.com/dogstudio/" },
-];
 
 let cachedNavbarUser: User | null = null;
 let hasLoadedNavbarSession = false;
 
 const Navbar = forwardRef<
   HTMLElement,
-  { className?: string; currentTime?: string }
->(({ className = "", currentTime }, ref) => {
+  {
+    className?: string;
+    currentTime?: string;
+    onSearch?: (trigger: HTMLButtonElement) => void;
+  }
+>(({ className = "", currentTime, onSearch }, ref) => {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [localTime, setLocalTime] = useState("");
@@ -350,13 +340,13 @@ const Navbar = forwardRef<
     <>
       <nav
         ref={ref}
-        className={`fixed  left-0 top-0 z-20 flex w-full items-start justify-between gap-4 p-4 font-medium tracking-tight  b-[linear-gradient(to_bottom,_rgba(28,64,242,0.5)_0%,_rgba(28,64,242,0.4)_50%,_transparent_100%)] ${className}`}
+        className={`fixed left-0 top-0 z-20 flex w-full items-start justify-between gap-4 p-4 font-medium tracking-tight text-white mix-blend-difference bg-none b-[linear-gradient(to_bottom,_rgba(28,64,242,0.5)_0%,_rgba(28,64,242,0.4)_50%,_transparent_100%)] ${className}`}
       >
         <Link
           href="/"
-          className=" text-white lowercas geist mix-blend-difference font-medium tracking-tight "
+          className="text-white lowercas geist font-medium tracking-tight"
         >
-          <p className="geist uppercase leading-8 text-xl font-bold tracking-tighter capitalize text-[#000] flex max-w-xl flex-col items-center justify-center text-center uppercas ">
+          <p className="geist uppercase leading-8 text-xl font-bold tracking-tighter capitalize flex max-w-xl flex-col items-center justify-center text-center uppercas ">
             weeverything
           </p>
         </Link>
@@ -368,7 +358,7 @@ const Navbar = forwardRef<
                 key={link.href}
                 href={link.href}
                 data-nav-link
-                className="geist  uppercase leading-8 text-xl font-bold tracking-tighter capitalize text- flex max-w-xl flex-col items-center justify-center text-center uppercas "
+                className="geist uppercase leading-8 text-xl font-bold tracking-tighter capitalize flex max-w-xl flex-col items-center justify-center text-center uppercas "
               >
                 {link.label}
               </Link>
@@ -377,11 +367,22 @@ const Navbar = forwardRef<
         </div>
 
         <div className="hidden  shrink-0 items-start justify-end gap-4 text-white sm:flex">
+          {onSearch ? (
+            <button
+              type="button"
+              aria-label="Search profiles"
+              title="Search profiles"
+              onClick={(event) => onSearch(event.currentTarget)}
+              className="geist uppercase leading-8 text-xl font-bold tracking-tighter capitalize flex max-w-xl flex-col items-center justify-center text-center uppercas "
+            >
+              Search
+            </button>
+          ) : null}
           <div className="flex w-full items-center justify-end text-sm font-semibold">
             {isAuthLoading ? null : !isAuthenticated ? (
               <Link
                 href="/signin"
-                className="geist uppercase leading-8 text-xl font-bold tracking-tighter capitalize text-[#000] flex max-w-xl flex-col items-center justify-center text-center uppercas "
+                className="geist uppercase leading-8 text-xl font-bold tracking-tighter capitalize flex max-w-xl flex-col items-center justify-center text-center uppercas "
               >
                 sign in
               </Link>
@@ -393,98 +394,10 @@ const Navbar = forwardRef<
                     setLogoutError("");
                     setIsLogoutConfirmOpen(true);
                   }}
-                  className="geist mr-2 uppercase leading-8 text-xl font-bold tracking-tighter capitalize text-[#000] flex max-w-xl flex-col items-center justify-center text-center uppercas "
+                  className="geist mr-12 uppercase leading-8 text-xl font-bold tracking-tighter capitalize flex max-w-xl flex-col items-center justify-center text-center uppercas "
                 >
                   sign out
                 </button>
-                <Link
-                  href="/profile"
-                  aria-label={`View profile for ${user?.email ?? "your account"}`}
-                  title={user?.email ?? "Your profile"}
-                  className={`hover:bg-[#1c40f2] w-8 h-8  transition-colors duration-300 cursor-pointer rounded-full border ${isSponsored ? "bg-[#1c40f2]" : ""}`}
-                >
-                  <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white text-xs font-bold uppercase text-black">
-                    <span
-                      aria-hidden
-                      className="relative animate-spin [animation-duration:10s] block w-4 h-4"
-                    >
-                      <div
-                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
-                        style={{
-                          top: "5%",
-                          left: "50%",
-                          transform: "translate(-50%, -50%)",
-                        }}
-                      />
-                      <div
-                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
-                        style={{
-                          top: "18.2%",
-                          left: "81.8%",
-                          transform: "translate(-50%, -50%)",
-                        }}
-                      />
-                      <div
-                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
-                        style={{
-                          top: "50%",
-                          left: "95%",
-                          transform: "translate(-50%, -50%)",
-                        }}
-                      />
-                      <div
-                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
-                        style={{
-                          top: "81.8%",
-                          left: "81.8%",
-                          transform: "translate(-50%, -50%)",
-                        }}
-                      />
-                      <div
-                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
-                        style={{
-                          top: "95%",
-                          left: "50%",
-                          transform: "translate(-50%, -50%)",
-                        }}
-                      />
-                      <div
-                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
-                        style={{
-                          top: "81.8%",
-                          left: "18.2%",
-                          transform: "translate(-50%, -50%)",
-                        }}
-                      />
-                      <div
-                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
-                        style={{
-                          top: "50%",
-                          left: "5%",
-                          transform: "translate(-50%, -50%)",
-                        }}
-                      />
-                      <div
-                        className="absolute w-1  h-1  rounded-full bg-black shrink-0"
-                        style={{
-                          top: "18.2%",
-                          left: "18.2%",
-                          transform: "translate(-50%, -50%)",
-                        }}
-                      />
-                    </span>
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt=""
-                        onError={(event) => {
-                          event.currentTarget.style.display = "none";
-                        }}
-                        className="absolute inset-0 h-full w-full object-cover"
-                      />
-                    ) : null}
-                  </span>
-                </Link>
               </>
             )}
           </div>
@@ -508,6 +421,97 @@ const Navbar = forwardRef<
         </button>
       </nav>
 
+      {isAuthenticated ? (
+        <Link
+          href="/profile"
+          aria-label={`View profile for ${user?.email ?? "your account"}`}
+          title={user?.email ?? "Your profile"}
+          className={`fixed right-4 top-4 z-20 hidden h-8 w-8 cursor-pointer rounded-full border-2 border-black/5 transition-colors duration-300 hover:bg-[#1c40f2] sm:block ${isSponsored ? "bg-[#1c40f2]" : ""}`}
+        >
+          <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white text-xs font-bold uppercase text-black">
+            <span
+              aria-hidden
+              className="relative block h-4 w-4 animate-spin [animation-duration:10s]"
+            >
+              <div
+                className="absolute h-1 w-1 shrink-0 rounded-full bg-black"
+                style={{
+                  top: "5%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                }}
+              />
+              <div
+                className="absolute h-1 w-1 shrink-0 rounded-full bg-black"
+                style={{
+                  top: "18.2%",
+                  left: "81.8%",
+                  transform: "translate(-50%, -50%)",
+                }}
+              />
+              <div
+                className="absolute h-1 w-1 shrink-0 rounded-full bg-black"
+                style={{
+                  top: "50%",
+                  left: "95%",
+                  transform: "translate(-50%, -50%)",
+                }}
+              />
+              <div
+                className="absolute h-1 w-1 shrink-0 rounded-full bg-black"
+                style={{
+                  top: "81.8%",
+                  left: "81.8%",
+                  transform: "translate(-50%, -50%)",
+                }}
+              />
+              <div
+                className="absolute h-1 w-1 shrink-0 rounded-full bg-black"
+                style={{
+                  top: "95%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                }}
+              />
+              <div
+                className="absolute h-1 w-1 shrink-0 rounded-full bg-black"
+                style={{
+                  top: "81.8%",
+                  left: "18.2%",
+                  transform: "translate(-50%, -50%)",
+                }}
+              />
+              <div
+                className="absolute h-1 w-1 shrink-0 rounded-full bg-black"
+                style={{
+                  top: "50%",
+                  left: "5%",
+                  transform: "translate(-50%, -50%)",
+                }}
+              />
+              <div
+                className="absolute h-1 w-1 shrink-0 rounded-full bg-black"
+                style={{
+                  top: "18.2%",
+                  left: "18.2%",
+                  transform: "translate(-50%, -50%)",
+                }}
+              />
+            </span>
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt=""
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            ) : null}
+          </span>
+        </Link>
+      ) : null}
+
       <aside
         ref={asideRef}
         aria-hidden={!sidebarOpen}
@@ -518,7 +522,9 @@ const Navbar = forwardRef<
         <div className="flex shrink-0 items-center justify-between">
           <div className="flex items-center gap-3">
             <div>
-              <p className="font-bold italic tracking-tighter">WeEverything</p>
+              <p className="mix-blend-difference font-bold italic tracking-tighter">
+                WeEverything
+              </p>
             </div>
           </div>
 
@@ -546,7 +552,7 @@ const Navbar = forwardRef<
               key={link.href}
               href={link.href}
               onClick={closeSidebar}
-              className="group flex items-center gap-4 border-b border-white/20 py-4 first:border-t"
+              className="group mix-blend-difference flex items-center gap-4 border-b border-white/20 py-4 first:border-t"
             >
               <span className="geist font-semibold w-6 text-xs text-white/55">
                 0{index + 1}
@@ -576,7 +582,7 @@ const Navbar = forwardRef<
           <Link
             href="/profile"
             onClick={closeSidebar}
-            className="flex min-h-11 items-center justify-center rounded-full border border-white/45 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+            className="mix-blend-difference flex min-h-11 items-center justify-center rounded-full border border-white/45 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
           >
             Profile
           </Link>
@@ -598,7 +604,7 @@ const Navbar = forwardRef<
             disabled={isAuthLoading}
             aria-hidden={isAuthLoading}
             tabIndex={isAuthLoading ? -1 : undefined}
-            className={`flex min-h-10 items-center rounded-full bg-white px-5 text-center text-sm font-semibold text-[#1c40f2] transition-transform hover:scale-[1.01] active:scale-[0.99] ${
+            className={`mix-blend-difference flex min-h-10 items-center rounded-full bg-white px-5 text-center text-sm font-semibold text-[#1c40f2] transition-transform hover:scale-[1.01] active:scale-[0.99] ${
               isAuthLoading ? "invisible" : ""
             }`}
           >
