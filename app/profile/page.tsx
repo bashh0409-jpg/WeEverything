@@ -931,6 +931,7 @@ const ProfilePage = () => {
   const [sponsorCheckoutError, setSponsorCheckoutError] = useState("");
   const [loading, setLoading] = useState(() => Boolean(supabase));
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditorClosing, setIsEditorClosing] = useState(false);
   const [editingSocialType, setEditingSocialType] = useState<SocialType | null>(
     null,
   );
@@ -951,6 +952,7 @@ const ProfilePage = () => {
   const bioStyleInstructionRef = useRef<HTMLTextAreaElement>(null);
   const experienceErrorRef = useRef<HTMLParagraphElement>(null);
   const profileFormRef = useRef<HTMLFormElement>(null);
+  const editorCloseTimerRef = useRef<number | undefined>(undefined);
   const disciplinePickerRef = useRef<HTMLDivElement>(null);
   const locationPickerRef = useRef<HTMLDivElement>(null);
   const loadedProfileUserId = useRef<string | null>(null);
@@ -960,6 +962,35 @@ const ProfilePage = () => {
       : "Supabase is not configured yet. Add your public environment variables first.",
   );
   const dismissProfileMessage = useCallback(() => setMessage(""), []);
+
+  const clearEditorCloseTimer = useCallback(() => {
+    if (editorCloseTimerRef.current === undefined) return;
+    window.clearTimeout(editorCloseTimerRef.current);
+    editorCloseTimerRef.current = undefined;
+  }, []);
+
+  const openProfileEditor = useCallback(() => {
+    clearEditorCloseTimer();
+    setIsEditorClosing(false);
+    setIsEditing(true);
+  }, [clearEditorCloseTimer]);
+
+  const closeProfileEditor = useCallback(() => {
+    if (!isEditing || isEditorClosing) return;
+    setIsEditorClosing(true);
+    editorCloseTimerRef.current = window.setTimeout(() => {
+      setIsEditing(false);
+      setIsEditorClosing(false);
+      editorCloseTimerRef.current = undefined;
+    }, 500);
+  }, [isEditorClosing, isEditing]);
+
+  useEffect(
+    () => () => {
+      clearEditorCloseTimer();
+    },
+    [clearEditorCloseTimer],
+  );
 
   useEffect(() => {
     if (showBioStyleInstruction) {
@@ -1235,7 +1266,7 @@ const ProfilePage = () => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || startingCheckout) return;
       if (isSponsorModalOpen) setIsSponsorModalOpen(false);
-      else setIsEditing(false);
+      else closeProfileEditor();
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -1245,7 +1276,7 @@ const ProfilePage = () => {
       document.documentElement.style.overflow = previousHtmlOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isEditing, isSponsorModalOpen, startingCheckout]);
+  }, [closeProfileEditor, isEditing, isSponsorModalOpen, startingCheckout]);
 
   const handleChange = (
     event: ChangeEvent<
@@ -1971,7 +2002,7 @@ const ProfilePage = () => {
     setSocialLinks(savedSocials);
     setSocials(toSocialForm(savedSocials));
     setEditingSocialType(null);
-    setIsEditing(false);
+    closeProfileEditor();
     posthog.capture("profile_saved_changes", {
       is_published: data.is_published,
       social_link_count: savedSocials.length,
@@ -2211,7 +2242,7 @@ const ProfilePage = () => {
     setForm(toForm(user, profile));
     setSocials(toSocialForm(socialLinks));
     setEditingSocialType(link.type);
-    setIsEditing(true);
+    openProfileEditor();
   };
 
   const handleMediaRemove = async (item: ProfileMedia) => {
@@ -2455,7 +2486,7 @@ const ProfilePage = () => {
     setEditingExperienceIndex(null);
     setNewCustomSection(EMPTY_CUSTOM_PROFILE_SECTION);
     setEditingCustomSectionIndex(null);
-    setIsEditing(true);
+    openProfileEditor();
     window.setTimeout(() => bioInputRef.current?.focus(), 0);
   };
 
@@ -2478,7 +2509,8 @@ const ProfilePage = () => {
     setEditingExperienceIndex(null);
     setNewCustomSection(EMPTY_CUSTOM_PROFILE_SECTION);
     setEditingCustomSectionIndex(null);
-    setIsEditing(shouldOpen);
+    if (shouldOpen) openProfileEditor();
+    else closeProfileEditor();
   };
 
   return (
@@ -3039,24 +3071,27 @@ const ProfilePage = () => {
               <button
                 type="button"
                 aria-label="Close profile editor"
-                onClick={() => setIsEditing(false)}
-                className="profile-modal-backdrop pointer-events-auto fixed inset-0 z-40 cursor-default bg-black/50 backdrop-blur-sm"
+                onClick={closeProfileEditor}
+                className={`profile-modal-backdrop ${
+                  isEditorClosing ? "profile-modal-backdrop-exit" : ""
+                } pointer-events-auto fixed inset-0 z-40 cursor-default bg-black/50 backdrop-blur-sm`}
               />
               <button
                 type="button"
                 aria-label="Close profile editor"
-                onClick={() => setIsEditing(false)}
-                className="profile-modal-close pointer-events-auto fixed right-1/2 bottom-[calc(90vh+0px)] z-50 flex h-10 w-10 translate-x-1/2 cursor-pointer items-center justify-center rounded-full text-white"
+                onClick={closeProfileEditor}
+                className={`profile-modal-close ${
+                  isEditorClosing ? "profile-modal-close-exit" : ""
+                } bg-white pointer-events-auto fixed right-1/2 bottom-[calc(90vh+10px)] z-50 flex h-8 w-8 translate-x-1/2 cursor-pointer items-center justify-center rounded-full text-black`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  height="40"
+                  height="24px"
                   viewBox="0 -960 960 960"
-                  width="40"
+                  width="24px"
                   fill="currentColor"
-                  aria-hidden="true"
                 >
-                  <path d="M160-380v-66.67h640V-380H160Zm0-133.33V-580h640v66.67H160Z" />
+                  <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
                 </svg>
               </button>
               <form
@@ -3068,7 +3103,11 @@ const ProfilePage = () => {
                 data-lenis-prevent
                 onWheelCapture={(event) => event.stopPropagation()}
                 onTouchMoveCapture={(event) => event.stopPropagation()}
-                className="  pointer-events-auto fixed bottom-0 left-0 right-0 z-50 flex h-[90vh] max-h-[90dvh] scrollbar-hide min-h-0 touch-pan-y flex-col overflow-y-auto overscroll-contain rounded-t bg-white px-6 py-10 shadow-2xl sm:px-10"
+                className={`pointer-events-auto fixed bottom-0 left-0 right-0 z-50 flex h-[90vh] max-h-[90dvh] scrollbar-hide min-h-0 touch-pan-y flex-col overflow-y-auto overscroll-contain rounded-t bg-white px-6 py-10 shadow-2xl sm:px-10 ${
+                  isEditorClosing
+                    ? "profile-modal-sheet-exit"
+                    : "profile-modal-sheet"
+                }`}
               >
                 <div className="max-w-2xl mx-auto w-full geist tracking-tight font-medium">
                   <div className="flex flex-wrap items-end justify-between gap-4">
@@ -3283,7 +3322,6 @@ const ProfilePage = () => {
                                 }`}
                               >
                                 <div className="min-h-0 overflow-hidden">
-                                  
                                   <button
                                     type="button"
                                     onClick={() =>

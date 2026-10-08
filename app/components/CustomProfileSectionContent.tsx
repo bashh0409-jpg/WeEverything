@@ -57,7 +57,7 @@ const CustomProfileSectionContent = ({ content }: { content: string }) => {
             className="grid min-w-0 gap-1.5 sm:grid-cols-[minmax(120px,0.4fr)_minmax(0,1fr)] sm:gap-3"
           >
             <dt className="text-sm font-medium leading-4 tracking-tight text-[#777]">
-              {row.label}:
+              {row.label}
             </dt>
             <dd
               className={

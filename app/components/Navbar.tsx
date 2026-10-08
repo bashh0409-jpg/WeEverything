@@ -283,25 +283,25 @@ const Navbar = forwardRef<
     <>
       <nav
         ref={ref}
-        className={`fixed  left-0 top-0 z-20 flex w-full items-start justify-between gap-4 p-4 font-medium tracking-tight bg-[linear-gradient(to_bottom,_rgba(28,64,242,0.5)_0%,_transparent_100%)] ${className}`}
+        className={`fixed  left-0 top-0 z-20 flex w-full items-start justify-between gap-4 p-4 font-medium tracking-tight  bg-[linear-gradient(to_bottom,_rgba(28,64,242,0.5)_0%,_rgba(28,64,242,0.4)_50%,_transparent_100%)] ${className}`}
       >
         <Link
           href="/"
-          className="shrink-0 font-bold  mt-1 blue italic tracking-tighter text-white"
+          className="text- geis blue mix-blend-difference font-semibold tracking-tight "
         >
-          WeEverything
+          WeEverything.xyz
         </Link>
 
         <div
           ref={desktopLinksRef}
-          className="hidden  items-start mt-1 justify-center gap-2 text-white sm:flex"
+          className="hidden  items-start mt-1 justify-center gap-3 text-white sm:flex"
         >
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               data-nav-link
-              className="relative inline-block font-semibold blue tracking-tighter"
+              className="text-[#999 blue mix-blend-difference font-medium uppercase text-xs geist tracking-tight "
             >
               {link.label}
             </Link>
@@ -317,7 +317,7 @@ const Navbar = forwardRef<
           >
             10 Most Awarded Profiles
           </a>
-          <div className="grid grid-cols-2 mt-2 gap-x-5 leading-none">
+          <div className="grid grid-cols-2 geist mt-2 gap-x-5 leading-none">
             {[
               mostAwardedProfiles.slice(0, 5),
               mostAwardedProfiles.slice(5),
@@ -329,7 +329,7 @@ const Navbar = forwardRef<
                     href={profile.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-bold tracking-tighter hover:underline"
+                    className="text-[#999] mix-blend-difference font-medium uppercase text-xs tracking-tight "
                   >
                     {profile.name}
                   </a>
@@ -339,13 +339,13 @@ const Navbar = forwardRef<
           </div>
         </div>
 
-        <div className="hidden items-start gap-4 text-white sm:flex">
-          <div className="flex items-center text-sm font-semibold">
+        <div className="hidden w-28 shrink-0 items-start justify-end gap-4 text-white sm:flex">
+          <div className="flex w-full items-center justify-end text-sm font-semibold">
             {!isAuthenticated ? (
               <button
                 type="button"
                 onClick={() => setIsSignInOpen(true)}
-                className="bg-black ml-1 hover:bg-black/50 mono tracking-tighter transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
+                className="bg-black ml-1 hover:bg-black/50 geist tracking-tight transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
               >
                 Sign in
               </button>
@@ -354,7 +354,7 @@ const Navbar = forwardRef<
                 <button
                   type="button"
                   onClick={() => setIsLogoutConfirmOpen(true)}
-                  className="bg-black mr-1 mono tracking-tighter hover:bg-black/50 transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
+                  className="bg-black mr-1 geist tracking-tight hover:bg-black/50 transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
                 >
                   Log out
                 </button>
@@ -363,9 +363,9 @@ const Navbar = forwardRef<
                   href="/profile"
                   aria-label={`View profile for ${user?.email ?? "your account"}`}
                   title={user?.email ?? "Your profile"}
-                  className={`hover:bg-[#1c40f2] max-w-8 transition-colors duration-300 cursor-pointer rounded-full p-0.5 ${isSponsored ? "bg-[#1c40f2]" : ""}`}
+                  className={`hover:bg-[#1c40f2] w-7 h-7  transition-colors duration-300 cursor-pointer rounded-full border ${isSponsored ? "bg-[#1c40f2]" : ""}`}
                 >
-                  <span className="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white text-xs font-bold uppercase text-black">
+                  <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white text-xs font-bold uppercase text-black">
                     <span
                       aria-hidden
                       className="relative animate-spin [animation-duration:10s] block w-4 h-4"

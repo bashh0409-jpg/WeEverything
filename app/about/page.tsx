@@ -1,26 +1,8 @@
 "use client";
 
-import React, { useEffect } from "react";
-
-import Lenis from "lenis";
 import Navbar from "../components/Navbar";
 
 const Page = () => {
-  useEffect(() => {
-    const lenis = new Lenis();
-    let frameId = 0;
-    const raf = (time: number) => {
-      lenis.raf(time);
-      frameId = requestAnimationFrame(raf);
-    };
-
-    frameId = requestAnimationFrame(raf);
-    return () => {
-      cancelAnimationFrame(frameId);
-      lenis.destroy();
-    };
-  }, []);
-
   return (
     <div>
       <Navbar />
