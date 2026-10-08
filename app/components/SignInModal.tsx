@@ -263,7 +263,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
                 disabled={
                   !isSupabaseConfigured || !isAdultConfirmed || isSigningIn
                 }
-                className="flex w-full mono tracking-tight cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1c40f2] px-4 py-2 text-sm font-medium uppercase text-white transition hover:bg-[#1636d4] disabled:cursor-not-allowed disabled:bg-[#c2ccff]"
+                className="flex w-full geist tracking-tight cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1c40f2] px-4 py-2 text-sm font-medium uppercase text-white transition hover:bg-[#1636d4] disabled:cursor-not-allowed disabled:bg-[#c2ccff]"
               >
                 <FaGoogle aria-hidden="true" className="text-base" />
                 Google
@@ -275,7 +275,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
                 disabled={
                   !isSupabaseConfigured || !isAdultConfirmed || isSigningIn
                 }
-                className="flex w-full mono tracking-tight cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-medium uppercase text-white transition hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#aaa]"
+                className="flex w-full geist tracking-tight cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-medium uppercase text-white transition hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#aaa]"
               >
                 <FaGithub aria-hidden="true" className="text-base" />
                 GitHub
