@@ -268,10 +268,12 @@ const Page = () => {
                 </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
-                  A signed-in profile owner may start a one-time sponsorship
-                  checkout for an amount from USD 1 to USD 10,000. A paid
-                  sponsorship may give the profile priority in the directory for
-                  up to 30 days from payment. It does not guarantee a particular
+                  A signed-in profile owner may purchase one profile promotion
+                  package at a time: 7 days for USD 5, 30 days for USD 15, or 90
+                  days for USD 30. The promotion begins when payment is
+                  confirmed. Another package may be purchased after the current
+                  promotion expires. A promotion may give the profile priority
+                  in the directory but does not guarantee a particular
                   position, views, inquiries, or work opportunities.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">

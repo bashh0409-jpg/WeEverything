@@ -4,9 +4,11 @@ import { Polar } from "@polar-sh/sdk";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { enforceRateLimit } from "@/lib/rate-limit";
-
-const minimumSponsorshipAmount = 100;
-const maximumSponsorshipAmount = 1_000_000;
+import {
+  getActivePromotion,
+  getPromotionExpiry,
+  getPromotionPackage,
+} from "@/lib/sponsorship";
 
 const getCanonicalSiteUrl = () => {
   const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL;
@@ -58,34 +60,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  let body: { amount?: unknown; idempotencyKey?: unknown };
+  let body: { promotionDays?: unknown; idempotencyKey?: unknown };
   try {
-    body = (await request.json()) as {
-      amount?: unknown;
-      idempotencyKey?: unknown;
-    };
+    body = (await request.json()) as typeof body;
   } catch {
     return NextResponse.json(
       { error: "Invalid request body." },
       { status: 400 },
     );
   }
-  const amount = body.amount;
+  const promotionDays =
+    typeof body.promotionDays === "number" ? body.promotionDays : NaN;
+  const promotion = getPromotionPackage(promotionDays);
   const idempotencyKey = body.idempotencyKey;
 
-  if (
-    typeof amount !== "number" ||
-    !Number.isInteger(amount) ||
-    amount < minimumSponsorshipAmount ||
-    amount > maximumSponsorshipAmount
-  ) {
+  if (!promotion) {
     return NextResponse.json(
-      {
-        error: "Choose a sponsorship amount between $1 and $10,000.",
-      },
+      { error: "Choose one of the available promotion packages." },
       { status: 400 },
     );
   }
+
+  const { amount } = promotion;
 
   if (
     typeof idempotencyKey !== "string" ||
@@ -132,16 +128,19 @@ export async function POST(request: Request) {
   try {
     const { data: existingPayment } = await admin
       .from("sponsorship_payments")
-      .select("polar_checkout_id, amount, status, metadata")
+      .select("polar_checkout_id, amount, status, metadata, promotion_days")
       .eq("user_id", user.id)
       .eq("idempotency_key", idempotencyKey)
       .maybeSingle();
 
     if (existingPayment) {
-      if (existingPayment.amount !== amount) {
+      if (
+        existingPayment.amount !== amount ||
+        existingPayment.promotion_days !== promotionDays
+      ) {
         return NextResponse.json(
           {
-            error: "This checkout request was already used for another amount.",
+            error: "This checkout request was already used for another package.",
           },
           { status: 409 },
         );
@@ -155,6 +154,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ url: existingCheckout.url });
     }
 
+    const { data: recentPaidPromotions, error: promotionLookupError } =
+      await admin
+        .from("sponsorship_payments")
+        .select("status, paid_at, promotion_days")
+        .eq("user_id", user.id)
+        .eq("status", "paid")
+        .gte(
+          "paid_at",
+          new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+        );
+
+    if (promotionLookupError) {
+      console.error(
+        "Could not check existing profile promotions",
+        promotionLookupError,
+      );
+      return NextResponse.json(
+        { error: "Could not verify your current promotion status." },
+        { status: 502 },
+      );
+    }
+
+    const activePromotion = getActivePromotion(
+      recentPaidPromotions ?? [],
+      Date.now(),
+    );
+    if (activePromotion) {
+      const expiresAt = getPromotionExpiry(
+        activePromotion.paid_at,
+        activePromotion.promotion_days,
+      );
+      return NextResponse.json(
+        {
+          error: `Your profile is already promoted through ${expiresAt?.toLocaleDateString()}. You can purchase another package after it expires.`,
+        },
+        { status: 409 },
+      );
+    }
+
     const polar = new Polar({
       accessToken: polarAccessToken,
       server: polarEnvironment,
@@ -165,16 +203,19 @@ export async function POST(request: Request) {
         prices: {
           [polarProductId]: [
             {
-              amountType: "custom",
+              amountType: "fixed",
               priceCurrency: "usd",
-              minimumAmount: amount,
-              presetAmount: amount,
+              priceAmount: amount,
             },
           ],
         },
         customerEmail: user.email,
         externalCustomerId: user.id,
-        metadata: { user_id: user.id, sponsorship_amount: amount },
+        metadata: {
+          user_id: user.id,
+          promotion_days: promotionDays,
+          sponsorship_amount: amount,
+        },
         successUrl: `${siteUrl}/profile/success?checkout_id={CHECKOUT_ID}`,
         returnUrl: `${siteUrl}/profile`,
       },
@@ -190,10 +231,12 @@ export async function POST(request: Request) {
         idempotency_key: idempotencyKey,
         polar_product_id: checkout.productId ?? polarProductId,
         amount: checkout.amount,
+        promotion_days: promotionDays,
         currency: checkout.currency,
         status: "pending",
         metadata: {
           polar_environment: polarEnvironment,
+          promotion_days: promotionDays,
           sponsorship_amount: amount,
         },
       });
@@ -202,12 +245,25 @@ export async function POST(request: Request) {
       if (paymentError.code === "23505") {
         const { data: duplicatePayment } = await admin
           .from("sponsorship_payments")
-          .select("polar_checkout_id")
+          .select("polar_checkout_id, amount, promotion_days")
           .eq("user_id", user.id)
           .eq("idempotency_key", idempotencyKey)
           .maybeSingle();
 
         if (duplicatePayment) {
+          if (
+            duplicatePayment.amount !== amount ||
+            duplicatePayment.promotion_days !== promotionDays
+          ) {
+            return NextResponse.json(
+              {
+                error:
+                  "This checkout request was already used for another package.",
+              },
+              { status: 409 },
+            );
+          }
+
           const duplicateCheckout = await polar.checkouts.get({
             id: duplicatePayment.polar_checkout_id,
           });

@@ -12,6 +12,7 @@ import {
 } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
+import { getActivePromotion } from "@/lib/sponsorship";
 import SignInModal from "./SignInModal";
 
 const links = [
@@ -36,8 +37,6 @@ const mostAwardedProfiles = [
   { name: "makemepulse", href: "https://www.awwwards.com/makemepulse/" },
   { name: "dogstudio", href: "https://www.awwwards.com/dogstudio/" },
 ];
-
-const SPONSORSHIP_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 const Navbar = forwardRef<
   HTMLElement,
@@ -135,20 +134,18 @@ const Navbar = forwardRef<
 
       const { data, error } = await client
         .from("sponsorship_payments")
-        .select("paid_at")
+        .select("status, paid_at, promotion_days")
         .eq("user_id", currentUser.id)
         .eq("status", "paid")
-        .order("paid_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .gte(
+          "paid_at",
+          new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+        );
 
       if (!isMounted) return;
 
-      const paidAt = data?.paid_at ? Date.parse(data.paid_at) : NaN;
       setIsSponsored(
-        !error &&
-          Number.isFinite(paidAt) &&
-          Date.now() - paidAt <= SPONSORSHIP_TTL_MS,
+        !error && getActivePromotion(data ?? []) !== null,
       );
     };
 

@@ -35,6 +35,14 @@ import { getProfileHandle } from "@/lib/profile-handle";
 import { roles } from "@/lib/roles";
 import { isSafeExternalUrl } from "@/lib/safe-url";
 import {
+  getActivePromotion,
+  getPromotionExpiry,
+  getPromotionPackage,
+  PROMOTION_PACKAGES,
+  type PromotionDays,
+  type PromotionPayment,
+} from "@/lib/sponsorship";
+import {
   parseProfileAwards,
   serializeProfileAwards,
   type ProfileAward,
@@ -69,28 +77,26 @@ type ProfileRecord = {
   is_published: boolean | null;
 };
 
+const formatViewCount = (count: number) => {
+  if (count >= 1_000_000) {
+    const value = Math.floor((count / 1_000_000) * 10) / 10;
+    return `${Number.isInteger(value) ? value : value.toFixed(1)}M`;
+  }
+
+  if (count >= 1_000) {
+    const value = Math.floor((count / 1_000) * 10) / 10;
+    return `${Number.isInteger(value) ? value : value.toFixed(1)}k`;
+  }
+
+  return count.toLocaleString();
+};
+
 type ProfileMedia = {
   id: string;
   profile_id: string;
   storage_path: string;
   media_type: "image" | "video";
   position: number;
-};
-
-type SponsorshipPayment = {
-  status: string;
-  paid_at: string | null;
-};
-
-const SPONSORSHIP_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-
-const isActiveSponsorship = (payment: SponsorshipPayment | null) => {
-  if (!payment || payment.status !== "paid" || !payment.paid_at) return false;
-
-  const paidAt = Date.parse(payment.paid_at);
-  if (!Number.isFinite(paidAt)) return false;
-
-  return Date.now() - paidAt <= SPONSORSHIP_TTL_MS;
 };
 
 type ProfileInquiry = {
@@ -186,7 +192,9 @@ const getVideoDuration = (file: File) =>
 
       if (!Number.isFinite(duration) || duration <= 0) {
         finish(() =>
-          reject(new Error("Could not read video duration. Try another video.")),
+          reject(
+            new Error("Could not read video duration. Try another video."),
+          ),
         );
         return;
       }
@@ -915,11 +923,12 @@ const ProfilePage = () => {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isSponsorModalOpen, setIsSponsorModalOpen] = useState(false);
-  const [sponsorshipAmount, setSponsorshipAmount] = useState(1500);
+  const [promotionDays, setPromotionDays] = useState<PromotionDays>(30);
   const [sponsorshipIdempotencyKey, setSponsorshipIdempotencyKey] = useState<
     string | null
   >(null);
   const [startingCheckout, setStartingCheckout] = useState(false);
+  const [sponsorCheckoutError, setSponsorCheckoutError] = useState("");
   const [loading, setLoading] = useState(() => Boolean(supabase));
   const [isEditing, setIsEditing] = useState(false);
   const [editingSocialType, setEditingSocialType] = useState<SocialType | null>(
@@ -1111,12 +1120,14 @@ const ProfilePage = () => {
           ),
         client
           .from("sponsorship_payments")
-          .select("status, paid_at")
+          .select("status, paid_at, promotion_days")
           .eq("user_id", currentUser.id)
           .eq("status", "paid")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
+          .gte(
+            "paid_at",
+            new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+          )
+          .order("paid_at", { ascending: false }),
         client
           .from("profile_views")
           .select("id", { count: "exact", head: true })
@@ -1162,15 +1173,15 @@ const ProfilePage = () => {
       setMediaUrls(signedMediaUrls);
       setSocialLinks(loadedLinks);
       setSocials(toSocialForm(loadedLinks));
-      const sponsorshipPayment = paymentResult.data as SponsorshipPayment | null;
-      setSponsored(isActiveSponsorship(sponsorshipPayment));
-      const paidAt = sponsorshipPayment?.paid_at
-        ? Date.parse(sponsorshipPayment.paid_at)
-        : Number.NaN;
+      const activePromotion = getActivePromotion(
+        (paymentResult.data ?? []) as PromotionPayment[],
+      );
+      setSponsored(Boolean(activePromotion));
       setSponsoredUntil(
-        Number.isFinite(paidAt)
-          ? new Date(paidAt + SPONSORSHIP_TTL_MS).toISOString()
-          : null,
+        getPromotionExpiry(
+          activePromotion?.paid_at ?? null,
+          activePromotion?.promotion_days ?? 30,
+        )?.toISOString() ?? null,
       );
       setProfileViews(viewsResult.count ?? 0);
       const loadedInquiries = (inquiriesResult.data ?? []) as ProfileInquiry[];
@@ -1213,7 +1224,7 @@ const ProfilePage = () => {
   }, []);
 
   useEffect(() => {
-    if (!isEditing) return;
+    if (!isEditing && !isSponsorModalOpen) return;
 
     const previousBodyOverflow = document.body.style.overflow;
     const previousHtmlOverflow = document.documentElement.style.overflow;
@@ -1222,7 +1233,9 @@ const ProfilePage = () => {
     document.documentElement.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsEditing(false);
+      if (event.key !== "Escape" || startingCheckout) return;
+      if (isSponsorModalOpen) setIsSponsorModalOpen(false);
+      else setIsEditing(false);
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -1232,7 +1245,7 @@ const ProfilePage = () => {
       document.documentElement.style.overflow = previousHtmlOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isEditing]);
+  }, [isEditing, isSponsorModalOpen, startingCheckout]);
 
   const handleChange = (
     event: ChangeEvent<
@@ -1482,9 +1495,7 @@ const ProfilePage = () => {
       setNewAward({ name: "", date: "" });
       setEditingAwardIndex(null);
     } else if (editingAwardIndex !== null && editingAwardIndex > awardIndex) {
-      setEditingAwardIndex((index) =>
-        index === null ? null : index - 1,
-      );
+      setEditingAwardIndex((index) => (index === null ? null : index - 1));
     }
   };
 
@@ -1695,8 +1706,10 @@ const ProfilePage = () => {
   };
 
   const handleSponsorProfile = () => {
+    if (sponsored) return;
     setIsSponsorModalOpen(true);
     setSponsorshipIdempotencyKey(crypto.randomUUID());
+    setSponsorCheckoutError("");
     setMessage("");
   };
 
@@ -1722,32 +1735,52 @@ const ProfilePage = () => {
     }
   };
 
-  const handleSponsorCheckout = async () => {
+  const handleSponsorCheckout = async (
+    selectedPromotionDays: PromotionDays = promotionDays,
+  ) => {
     if (startingCheckout) return;
 
     setStartingCheckout(true);
+    setSponsorCheckoutError("");
     setMessage("");
 
-    const response = await fetch("/api/sponsor", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        amount: sponsorshipAmount,
-        idempotencyKey: sponsorshipIdempotencyKey,
-      }),
-    });
-    const result = (await response.json()) as { error?: string; url?: string };
+    try {
+      const response = await fetch("/api/sponsor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          promotionDays: selectedPromotionDays,
+          idempotencyKey: sponsorshipIdempotencyKey,
+        }),
+      });
+      const result = (await response.json()) as {
+        error?: string;
+        url?: string;
+      };
 
-    if (!response.ok || !result.url) {
+      if (!response.ok || !result.url) {
+        const error =
+          result.error ?? "Could not start sponsorship checkout.";
+        setSponsorCheckoutError(error);
+        setMessage(error);
+        return;
+      }
+
+      posthog.capture("sponsorship_checkout_started", {
+        promotion_days: selectedPromotionDays,
+        amount: getPromotionPackage(selectedPromotionDays)?.amount,
+      });
+      window.location.assign(result.url);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not connect to checkout. Please try again.";
+      setSponsorCheckoutError(message);
+      setMessage(message);
+    } finally {
       setStartingCheckout(false);
-      setMessage(result.error ?? "Could not start sponsorship checkout.");
-      return;
     }
-
-    posthog.capture("sponsorship_checkout_started", {
-      amount: sponsorshipAmount,
-    });
-    window.location.assign(result.url);
   };
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
@@ -2477,9 +2510,10 @@ const ProfilePage = () => {
               <button
                 type="button"
                 onClick={handleSponsorProfile}
-                className="rounded-full  uppercase  cursor-pointer bg-[#1c40f2] px-3 py-1 text-xs  font-semibold text-white transition hover:bg-black"
+                disabled={sponsored}
+                className="rounded-full uppercase cursor-pointer bg-[#1c40f2] px-3 py-1 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-black/30"
               >
-                Promote
+                {sponsored ? "Promoted" : "Promote"}
               </button>
               <button
                 type="button"
@@ -2639,7 +2673,9 @@ const ProfilePage = () => {
                   </p>
                   <p
                     className={`mt-1 mon text-xs font-semibold uppercase tracking-tight ${
-                      profile?.is_published ? "text-green-500" : "text-amber-500"
+                      profile?.is_published
+                        ? "text-green-500"
+                        : "text-amber-500"
                     }`}
                   >
                     {profile?.is_published
@@ -2889,30 +2925,46 @@ const ProfilePage = () => {
                 {profile?.is_published ? "Public" : " Private (not published)"}
               </p>
 
-              {sponsored ? (
-                <span className="flex flex-col gap-1">
+              <span className="flex flex-col gap-1">
+                {sponsored ? (
                   <p className="geist text-sm font-medium tracking-tight text-black">
                     Sponsored
                   </p>
+                ) : (
+                  <div>
+                    <p className="geist text-sm font-medium tracking-tight text-black">
+                      Not Sponsored
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleSponsorProfile}
+                      disabled={sponsored}
+                      className="geist text-sm px-3 disabled:cursor-not-allowed disabled:bg-black/30 rounded-full mt-1 py-1 bg-[#1c40f2] text-white font-medium tracking-tight"
+                    >
+                      Promote
+                    </button>
+                  </div>
+                )}
+                {sponsored ? (
                   <p className="geist capitalize text-sm font-medium tracking-tight text-[#999]">
                     Expires on:{" "}
                     {sponsoredUntil
                       ? new Date(sponsoredUntil).toLocaleDateString()
                       : "Unknown"}
                   </p>
-                </span>
-              ) : null}
+                ) : null}
+              </span>
 
               <span className="flex mt-4 flex-col gap-1">
                 <p className="text-sm  font-medium tracking-tight text-black">
                   Total views
                 </p>
                 <p className="geist text-sm font-medium tracking-tight text-[#999]">
-                  {profileViews.toLocaleString()}
+                  {formatViewCount(profileViews)}
                 </p>
               </span>
 
-              <div className="mt-8 border-t border-black/10 pt-5">
+              <div className="mt-8 border-t-2 border-black/5 pt-5">
                 <span className="flex flex-col gap-1">
                   <p className="text-sm  font-medium tracking-tight text-black">
                     Signed in as:
@@ -2922,8 +2974,8 @@ const ProfilePage = () => {
                   </p>
                 </span>
 
-                <p className="text-sm mt-4  font-medium tracking-tight text-black">
-                  Active Device
+                <p className="text-sm mt-4 capitalize font-medium tracking-tight text-black">
+                  using:
                 </p>
 
                 <p className="geist text-sm font-medium tracking-tight text-[#999]">
@@ -2965,7 +3017,7 @@ const ProfilePage = () => {
                 </p>
               </div>
 
-              <div className="mt-8 border-t border-red-200 pt-5">
+              <div className="mt-8 border-t-2 border-black/5 pt-5">
                 <p className="text-sm capitalize font-medium tracking-tight text-[#999]">
                   Delete account
                 </p>
@@ -4168,80 +4220,90 @@ const ProfilePage = () => {
           role="dialog"
           aria-modal="true"
           aria-labelledby="sponsor-profile-title"
+          aria-describedby="sponsor-profile-description"
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !startingCheckout) {
+              setIsSponsorModalOpen(false);
+            }
+          }}
         >
-          <div className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-5 shadow-2xl">
-            <p className="mono text-xs font-semibold uppercase tracking-tight text-[#1c40f2]">
-              Sponsor profile
-            </p>
-            <h2
-              id="sponsor-profile-title"
-              className="mt-3 text-3xl geist  font-semibold tracking-tighter text-black"
-            >
-              Put your work in front.
-            </h2>
-            <p className="mt-3 text-sm geist leading-5 font-medium tracking-tight text-[#999]">
-              Choose a one-time sponsorship amount to support the directory.
-              Payments are securely handled by Polar.
-            </p>
-            <div className="mt-6  grid grid-cols-4 gap-2">
-              {[500, 1500, 3000, 5000].map((amount) => (
-                <button
-                  key={amount}
-                  type="button"
-                  onClick={() => setSponsorshipAmount(amount)}
-                  className={`rounded-full border px-2 cursor-pointer py-1 geist tracking-tight text-sm font-semibold transition ${
-                    sponsorshipAmount === amount
-                      ? "border-[#1c40f2]/40 bg-[#1c40f2]/30 "
-                      : "border-black/20 text-black hover:bg-[#1c40f2]/30 hover:border-[#1c40f2]/40"
-                  }`}
-                >
-                  ${(amount / 100).toFixed(0)}
-                </button>
-              ))}
-            </div>
-            <label className="mt-5 hidden block mono uppercase tracking-tight text-xs font-medium text-black">
-              Or choose your amount
-              <div className="mt-2 flex items-center rounded-full border border-black/20 px-4 py-2 focus-within:border-[#1c40f2]">
-                <span className="text-[#666]">$</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="10000"
-                  step="1"
-                  inputMode="decimal"
-                  value={(sponsorshipAmount / 100).toFixed(2)}
-                  onChange={(event) => {
-                    const amount = Number(event.target.value);
-                    setSponsorshipAmount(
-                      Number.isFinite(amount) ? Math.round(amount * 100) : 0,
+          <div className="w-full geist max-w-md rounded-2xl border border-black/10 bg-white p-5 shadow-2xl">
+            <span className="flex flex-col gap-1">
+              <h2
+                id="sponsor-profile-title"
+                className="mb-3 text-2xl font-semibold capitalize tracking-tight text-black"
+              >
+                Promote your work.
+              </h2>
+              <p
+                id="sponsor-profile-description"
+                className="text-sm font-medium text-justify leading-4 tracking-tight text-[#999]"
+              >
+                Give your profile a visibility boost in the directory. Help
+                people discover your work, learn what you do, and find a way to
+                connect with you. Choose how long you would like your profile
+                promoted.
+              </p>
+
+              <div className="mt-3">
+                <p className="geist  text-xs font-medium capitalize tracking-tight text-black">
+                  Choose a package:
+                </p>
+                <div className="mt-2 flex w-full justify-between gap-2">
+                  {PROMOTION_PACKAGES.map((promotion) => {
+                    const isSelected = promotionDays === promotion.days;
+
+                    return (
+                      <button
+                        key={promotion.days}
+                        type="button"
+                        aria-pressed={isSelected}
+                        disabled={startingCheckout}
+                        onClick={() => {
+                          setPromotionDays(promotion.days);
+                          void handleSponsorCheckout(promotion.days);
+                        }}
+                        className={`flex min-w-0 flex-1 flex-col items-center rounded border py-2 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c40f2] ${
+                          isSelected
+                            ? "border-[#1c40f2]/40 bg-[#1c40f2]/5"
+                            : "border-transparent hover:border-black/10 hover:bg-black/[0.03]"
+                        } disabled:cursor-wait disabled:opacity-60`}
+                      >
+                        <span
+                          className={`geist flex items-center text-lg font-medium tracking-tight ${
+                            isSelected ? "text-black" : "text-[#999]"
+                          }`}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            height="20px"
+                            viewBox="0 -960 960 960"
+                            width="20px"
+                            fill="currentColor"
+                          >
+                            <path d="M441-120v-86q-53-12-91.5-46T293-348l74-30q15 48 44.5 73t77.5 25q41 0 69.5-18.5T587-356q0-35-22-55.5T463-458q-86-27-118-64.5T313-614q0-65 42-101t86-41v-84h80v84q50 8 82.5 36.5T651-650l-74 32q-12-32-34-48t-60-16q-44 0-67 19.5T393-614q0 33 30 52t104 40q69 20 104.5 63.5T667-358q0 71-42 108t-104 46v84h-80Z" />
+                          </svg>
+                          {(promotion.amount / 100).toFixed(0)}
+                        </span>
+                        <span className="text-xs uppercas capitalize font-medium tracking-tight text-[#999]">
+                          {promotion.days} days promo
+                        </span>
+                      </button>
                     );
-                  }}
-                  className="ml-2 w-full bg-transparent text-sm font-semibold outline-none"
-                  aria-label="Custom sponsorship amount in US dollars"
-                />
+                  })}
+                </div>
+                <p
+                  className="mt-4 text-center text-xs font-medium leading-4 tracking-tight text-[#999]"
+                  aria-live="polite"
+                  role={sponsorCheckoutError ? "alert" : "status"}
+                >
+                  {sponsorCheckoutError ||
+                    (startingCheckout
+                      ? "Opening secure checkout..."
+                      : "Select a package to continue to secure checkout.")}
+                </p>
               </div>
-              <span className="mt-2 block text-xs font-normal text-[#777]">
-                Choose any amount from $<span className="geist">1</span> to $
-                <span className="geist">10,000 </span>USD.
-              </span>
-            </label>
-            <div className="mt-6 flex flex-wrap justify- gap-3">
-              <button
-                type="button"
-                onClick={() => setIsSponsorModalOpen(false)}
-                className="rounded-full mono uppercase tracking-tighter border border-black/20 px-2 py-1 text-xs font-medium text-black transition hover:border-black"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleSponsorCheckout()}
-                disabled={startingCheckout}
-                className="rounded-full mono uppercase tracking-tighter bg-black px-2 py-1 text-xs font-medium text-white transition hover:bg-[#1c40f2] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {startingCheckout ? "Opening checkout..." : "Checkout"}
-              </button>
-            </div>
+            </span>
           </div>
         </div>
       ) : null}

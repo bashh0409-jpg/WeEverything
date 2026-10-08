@@ -83,8 +83,8 @@ export default function BillingSuccess() {
         </h1>
 
         <p className="mt-2 font-mono tracking-tight uppercase text-black/60">
-          Thanks for supporting WeEverything. Your sponsorship payment was
-          received successfully.
+          Thanks for supporting WeEverything. Your profile promotion payment
+          was received successfully for the package period you selected.
         </p>
 
         <Link
