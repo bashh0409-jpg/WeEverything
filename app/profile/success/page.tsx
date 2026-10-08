@@ -173,21 +173,18 @@ export default function BillingSuccess() {
         ) : null}
       </div>
 
-      <div className="text-center max-w-md">
-        <h1 className="text-xl uppercase tracking-tight mono mb-2">
+      <div className="text-center items-center flex  flex-col gap-2 max-w-md">
+        <p className="mon geist  max-w-xs text-center  overflow-hidden text-xl font-semibold tracking-tighter text-black mb-2 ">
           {heading}
-        </h1>
+        </p>
 
-        <p className="mt-2 font-mono tracking-tight uppercase text-black/60">
+        <p className="geist  max-w-xs text-center  overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
           {detail}
         </p>
 
-        <Link
-          href="/profile"
-          className="mt-6 mono uppercase inline-flex items-center justify-center rounded-full border border-black bg-black px-2 py-1 text-xs font-medium uppercase tracking-tighter text-white transition hover:bg-white hover:text-black"
-        >
-          Go to profile
-        </Link>
+        <a href="/profile" className="w-fit  geist capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]">
+          close
+        </a>
       </div>
     </div>
   );

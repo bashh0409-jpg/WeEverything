@@ -5,19 +5,36 @@ import { useEffect, useRef, useState } from "react";
 const STARTUP_MIN_DURATION = 3_000;
 const STARTUP_LEAVE_DURATION = 650;
 const STARTUP_DATA_READY_EVENT = "weeverything:data-ready";
+const STARTUP_SESSION_KEY = "weeverything:startup-played";
 
 const StartupScreen = () => {
   const [isLeaving, setIsLeaving] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
   const [isDataReady, setIsDataReady] = useState(false);
   const [progress, setProgress] = useState(0);
   const isDataReadyRef = useRef(false);
+  const hasStartedRef = useRef(false);
 
   useEffect(() => {
     isDataReadyRef.current = isDataReady;
   }, [isDataReady]);
 
   useEffect(() => {
+    let hasPlayedThisSession = false;
+    try {
+      hasPlayedThisSession =
+        window.sessionStorage.getItem(STARTUP_SESSION_KEY) === "true";
+      if (!hasPlayedThisSession) {
+        window.sessionStorage.setItem(STARTUP_SESSION_KEY, "true");
+      }
+    } catch (error) {
+      console.warn("Could not access startup screen session storage", error);
+    }
+
+    if (hasPlayedThisSession && !hasStartedRef.current) return;
+
+    hasStartedRef.current = true;
+    setIsVisible(true);
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
