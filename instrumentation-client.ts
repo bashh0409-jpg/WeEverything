@@ -17,7 +17,21 @@ if (!projectToken || !host) {
   posthog.init(projectToken, {
     api_host: host,
     defaults: "2026-01-30",
-    capture_exceptions: true,
+    autocapture: false,
+    capture_pageview: false,
+    capture_pageleave: false,
+    capture_exceptions: false,
+    before_send: (event) => {
+      if (!event) return null;
+
+      for (const key of Object.keys(event.properties)) {
+        if (/url|referrer|pathname|search/i.test(key)) {
+          delete event.properties[key];
+        }
+      }
+
+      return event;
+    },
     debug: process.env.NODE_ENV === "development",
   });
 }

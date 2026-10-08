@@ -178,11 +178,8 @@ export async function POST(request: Request) {
 
   const enhancedBioContent = enhancedBio.trim();
   await captureAiGeneration({
-    distinctId: user.id,
-    input: messages,
     latencyMs: Date.now() - aiRequestStartedAt,
     model: AI_MODEL,
-    output: enhancedBioContent,
     traceId,
   });
 

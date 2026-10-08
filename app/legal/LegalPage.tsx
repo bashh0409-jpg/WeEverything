@@ -34,7 +34,7 @@ const Page = () => {
         </div>
         <div>
           <span className="text-[#999] font-medium tracking-tight ">
-            Last Update: Oct 1, 2026
+            Last Update: Oct 8, 2026
           </span>
 
           <div className="lg:grid-cols-2 grid-cols-1 grid mt-8 gap-4">
@@ -60,6 +60,12 @@ const Page = () => {
                   information those providers make available, which may include
                   your email address, name, and avatar. Keep account and profile
                   information accurate and current.
+                </span>
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  The service is intended only for people who are at least 18
+                  years old. Before signing in or creating an account, you must
+                  confirm that you are at least 18. Do not use the service if
+                  you are under 18.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
                   You keep ownership of content you submit. You grant us a
@@ -140,6 +146,19 @@ const Page = () => {
                   keys that expire after about one hour. Cloudflare and other
                   external sites have their own privacy terms.
                 </span>
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  When configured, PostHog receives operational AI feature
+                  telemetry, including a per-request trace identifier, model
+                  name, and request timing. We do not send account identifiers,
+                  the submitted prompt, profile
+                  candidate details, or generated text to PostHog for this
+                  telemetry. PostHog retains remaining event data according
+                  to the applicable project plan and settings; PostHog
+                  currently documents one-year event retention on its Free
+                  Cloud plan and seven years on paid Cloud plans. This
+                  server-side telemetry is separate from the optional Vercel
+                  Analytics choice.
+                </span>
 
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
                   External websites linked from profiles operate under their own
@@ -173,12 +192,23 @@ const Page = () => {
                   sell personal information for targeted advertising.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  Event suggestions are scheduled for deletion 90 days after
+                  their event date by a daily cleanup job. Deletion may be
+                  delayed if the scheduled job or a provider is unavailable.
+                </span>
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  Inquiry records do not currently expire automatically. They
+                  remain available to the profile owner until that owner
+                  deletes them or the associated account is deleted.
+                </span>
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
                   We use Supabase for authentication, database, and media
                   storage; Google or GitHub for sign-in; Vercel for hosting,
                   performance measurement, and optional analytics; Cloudflare
                   for Turnstile; Upstash for inquiry rate limits; Resend for
-                  email; Polar for checkout and payment processing; and
-                  OpenRouter for AI-assisted features. These providers receive
+                  email; Polar for checkout and payment processing; OpenRouter
+                  for AI-assisted features; and PostHog for operational
+                  telemetry when configured. These providers receive
                   information needed for their services and may process it in
                   other countries under their own terms. We may also disclose
                   information when required by law or needed to protect users,
@@ -194,7 +224,9 @@ const Page = () => {
                   profile details (name, role, bio, and location) through
                   OpenRouter for ranking. OpenRouter may route inputs to an
                   underlying model provider, whose data handling and model
-                  training practices can vary. Review the{" "}
+                  training practices can vary. When configured, PostHog
+                  receives limited operational metadata about these requests,
+                  but not the prompt or response content. Review the{" "}
                   <a
                     href="https://openrouter.ai/privacy"
                     target="_blank"
@@ -258,8 +290,11 @@ const Page = () => {
                   >
                     info@weeverything.xyz
                   </a>
-                  . The governing law and dispute forum have not been selected
-                  yet and should be completed after legal review.
+                  . These Terms are governed by South African law, subject to
+                  mandatory consumer protections and privacy rights that apply
+                  to you. Disputes are subject to the jurisdiction of the
+                  competent courts of South Africa, subject to any mandatory
+                  forum rights.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">

@@ -3,7 +3,18 @@ import { expect, test } from "@playwright/test";
 test("a visitor can search profiles and dismiss the directory search", async ({
   page,
 }) => {
+  await page.route(/\/api\/profiles(?:\?.*)?$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      json: { profiles: [], hasMore: false },
+    });
+  });
+
+  const profilesResponse = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === "/api/profiles",
+  );
   await page.goto("/");
+  await profilesResponse;
 
   const searchTrigger = page.getByRole("button", {
     name: "Search profiles",

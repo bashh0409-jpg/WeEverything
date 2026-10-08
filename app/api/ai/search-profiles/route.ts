@@ -183,10 +183,8 @@ export async function POST(request: Request) {
       : [];
 
   await captureAiGeneration({
-    input: messages,
     latencyMs: Date.now() - aiRequestStartedAt,
     model: AI_MODEL,
-    output: typeof content === "string" ? content : "",
     traceId,
   });
 

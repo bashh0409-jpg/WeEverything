@@ -49,7 +49,15 @@ The Playwright suite starts a production build automatically. Set
 - Add Polar production credentials and confirm the webhook endpoint is
   `https://<your-domain>/api/webhooks/polar`.
 - Verify the scheduled `/api/account/purge` and `/api/sponsorships/expire`
-  crons are present after deployment.
+  and `/api/events/expire` crons are present after deployment.
+- Deploy the AI telemetry change before relying on it: new AI traces should
+  contain operational metadata only, not prompts, profile candidates, or
+  generated text or account identifiers. PostHog Cloud automatically deletes
+  large AI prompt/response properties after 30 days; remaining event metadata
+  follows the project's plan retention (currently 1 year on Free and 7 years
+  on paid plans).
+  Deleting a PostHog person also deletes that person's other events and
+  recordings, so do not use person deletion solely to remove AI prompt content.
 - Run the GitHub Actions CI workflow and confirm the production build and
   browser smoke test pass.
 

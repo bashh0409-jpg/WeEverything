@@ -2,17 +2,13 @@ import { randomUUID } from "node:crypto";
 import { PostHog } from "posthog-node";
 
 type AiGeneration = {
-  distinctId?: string;
-  input: unknown;
   latencyMs: number;
   model: string;
-  output: string;
   traceId: string;
 };
 
 const projectToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
 const host = process.env.NEXT_PUBLIC_POSTHOG_HOST;
-const processSessionId = `ai-process-${process.pid}`;
 
 const getPostHogClient = () => {
   if (!projectToken || !host) {
@@ -33,19 +29,16 @@ const getPostHogClient = () => {
     host,
     flushAt: 1,
     flushInterval: 0,
-    enableExceptionAutocapture: true,
-    privacyMode: false,
+    enableExceptionAutocapture: false,
+    privacyMode: true,
   });
 };
 
 export const createAiTraceId = () => randomUUID();
 
 export const captureAiGeneration = async ({
-  distinctId,
-  input,
   latencyMs,
   model,
-  output,
   traceId,
 }: AiGeneration) => {
   const posthog = getPostHogClient();
@@ -53,17 +46,14 @@ export const captureAiGeneration = async ({
 
   try {
     posthog.capture({
-      distinctId: distinctId ?? processSessionId,
+      distinctId: traceId,
       event: "$ai_generation",
       properties: {
-        $ai_input: input,
         $ai_latency: latencyMs / 1_000,
         $ai_model: model,
-        $ai_output_choices: [{ role: "assistant", content: output }],
         $ai_provider: "openrouter",
-        $ai_session_id: processSessionId,
         $ai_trace_id: traceId,
-        ...(distinctId ? {} : { $process_person_profile: false }),
+        $process_person_profile: false,
       },
     });
     await posthog.flush();

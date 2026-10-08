@@ -38,6 +38,7 @@ const getIsBannedFromLocation = () => {
 const SignInModal = ({ onClose }: SignInModalProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(() => Boolean(supabase));
+  const [isAdultConfirmed, setIsAdultConfirmed] = useState(false);
   const isBanned = useSyncExternalStore(
     subscribeToLocation,
     getIsBannedFromLocation,
@@ -77,6 +78,8 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
   }, []);
 
   const handleGoogleSignIn = async () => {
+    if (!isAdultConfirmed) return;
+
     if (!supabase) {
       setMessage(
         "Supabase is not configured yet. Add your public environment variables first.",
@@ -100,6 +103,8 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
   };
 
   const handleGithubSignIn = async () => {
+    if (!isAdultConfirmed) return;
+
     if (!supabase) {
       setMessage(
         "Supabase is not configured yet. Add your public environment variables first.",
@@ -172,10 +177,9 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
             role="alert"
             className="mt-4 rounded geist font-medium tracking-tight text-sm text-red-400"
           >
-            
             <p className="">
-              If you believe this is a mistake, please contact the
-              WeEverything team.
+              If you believe this is a mistake, please contact the WeEverything
+              team.
             </p>
           </div>
         ) : message ? (
@@ -222,11 +226,30 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
               if this is your first visit.
             </p>
 
+            <label className="flex  geist items-start gap-2 text-sm font-medium leading-5 tracking-tight">
+              <input
+                type="checkbox"
+                checked={isAdultConfirmed}
+                onChange={(event) =>
+                  setIsAdultConfirmed(event.currentTarget.checked)
+                }
+                className="mt-1"
+              />
+             
+              <p className="geist  max-w-xs text-justify  overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
+                I confirm that I am at least 18 years old and agree to the{" "}
+                <Link href="/legal" className="underline">
+                  Terms and Privacy Policy
+                </Link>
+                .
+              </p>
+            </label>
+
             <div className="grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                disabled={!isSupabaseConfigured}
+                disabled={!isSupabaseConfigured || !isAdultConfirmed}
                 className="flex w-full mono tracking-tight cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1c40f2] px-4 py-2 text-sm font-medium uppercase text-white transition hover:bg-[#1636d4] disabled:cursor-not-allowed disabled:bg-[#c2ccff]"
               >
                 <FaGoogle aria-hidden="true" className="text-base" />
@@ -236,7 +259,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
               <button
                 type="button"
                 onClick={handleGithubSignIn}
-                disabled={!isSupabaseConfigured}
+                disabled={!isSupabaseConfigured || !isAdultConfirmed}
                 className="flex w-full mono tracking-tight cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-medium uppercase text-white transition hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#aaa]"
               >
                 <FaGithub aria-hidden="true" className="text-base" />

@@ -2945,6 +2945,7 @@ const ProfilePage = () => {
                     </button>
                   </div>
                 )}
+
                 {sponsored ? (
                   <p className="geist capitalize text-sm font-medium tracking-tight text-[#999]">
                     Expires on:{" "}
@@ -3082,12 +3083,13 @@ const ProfilePage = () => {
                         Make it yours.
                       </h2>
                     </div>
+
                     <button
                       type="submit"
                       disabled={saving || removingExperienceIndex !== null}
-                      className="rounded-full bg-[#1c40f2] mono uppercase cursor-pointer px-3 py-1 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-[#9caeff]"
+                      className="max-w-full max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] "
                     >
-                      {saving ? "Saving..." : "Save changes"}
+                      {saving ? "Saving..." : "Save"}
                     </button>
                   </div>
 
@@ -3281,6 +3283,7 @@ const ProfilePage = () => {
                                 }`}
                               >
                                 <div className="min-h-0 overflow-hidden">
+                                  
                                   <button
                                     type="button"
                                     onClick={() =>
@@ -3288,8 +3291,9 @@ const ProfilePage = () => {
                                     }
                                     disabled={removingRole !== null}
                                     aria-label={`Remove ${role} role`}
-                                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-black/10 px-3 py-1 text-sm font-medium tracking-tight text-black transition hover:bg-[#1c40f2]/40 hover:text-white disabled:pointer-events-none"
+                                    className="max-w-full max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
                                   >
+                                    {" "}
                                     {role}
                                   </button>
                                 </div>
