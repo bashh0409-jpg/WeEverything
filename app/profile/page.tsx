@@ -2511,7 +2511,7 @@ const ProfilePage = () => {
                 type="button"
                 onClick={handleSponsorProfile}
                 disabled={sponsored}
-                className="rounded-full uppercase cursor-pointer bg-[#1c40f2] px-3 py-1 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-black/30"
+                className="rounded-full hidden uppercase cursor-pointer bg-[#1c40f2] px-3 py-1 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-black/30"
               >
                 {sponsored ? "Promoted" : "Promote"}
               </button>
