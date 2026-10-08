@@ -283,40 +283,33 @@ const Navbar = forwardRef<
     <>
       <nav
         ref={ref}
-        className={`fixed  left-0 top-0 z-20 flex w-full items-start justify-between gap-4 p-4 font-medium tracking-tight  bg-[linear-gradient(to_bottom,_rgba(28,64,242,0.5)_0%,_rgba(28,64,242,0.4)_50%,_transparent_100%)] ${className}`}
+        className={`fixed  left-0 top-0 z-20 flex w-full items-start justify-between gap-4 p-4 font-medium tracking-tight  b-[linear-gradient(to_bottom,_rgba(28,64,242,0.5)_0%,_rgba(28,64,242,0.4)_50%,_transparent_100%)] ${className}`}
       >
         <Link
           href="/"
-          className="text- geis blue mix-blend-difference font-semibold tracking-tight "
+          className="text-[#999] lowercas geist mix-blend-difference font-medium tracking-tight "
         >
-          WeEverything.xyz
+          weeverything.xyz
         </Link>
 
         <div
           ref={desktopLinksRef}
-          className="hidden  items-start mt-1 justify-center gap-3 text-white sm:flex"
+          className="hidden  items-start mt-1 justify-center gap-3 sm:flex"
         >
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               data-nav-link
-              className="text-[#999 blue mix-blend-difference font-medium uppercase text-xs geist tracking-tight "
+              className="text-[#999] lowercase geist mix-blend-difference font-medium tracking-tight "
             >
               {link.label}
             </Link>
           ))}
         </div>
 
-        <div className="hidden flex-col gap-2 text-[#1c40f2] md:flex">
-          <a
-            href="https://www.awwwards.com/winner-list/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-fit hidden text-sm font-semibold hover:underline"
-          >
-            10 Most Awarded Profiles
-          </a>
+        <div className="hidden flex-col gap-2  md:flex">
+          
           <div className="grid grid-cols-2 geist mt-2 gap-x-5 leading-none">
             {[
               mostAwardedProfiles.slice(0, 5),
@@ -329,7 +322,7 @@ const Navbar = forwardRef<
                     href={profile.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#999] mix-blend-difference font-medium uppercase text-xs tracking-tight "
+                    className="text-[#999] lowercase mix-blend-difference font-medium text-m tracking-tight "
                   >
                     {profile.name}
                   </a>
@@ -457,7 +450,7 @@ const Navbar = forwardRef<
           aria-label={sidebarOpen ? "Close navigation" : "Open navigation"}
           aria-expanded={sidebarOpen}
           onClick={() => (sidebarOpen ? closeSidebar() : setSidebarOpen(true))}
-          className="flex h-9 w-9 items-center justify-center text-white sm:hidden"
+          className="flex h-9 w-9 items-center justify-center text-[#999] sm:hidden"
         >
           <span className="sr-only">
             {sidebarOpen ? "Close navigation" : "Open navigation"}

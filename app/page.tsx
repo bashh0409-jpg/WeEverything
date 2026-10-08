@@ -567,19 +567,10 @@ const Page = () => {
       <Navbar />
 
       <main className="flex min-h-screen flex-col items-center justify-center px-6 py-2">
-        <section className="mt-60 geist leading-8 text-4xl font-bold tracking-tighter capitalize text-[#1c40f2] flex max-w-xl flex-col items-center justify-center text-center uppercas ">
+        <section className="mt-60 geist leading-8 text-4xl font-bold tracking-tighter capitalize text-[#000] flex max-w-xl flex-col items-center justify-center text-center uppercas ">
           Find the best developers, photographers, illustrators, stylists and
           designers for your project.
         </section>
-        <div className="mt-8 hidden  justify-center">
-          <button
-            type="button"
-            onClick={() => setIsSuggestionModalOpen(true)}
-            className="hidden cursor-pointer items-center justify-center rounded-full bg-[#1c40f2] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1535c3]"
-          >
-            Suggest an event
-          </button>
-        </div>
 
         <section className="w-full">
           <div className="mt-20 flex w-full max-w-lg items-center justify-between gap-4">

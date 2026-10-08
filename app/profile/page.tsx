@@ -2334,7 +2334,7 @@ const ProfilePage = () => {
       <div>
         <Navbar />
 
-        <main className="flex min-h-screen mono uppercase text-sm tracking-tight text-[#999] items-center justify-center px-6 py-20">
+        <main className="flex geist min-h-screen  text-sm tracking-tight text-[#999] items-center justify-center px-6 py-20">
           No user is signed in. Please sign in to view your profile.
         </main>
       </div>

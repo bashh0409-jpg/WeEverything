@@ -1,7 +1,5 @@
 import React from "react";
 import type { Metadata } from "next";
-import Navbar from "../components/Navbar";
-import BottomButton from "../components/BottomButton";
 import LegalPage from "./LegalPage";
 
 export const metadata: Metadata = {
@@ -12,7 +10,7 @@ export const metadata: Metadata = {
 const page = () => {
   return (
     <div>
-      <Navbar />
+    
 
       <LegalPage />
     </div>
