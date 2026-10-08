@@ -56,10 +56,32 @@ export async function DELETE(request: Request) {
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+  const { data: profile, error: profileLookupError } = await admin
+    .from("profiles")
+    .select(
+      "is_published, deletion_scheduled_at, deletion_previous_is_published",
+    )
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileLookupError || !profile) {
+    console.error(
+      "Could not load profile before scheduling account deletion",
+      profileLookupError,
+    );
+    return NextResponse.json(
+      { error: "Could not schedule account deletion." },
+      { status: profileLookupError ? 500 : 404 },
+    );
+  }
+
   const { error: scheduleError } = await admin
     .from("profiles")
     .update({
       is_published: false,
+      deletion_previous_is_published: profile.deletion_scheduled_at
+        ? (profile.deletion_previous_is_published ?? profile.is_published)
+        : profile.is_published,
       deletion_scheduled_at: deletionScheduledAt.toISOString(),
     })
     .eq("id", user.id);

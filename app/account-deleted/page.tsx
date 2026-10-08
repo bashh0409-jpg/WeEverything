@@ -13,27 +13,26 @@ const AccountDeletedPage = () => {
   return (
     <div>
       <Navbar />
-     
+
       <main className="flex min-h-screen items-center justify-center px-6 py-24 text-black">
-        <section className="w-full max-w-xl pt-5">
-          <p className="mono text-sm font-medium uppercase tracking-tight text-[#1c40f2]">
-            Account deletion scheduled
-          </p>
-          <h1 className="mt-4 text-3xl geist leading-10 font-semibold tracking-tighter sm:text-5xl">
+        <div className="text-center items-center flex  flex-col gap-2 max-w-md">
+          <p className="mon geist  max-w-xs text-center  overflow-hidden text-xl font-semibold tracking-tighter text-black mb-2 ">
             Your account is on its way out.
-          </h1>
-          <p className="mt-4 max-w-lg geist text-base leading-4 font-medium tracking-tight  text-[#999]">
-            You have been signed out. We will keep your account and data for 30
-            days before permanently deleting it. Your profile is no longer
-            visible in the directory during this period.
           </p>
+
+          <p className="geist  max-w-xs text-center  overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
+            Your profile is hidden and your account is scheduled for permanent
+            deletion in 30 days. Sign in with the same email address before then
+            to cancel deletion and restore your account.
+          </p>
+
           <Link
-            href="/"
-            className="mt-8 mono inline-flex rounded-full bg-black px-3 py-1 uppercase text-sm font-medium text-white transition hover:bg-[#1c40f2]"
+            href="/signin"
+            className="w-fit  geist capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
           >
-            Return home
+            restore account
           </Link>
-        </section>
+        </div>
       </main>
     </div>
   );

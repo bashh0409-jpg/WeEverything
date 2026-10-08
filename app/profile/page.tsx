@@ -871,6 +871,9 @@ const ProfilePage = () => {
     useState<ProfileInquiry | null>(null);
   const [showArchivedInquiries, setShowArchivedInquiries] = useState(false);
   const [isWelcomeOverlayOpen, setIsWelcomeOverlayOpen] = useState(false);
+  const [accountStatusNotice, setAccountStatusNotice] = useState<string | null>(
+    null,
+  );
   const [isInquiryDrawerOpen, setIsInquiryDrawerOpen] = useState(false);
   const [socials, setSocials] = useState<SocialForm>(emptySocials);
   const [newAward, setNewAward] = useState<ProfileAward>({
@@ -1245,11 +1248,27 @@ const ProfilePage = () => {
 
   useEffect(() => {
     const url = new URL(window.location.href);
+    const isWelcome = url.searchParams.get("welcome") === "1";
+    const accountRestored = url.searchParams.get("restored") === "1";
+    const restoreFailed = url.searchParams.get("restore_error") === "1";
 
-    if (url.searchParams.get("welcome") !== "1") return;
+    if (!isWelcome && !accountRestored && !restoreFailed) return;
 
-    const timeoutId = window.setTimeout(() => setIsWelcomeOverlayOpen(true), 0);
+    const timeoutId = window.setTimeout(() => {
+      if (isWelcome) setIsWelcomeOverlayOpen(true);
+      if (accountRestored) {
+        setAccountStatusNotice(
+          "Account restored. Your scheduled deletion has been canceled. You can publish your profile again from your profile settings.",
+        );
+      } else if (restoreFailed) {
+        setAccountStatusNotice(
+          "We could not verify or cancel a scheduled deletion. Contact support if you recently requested account deletion.",
+        );
+      }
+    }, 0);
     url.searchParams.delete("welcome");
+    url.searchParams.delete("restored");
+    url.searchParams.delete("restore_error");
     window.history.replaceState({}, "", url.toString());
 
     return () => window.clearTimeout(timeoutId);
@@ -2626,7 +2645,6 @@ const ProfilePage = () => {
               onDismiss={dismissProfileMessage}
             />
           ) : null}
-
           <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-20">
             <div>
               <div className="flex flex-col gap-7 sm:flex-row sm:items-center">
@@ -3774,7 +3792,9 @@ const ProfilePage = () => {
                           disabled={removingExperienceIndex !== null}
                           className="rounded-full border  border-[#1c40f2]/30 px-3 py-1 text-xs font-semibold uppercase tracking-tight text-[#1c40f2] transition hover:bg-[#1c40f2] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                          {editingExperienceIndex === null ? "Save experience" : "Update experience"}
+                          {editingExperienceIndex === null
+                            ? "Save experience"
+                            : "Update experience"}
                         </button>
                         {editingExperienceIndex !== null ? (
                           <button
@@ -4452,27 +4472,69 @@ const ProfilePage = () => {
               id="delete-account-title"
               className="mt-3 text-3xl geist font-bold tracking-tighter text-black"
             >
-              Are you sure you want to delete your account?
+              Permanently delete your account?
             </h2>
-            <p className="mt-3 text-sm geist  font-medium tracking-tight leading-tight text-[#999]">
-              This permanently deletes your profile, uploaded media, links, and
-              account. This action cannot be undone.
+            <p className="mt-3 text-sm geist text-justify  font-medium tracking-tight leading-tight text-[#999]">
+              Your profile will be hidden immediately. Your account and data
+              will be permanently deleted in 30 days. Sign in with the same
+              email address before then to cancel deletion and restore your
+              account.
             </p>
-            <div className="mt-6 flex flex-wrap justify-end gap-3">
+            <div className="mt-6 flex flex-wrap  gap-1">
               <button
                 type="button"
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="rounded-full mono border border-black/20 px-3 py-1 text-xs font-medium uppercase tracking-tight text-black transition hover:border-black"
+                className="w-fit  geist capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
               >
                 Keep account
               </button>
               <button
                 type="button"
                 onClick={() => void handleDeleteAccount()}
-                className="rounded-full bg-red-600 px-3 py-1 mono text-xs font-medium uppercase tracking-tight text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={deletingAccount}
+                className="w-fit  geist capitalize max-h-7 rounded-3xl bg-red-600 px-2 py-1 text-sm font-medium leading-4 tracking-tight text-white [overflow-wrap:anywhere]"
               >
-                Delete
+                Delete account
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {accountStatusNotice ? (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 px-4 backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="account-status-title"
+          aria-describedby="account-status-message"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-5 shadow-2xl">
+            <p className="mono text-xs font-semibold uppercase tracking-tight text-[#1c40f2]">
+              Account update
+            </p>
+            <h2
+              id="account-status-title"
+              className="mt-3 text-3xl geist font-bold tracking-tighter text-black"
+            >
+              {accountStatusNotice.startsWith("Account restored")
+                ? "Account restored"
+                : "Account restoration update"}
+            </h2>
+            <p
+              id="account-status-message"
+              className="mt-3 text-sm geist font-medium leading-tight tracking-tight text-[#666]"
+            >
+              {accountStatusNotice}
+            </p>
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setAccountStatusNotice(null)}
+                className="w-fit geist rounded-3xl bg-black px-3 py-1 text-sm font-medium leading-4 tracking-tight text-white transition hover:bg-black/70"
+              >
+                Continue
               </button>
             </div>
           </div>
@@ -4704,10 +4766,6 @@ const ProfilePage = () => {
               <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#999]">
                 Confirm delete
               </p>
-
-              <h2 className="mt-3 text-3xl font-bold tracking-tighter text-black">
-                Are you sure you want to delete this inquiry?
-              </h2>
 
               <div className="mt-6 flex flex-wrap gap-3">
                 <button

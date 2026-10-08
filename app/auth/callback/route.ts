@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
 export async function GET(request: Request) {
@@ -54,12 +55,54 @@ export async function GET(request: Request) {
       } = await supabase.auth.exchangeCodeForSession(code);
 
       if (!error && user) {
+        let accountRestored = false;
+        let accountRestoreError = false;
         const { data: existingProfile, error: profileLookupError } =
           await supabase
             .from("profiles")
-            .select("id")
+            .select("id, deletion_scheduled_at, deletion_previous_is_published")
             .eq("id", user.id)
             .maybeSingle();
+
+        if (profileLookupError) {
+          console.error(
+            "Could not check scheduled account deletion after sign-in",
+            profileLookupError,
+          );
+          accountRestoreError = true;
+        } else if (existingProfile?.deletion_scheduled_at) {
+          const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+          if (!serviceRoleKey) {
+            console.error(
+              "Cannot restore scheduled account deletion without SUPABASE_SERVICE_ROLE_KEY",
+            );
+            accountRestoreError = true;
+          } else {
+            const admin = createClient(supabaseUrl, serviceRoleKey, {
+              auth: { autoRefreshToken: false, persistSession: false },
+            });
+            const { data: restoredProfile, error: restoreError } = await admin
+              .from("profiles")
+              .update({
+                deletion_scheduled_at: null,
+                is_published:
+                  existingProfile.deletion_previous_is_published ?? false,
+                deletion_previous_is_published: null,
+              })
+              .eq("id", user.id)
+              .eq("deletion_scheduled_at", existingProfile.deletion_scheduled_at)
+              .select("id")
+              .maybeSingle();
+
+            if (restoreError || !restoredProfile) {
+              console.error("Could not restore scheduled account", restoreError);
+              accountRestoreError = true;
+            } else {
+              accountRestored = true;
+            }
+          }
+        }
 
         const fullName =
           user.user_metadata.full_name ?? user.user_metadata.name;
@@ -125,6 +168,15 @@ export async function GET(request: Request) {
             "Location",
             new URL("/profile?welcome=1", request.url).toString(),
           );
+        }
+
+        if (accountRestored || accountRestoreError) {
+          const destination = new URL(next, request.url);
+          destination.searchParams.set(
+            accountRestored ? "restored" : "restore_error",
+            "1",
+          );
+          response.headers.set("Location", destination.toString());
         }
 
         return response;
