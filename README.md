@@ -4,7 +4,8 @@ WeEverything is a directory for creative professionals to publish a profile,
 showcase work, and receive project inquiries.
 
 Profile promotion packages are fixed at 7 days for USD 5, 30 days for USD 15,
-or 90 days for USD 30. Only one promotion can be active per profile at a time.
+or 90 days for USD 30. Only one checkout or active promotion can exist per
+profile at a time. A full or partial refund ends the associated promotion.
 
 ## Local development
 
@@ -25,6 +26,7 @@ or production credentials.
 ```bash
 npm run lint
 npm run typecheck
+npm run test:unit
 npx playwright install chromium
 npm run test:e2e
 npm run build
@@ -46,7 +48,8 @@ The Playwright suite starts a production build automatically. Set
   notifications should be delivered.
 - Add Polar production credentials and confirm the webhook endpoint is
   `https://<your-domain>/api/webhooks/polar`.
-- Verify the scheduled `/api/account/purge` cron is present after deployment.
+- Verify the scheduled `/api/account/purge` and `/api/sponsorships/expire`
+  crons are present after deployment.
 - Run the GitHub Actions CI workflow and confirm the production build and
   browser smoke test pass.
 
@@ -55,8 +58,9 @@ The Playwright suite starts a production build automatically. Set
 - Apply and verify all reviewed migrations, including the profile-media bucket
   configuration, RLS policies, and latest schema changes. Confirm the
   `profile-media` bucket allows QuickTime videos if `.mov` uploads are enabled.
-- Apply the duration-based promotion migration before deploying its matching
-  application code. Existing paid promotions retain their 30-day duration.
+- Apply the duration-based promotion migrations, including the single-profile
+  promotion constraint, before deploying their matching application code.
+  Existing paid promotions retain their 30-day duration.
 - Set the Supabase Auth site URL and redirect allowlist for the production
   domain and any intended preview domains.
 - Allow the production domain in Cloudflare Turnstile and set its matching

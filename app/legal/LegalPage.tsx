@@ -184,7 +184,7 @@ const Page = () => {
                   information when required by law or needed to protect users,
                   the service, or our rights.
                 </span>
-                <span className="text-[#999] text-sm mb-2 font-medium tracking-tight ">
+                <span className="text-[#999] mt-4 text-sm mb-2 font-medium tracking-tight ">
                   5. AI-assisted features.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
@@ -294,7 +294,8 @@ const Page = () => {
                   checkout terms and applicable law. Nothing here excludes a
                   refund or other right that the law requires. For a payment
                   issue, contact the operator and Polar using their applicable
-                  support channels. A refunded sponsorship is no longer active.
+                  support channels. A full or partial refund ends the
+                  associated sponsorship.
                 </span>
               </span>
               <span className="flex flex-col mt-4  px-4">
@@ -370,7 +371,7 @@ const Page = () => {
                   12. Changes to these terms and privacy notice.
                 </span>
 
-                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                <span className="indent-8 mb-16 font-medium text-sm leading-4 tracking-tight ">
                   We may revise these Terms and this Privacy Notice as the
                   service or law changes. The date above identifies the latest
                   revision. Where notice or consent is required by law, we will

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { validateEvent } from "@polar-sh/sdk/webhooks";
 import { createClient } from "@supabase/supabase-js";
 import { Webhook } from "standardwebhooks";
-import { enforceRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -64,14 +63,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const rateLimitResponse = await enforceRateLimit(
-    request,
-    "polar-webhook",
-    300,
-    60,
-  );
-  if (rateLimitResponse) return rateLimitResponse;
-
   const paymentStatus =
     event.type === "order.paid"
       ? "paid"
@@ -107,7 +98,9 @@ export async function POST(request: Request) {
   });
   const paymentQuery = admin
     .from("sponsorship_payments")
-    .select("id")
+    .select(
+      "id, user_id, polar_product_id, amount, currency, promotion_days",
+    )
     .eq("polar_checkout_id", checkoutId);
 
   const { data: payment, error: paymentLookupError } =
@@ -123,6 +116,27 @@ export async function POST(request: Request) {
 
   if (!payment) {
     return NextResponse.json({ received: true });
+  }
+
+  if (event.type === "order.paid" || event.type === "order.refunded") {
+    const metadata = event.data.metadata;
+    const matchingCheckout =
+      event.data.productId === payment.polar_product_id &&
+      event.data.currency.toLowerCase() === payment.currency.toLowerCase() &&
+      metadata.user_id === payment.user_id &&
+      metadata.promotion_days === payment.promotion_days &&
+      metadata.sponsorship_amount === payment.amount;
+
+    if (!matchingCheckout || (event.type === "order.paid" && !event.data.paid)) {
+      console.error("Polar order did not match its sponsorship checkout", {
+        checkoutId,
+        orderId: event.data.id,
+      });
+      return NextResponse.json(
+        { error: "Polar order did not match its sponsorship checkout." },
+        { status: 400 },
+      );
+    }
   }
 
   const { error } = await admin.rpc("apply_polar_sponsorship_event", {

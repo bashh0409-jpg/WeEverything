@@ -124,11 +124,28 @@ export async function POST(request: Request) {
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+  const polar = new Polar({
+    accessToken: polarAccessToken,
+    server: polarEnvironment,
+  });
 
   try {
+    // Keep the database status in sync before relying on the partial unique
+    // index that prevents more than one open or active promotion per profile.
+    const { error: expiryError } = await admin.rpc(
+      "expire_stale_sponsorships",
+    );
+    if (expiryError) {
+      console.error("Could not expire stale sponsorships", expiryError);
+      return NextResponse.json(
+        { error: "Could not verify your current promotion status." },
+        { status: 502 },
+      );
+    }
+
     const { data: existingPayment } = await admin
       .from("sponsorship_payments")
-      .select("polar_checkout_id, amount, status, metadata, promotion_days")
+      .select("polar_checkout_id, amount, status, promotion_days")
       .eq("user_id", user.id)
       .eq("idempotency_key", idempotencyKey)
       .maybeSingle();
@@ -146,10 +163,28 @@ export async function POST(request: Request) {
         );
       }
 
-      const existingCheckout = await new Polar({
-        accessToken: polarAccessToken,
-        server: polarEnvironment,
-      }).checkouts.get({ id: existingPayment.polar_checkout_id });
+      if (existingPayment.status !== "pending") {
+        return NextResponse.json(
+          {
+            error:
+              "This checkout is already complete or closed. Start a new promotion request.",
+          },
+          { status: 409 },
+        );
+      }
+
+      const existingCheckout = await polar.checkouts.get({
+        id: existingPayment.polar_checkout_id,
+      });
+      if (existingCheckout.status !== "open") {
+        return NextResponse.json(
+          {
+            error:
+              "This checkout is no longer available. Start a new promotion request.",
+          },
+          { status: 409 },
+        );
+      }
 
       return NextResponse.json({ url: existingCheckout.url });
     }
@@ -193,10 +228,58 @@ export async function POST(request: Request) {
       );
     }
 
-    const polar = new Polar({
-      accessToken: polarAccessToken,
-      server: polarEnvironment,
-    });
+    const { data: pendingPayment, error: pendingPaymentError } = await admin
+      .from("sponsorship_payments")
+      .select("id, polar_checkout_id")
+      .eq("profile_id", user.id)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    if (pendingPaymentError) {
+      console.error("Could not check pending sponsorship checkout", pendingPaymentError);
+      return NextResponse.json(
+        { error: "Could not verify your current promotion status." },
+        { status: 502 },
+      );
+    }
+
+    if (pendingPayment) {
+      const pendingCheckout = await polar.checkouts.get({
+        id: pendingPayment.polar_checkout_id,
+      });
+
+      if (pendingCheckout.status === "open") {
+        return NextResponse.json({ url: pendingCheckout.url });
+      }
+
+      if (pendingCheckout.status === "confirmed") {
+        return NextResponse.json(
+          { error: "Your previous payment is still being confirmed." },
+          { status: 409 },
+        );
+      }
+
+      const { error: expirePendingError } = await admin.rpc(
+        "apply_polar_sponsorship_event",
+        {
+          p_payment_id: pendingPayment.id,
+          p_status: "expired",
+          p_polar_order_id: null,
+          p_event_at: new Date().toISOString(),
+        },
+      );
+      if (expirePendingError) {
+        console.error(
+          "Could not close an unavailable sponsorship checkout",
+          expirePendingError,
+        );
+        return NextResponse.json(
+          { error: "Could not prepare a new checkout. Please try again." },
+          { status: 502 },
+        );
+      }
+    }
+
     const checkout = await polar.checkouts.create(
       {
         products: [polarProductId],
@@ -245,9 +328,9 @@ export async function POST(request: Request) {
       if (paymentError.code === "23505") {
         const { data: duplicatePayment } = await admin
           .from("sponsorship_payments")
-          .select("polar_checkout_id, amount, promotion_days")
-          .eq("user_id", user.id)
-          .eq("idempotency_key", idempotencyKey)
+          .select("polar_checkout_id, amount, promotion_days, status")
+          .eq("profile_id", user.id)
+          .in("status", ["pending", "paid"])
           .maybeSingle();
 
         if (duplicatePayment) {
@@ -264,10 +347,22 @@ export async function POST(request: Request) {
             );
           }
 
+          if (duplicatePayment.status !== "pending") {
+            return NextResponse.json(
+              {
+                error:
+                  "Your profile is already promoted. You can purchase another package after it expires.",
+              },
+              { status: 409 },
+            );
+          }
+
           const duplicateCheckout = await polar.checkouts.get({
             id: duplicatePayment.polar_checkout_id,
           });
-          return NextResponse.json({ url: duplicateCheckout.url });
+          if (duplicateCheckout.status === "open") {
+            return NextResponse.json({ url: duplicateCheckout.url });
+          }
         }
       }
 

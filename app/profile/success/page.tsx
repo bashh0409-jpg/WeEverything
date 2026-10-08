@@ -4,9 +4,18 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
+import { getPromotionExpiry } from "@/lib/sponsorship";
+
+type ConfirmationState =
+  | { state: "missing" | "waiting" | "error" }
+  | { state: "paid"; expiresAt: string | null }
+  | { state: "refunded" | "expired" };
 
 export default function BillingSuccess() {
   const [user, setUser] = useState<User | null>(null);
+  const [confirmation, setConfirmation] = useState<ConfirmationState>({
+    state: "waiting",
+  });
 
   useEffect(() => {
     const client = supabase;
@@ -42,6 +51,69 @@ export default function BillingSuccess() {
     };
   }, []);
 
+  useEffect(() => {
+    const client = supabase;
+    const checkoutId = new URLSearchParams(window.location.search).get(
+      "checkout_id",
+    );
+
+    if (!client || !checkoutId) {
+      const missingCheckoutTimer = window.setTimeout(() => {
+        setConfirmation({ state: "missing" });
+      }, 0);
+      return () => window.clearTimeout(missingCheckoutTimer);
+    }
+
+    let cancelled = false;
+    let retryTimer: number | undefined;
+
+    const confirmPayment = async (attempt: number) => {
+      const { data, error } = await client
+        .from("sponsorship_payments")
+        .select("status, paid_at, promotion_days")
+        .eq("polar_checkout_id", checkoutId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error || !data) {
+        setConfirmation({ state: "error" });
+        return;
+      }
+
+      if (data.status === "paid") {
+        setConfirmation({
+          state: "paid",
+          expiresAt:
+            getPromotionExpiry(data.paid_at, data.promotion_days)?.toISOString() ??
+            null,
+        });
+        return;
+      }
+
+      if (data.status === "refunded" || data.status === "expired") {
+        setConfirmation({ state: data.status });
+        return;
+      }
+
+      if (attempt >= 9) {
+        setConfirmation({ state: "error" });
+        return;
+      }
+
+      retryTimer = window.setTimeout(() => {
+        void confirmPayment(attempt + 1);
+      }, 2_000);
+    };
+
+    void confirmPayment(0);
+
+    return () => {
+      cancelled = true;
+      if (retryTimer) window.clearTimeout(retryTimer);
+    };
+  }, []);
+
   const avatarUrl =
     typeof user?.user_metadata.avatar_url === "string"
       ? user.user_metadata.avatar_url
@@ -49,6 +121,30 @@ export default function BillingSuccess() {
         ? user.user_metadata.picture
         : null;
   const avatarInitial = user?.email?.trim().charAt(0).toUpperCase() || "U";
+  const heading =
+    confirmation.state === "paid"
+      ? "Sponsorship confirmed!"
+      : confirmation.state === "waiting"
+        ? "Confirming sponsorship…"
+        : confirmation.state === "refunded"
+          ? "Sponsorship refunded"
+          : confirmation.state === "expired"
+            ? "Checkout expired"
+            : "Could not confirm sponsorship";
+  const detail =
+    confirmation.state === "paid"
+      ? `Your profile is promoted${
+          confirmation.expiresAt
+            ? ` until ${new Date(confirmation.expiresAt).toLocaleDateString()}.`
+            : "."
+        }`
+      : confirmation.state === "waiting"
+        ? "We received your return from checkout and are waiting for Polar to confirm the payment. This normally takes a few moments."
+        : confirmation.state === "refunded"
+          ? "This payment was refunded, so your profile is not promoted."
+          : confirmation.state === "expired"
+            ? "This checkout was not completed before it expired."
+            : "We could not confirm this checkout yet. Return to your profile and refresh in a moment, or contact support if you were charged.";
 
   return (
     <div className="min-h-screen bg-white text-black flex items-center justify-center p-4">
@@ -79,12 +175,11 @@ export default function BillingSuccess() {
 
       <div className="text-center max-w-md">
         <h1 className="text-xl uppercase tracking-tight mono mb-2">
-          Sponsorship successful!
+          {heading}
         </h1>
 
         <p className="mt-2 font-mono tracking-tight uppercase text-black/60">
-          Thanks for supporting WeEverything. Your profile promotion payment
-          was received successfully for the package period you selected.
+          {detail}
         </p>
 
         <Link
