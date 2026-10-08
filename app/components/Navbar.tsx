@@ -38,6 +38,9 @@ const mostAwardedProfiles = [
   { name: "dogstudio", href: "https://www.awwwards.com/dogstudio/" },
 ];
 
+let cachedNavbarUser: User | null = null;
+let hasLoadedNavbarSession = false;
+
 const Navbar = forwardRef<
   HTMLElement,
   { className?: string; currentTime?: string }
@@ -47,7 +50,12 @@ const Navbar = forwardRef<
   const [localTime, setLocalTime] = useState("");
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  const [user, setUser] = useState<User | null>(cachedNavbarUser);
+  const [isAuthLoading, setIsAuthLoading] = useState(
+    () => Boolean(supabase) && !hasLoadedNavbarSession,
+  );
   const [isSponsored, setIsSponsored] = useState(false);
 
   const asideRef = useRef<HTMLDivElement>(null);
@@ -110,23 +118,35 @@ const Navbar = forwardRef<
     const client = supabase;
 
     if (!client) {
+      hasLoadedNavbarSession = true;
+      setIsAuthLoading(false);
       setUser(null);
       return;
     }
 
     let isMounted = true;
+    let receivedAuthEvent = false;
 
     const loadUser = async (currentUser: User | null) => {
       if (!currentUser) {
+        cachedNavbarUser = null;
+        hasLoadedNavbarSession = true;
         if (isMounted) {
           setUser(null);
+          setIsAuthLoading(false);
           setIsSponsored(false);
           loadedSponsorshipUserId.current = null;
         }
         return;
       }
 
-      setUser(currentUser);
+      cachedNavbarUser = currentUser;
+      hasLoadedNavbarSession = true;
+
+      if (isMounted) {
+        setUser(currentUser);
+        setIsAuthLoading(false);
+      }
 
       if (loadedSponsorshipUserId.current === currentUser.id) return;
 
@@ -149,13 +169,29 @@ const Navbar = forwardRef<
       );
     };
 
-    void client.auth.getSession().then(({ data: { session } }) => {
-      void loadUser(session?.user ?? null);
-    });
+    void client.auth
+      .getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.error("Could not load navbar auth session", error);
+        }
+
+        if (receivedAuthEvent) return;
+
+        void loadUser(session?.user ?? null);
+      })
+      .catch((error: unknown) => {
+        console.error("Could not load navbar auth session", error);
+        hasLoadedNavbarSession = true;
+        if (isMounted) {
+          setIsAuthLoading(false);
+        }
+      });
 
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange((_event, session) => {
+      receivedAuthEvent = true;
       void loadUser(session?.user ?? null);
     });
 
@@ -173,6 +209,37 @@ const Navbar = forwardRef<
         ? user.user_metadata.picture
         : null;
   const avatarInitial = user?.email?.trim().charAt(0).toUpperCase() || "U";
+
+  const handleSignOut = async () => {
+    if (!supabase || isLoggingOut) return;
+
+    setLogoutError("");
+    setIsLoggingOut(true);
+
+    try {
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        setLogoutError(error.message);
+        return;
+      }
+
+      cachedNavbarUser = null;
+      hasLoadedNavbarSession = true;
+      setUser(null);
+      setIsAuthLoading(false);
+      setIsSponsored(false);
+      loadedSponsorshipUserId.current = null;
+      setIsLogoutConfirmOpen(false);
+      router.push("/");
+    } catch (error) {
+      setLogoutError(
+        error instanceof Error ? error.message : "Could not sign out.",
+      );
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   useLayoutEffect(() => {
     const panel = asideRef.current;
@@ -287,76 +354,54 @@ const Navbar = forwardRef<
       >
         <Link
           href="/"
-          className="text-[#999] lowercas geist mix-blend-difference font-medium tracking-tight "
+          className=" text-white lowercas geist mix-blend-difference font-medium tracking-tight "
         >
-          weeverything.xyz
+          <p className="geist uppercase leading-8 text-xl font-bold tracking-tighter capitalize text-[#000] flex max-w-xl flex-col items-center justify-center text-center uppercas ">
+            weeverything
+          </p>
         </Link>
 
-        <div
-          ref={desktopLinksRef}
-          className="hidden  items-start mt-1 justify-center gap-3 sm:flex"
-        >
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              data-nav-link
-              className="text-[#999] lowercase geist mix-blend-difference font-medium tracking-tight "
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
-
         <div className="hidden flex-col gap-2  md:flex">
-          
-          <div className="grid grid-cols-2 geist mt-2 gap-x-5 leading-none">
-            {[
-              mostAwardedProfiles.slice(0, 5),
-              mostAwardedProfiles.slice(5),
-            ].map((column, columnIndex) => (
-              <div key={columnIndex} className="flex flex-col items-start">
-                {column.map((profile) => (
-                  <a
-                    key={profile.name}
-                    href={profile.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#999] lowercase mix-blend-difference font-medium text-m tracking-tight "
-                  >
-                    {profile.name}
-                  </a>
-                ))}
-              </div>
+          <div className="flex items-center gap-2">
+            {links.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                data-nav-link
+                className="geist  uppercase leading-8 text-xl font-bold tracking-tighter capitalize text- flex max-w-xl flex-col items-center justify-center text-center uppercas "
+              >
+                {link.label}
+              </Link>
             ))}
           </div>
         </div>
 
-        <div className="hidden w-28 shrink-0 items-start justify-end gap-4 text-white sm:flex">
+        <div className="hidden  shrink-0 items-start justify-end gap-4 text-white sm:flex">
           <div className="flex w-full items-center justify-end text-sm font-semibold">
-            {!isAuthenticated ? (
-              <button
-                type="button"
-                onClick={() => setIsSignInOpen(true)}
-                className="bg-black ml-1 hover:bg-black/50 geist tracking-tight transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
+            {isAuthLoading ? null : !isAuthenticated ? (
+              <Link
+                href="/signin"
+                className="geist uppercase leading-8 text-xl font-bold tracking-tighter capitalize text-[#000] flex max-w-xl flex-col items-center justify-center text-center uppercas "
               >
-                Sign in
-              </button>
+                sign in
+              </Link>
             ) : (
               <>
                 <button
                   type="button"
-                  onClick={() => setIsLogoutConfirmOpen(true)}
-                  className="bg-black mr-1 geist tracking-tight hover:bg-black/50 transition-colors duration-300 cursor-pointer rounded-full px-3 py-1"
+                  onClick={() => {
+                    setLogoutError("");
+                    setIsLogoutConfirmOpen(true);
+                  }}
+                  className="geist mr-2 uppercase leading-8 text-xl font-bold tracking-tighter capitalize text-[#000] flex max-w-xl flex-col items-center justify-center text-center uppercas "
                 >
-                  Log out
+                  sign out
                 </button>
-
                 <Link
                   href="/profile"
                   aria-label={`View profile for ${user?.email ?? "your account"}`}
                   title={user?.email ?? "Your profile"}
-                  className={`hover:bg-[#1c40f2] w-7 h-7  transition-colors duration-300 cursor-pointer rounded-full border ${isSponsored ? "bg-[#1c40f2]" : ""}`}
+                  className={`hover:bg-[#1c40f2] w-8 h-8  transition-colors duration-300 cursor-pointer rounded-full border ${isSponsored ? "bg-[#1c40f2]" : ""}`}
                 >
                   <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white text-xs font-bold uppercase text-black">
                     <span
@@ -539,6 +584,8 @@ const Navbar = forwardRef<
           <button
             type="button"
             onClick={async () => {
+              if (isAuthLoading) return;
+
               closeSidebar();
 
               if (isAuthenticated) {
@@ -548,7 +595,12 @@ const Navbar = forwardRef<
 
               setIsSignInOpen(true);
             }}
-            className="flex min-h-10  items-center rounded-full bg-white px-5 text-center text-sm font-semibold text-[#1c40f2] transition-transform hover:scale-[1.01] active:scale-[0.99]"
+            disabled={isAuthLoading}
+            aria-hidden={isAuthLoading}
+            tabIndex={isAuthLoading ? -1 : undefined}
+            className={`flex min-h-10 items-center rounded-full bg-white px-5 text-center text-sm font-semibold text-[#1c40f2] transition-transform hover:scale-[1.01] active:scale-[0.99] ${
+              isAuthLoading ? "invisible" : ""
+            }`}
           >
             <span className=" text-center w-full geist tracking-tight text-sm">
               {isAuthenticated ? "Log out" : "Sign in"}
@@ -575,31 +627,29 @@ const Navbar = forwardRef<
               Sure you want to log out?
             </h2>
 
+            {logoutError ? (
+              <p role="alert" className="mt-4 text-sm text-red-700">
+                {logoutError}
+              </p>
+            ) : null}
+
             <div className="mt-6 mono flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={async () => {
-                  const client = supabase;
-
-                  if (!client) {
-                    setIsLogoutConfirmOpen(false);
-                    return;
-                  }
-
-                  await client.auth.signOut();
-                  setUser(null);
-                  setIsLogoutConfirmOpen(false);
-                  router.push("/");
-                }}
-                className="cursor-pointer rounded-full bg-black px-3 py-1 text-sm font-semibold tracking-tight text-white transition hover:bg-black/60"
+                onClick={() => void handleSignOut()}
+                disabled={isLoggingOut}
+                className="max-w-full capitalize geist max-h-7  rounded-3xl bg-black px-2 py-1 text-sm font-medium leading-4 tracking-tight text-white [overflow-wrap:anywhere]"
               >
-                Yes, log out
+                {isLoggingOut ? "Signing out..." : "Yes, log out"}
               </button>
 
               <button
                 type="button"
-                onClick={() => setIsLogoutConfirmOpen(false)}
-                className="cursor-pointer rounded-full border border-black/20 px-3 py-1 text-sm font-semibold tracking-tight text-black transition hover:border-black"
+                onClick={() => {
+                  setLogoutError("");
+                  setIsLogoutConfirmOpen(false);
+                }}
+                className="max-w-full capitalize geist max-h-7  rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
               >
                 Cancel
               </button>

@@ -38,6 +38,7 @@ const getIsBannedFromLocation = () => {
 const SignInModal = ({ onClose }: SignInModalProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(() => Boolean(supabase));
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const [isAdultConfirmed, setIsAdultConfirmed] = useState(false);
   const isBanned = useSyncExternalStore(
     subscribeToLocation,
@@ -57,27 +58,55 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
       return;
     }
 
-    const loadSession = async () => {
-      const {
-        data: { session },
-      } = await client.auth.getSession();
+    let isMounted = true;
 
-      setUser(session?.user ?? null);
-      setLoading(false);
+    const loadSession = async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await client.auth.getSession();
+
+        if (!isMounted) return;
+
+        if (error) {
+          setMessage(error.message);
+        }
+
+        setUser(session?.user ?? null);
+      } catch (error) {
+        if (!isMounted) return;
+
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "Could not check your sign-in status.",
+        );
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     };
 
-    loadSession();
+    void loadSession();
 
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+
       setUser(session?.user ?? null);
+      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const handleGoogleSignIn = async () => {
+  const handleSignIn = async (provider: "google" | "github") => {
     if (!isAdultConfirmed) return;
 
     if (!supabase) {
@@ -88,56 +117,54 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
     }
 
     setMessage("");
-    posthog.capture("sign_in_started", { provider: "google" });
+    setIsSigningIn(true);
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: getAuthRedirectUrl("/profile"),
-      },
-    });
+    try {
+      posthog.capture("sign_in_started", { provider });
 
-    if (error) {
-      setMessage(error.message);
-    }
-  };
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: getAuthRedirectUrl("/profile"),
+        },
+      });
 
-  const handleGithubSignIn = async () => {
-    if (!isAdultConfirmed) return;
-
-    if (!supabase) {
+      if (error) {
+        setMessage(error.message);
+      }
+    } catch (error) {
       setMessage(
-        "Supabase is not configured yet. Add your public environment variables first.",
+        error instanceof Error
+          ? error.message
+          : "Could not start sign-in. Please try again.",
       );
-      return;
-    }
-
-    setMessage("");
-    posthog.capture("sign_in_started", { provider: "github" });
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "github",
-      options: {
-        redirectTo: getAuthRedirectUrl("/profile"),
-      },
-    });
-
-    if (error) {
-      setMessage(error.message);
+    } finally {
+      setIsSigningIn(false);
     }
   };
 
   const handleSignOut = async () => {
-    if (!supabase) return;
-
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      setMessage(error.message);
+    if (!supabase) {
+      setMessage("Supabase is not configured, so you could not be signed out.");
       return;
     }
 
-    setUser(null);
+    setMessage("");
+
+    try {
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      setUser(null);
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Could not sign out.",
+      );
+    }
   };
 
   return (
@@ -168,7 +195,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
           {isBanned
             ? "Your account is banned"
             : user
-              ? "You are signed in"
+              ? `You are signed in as ${user.email}`
               : "Sign in or create your profile"}
         </h2>
 
@@ -191,29 +218,13 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
         {isBanned ? null : loading ? (
           <div className="mt-6 text-sm text-[#666]">Loading session...</div>
         ) : user ? (
-          <div className="mt-6 space-y-4">
-            <div className="rounded border border-black/10 bg-[#f7f7f7] p-4">
-              <p className="text-sm mon leading-4 geist tracking-tight font-medium uppercas text-[#999]">
-                Signed in as
-              </p>
-              <p className="text-sm mon leading-4 geist tracking-tight font-medium uppercas text-[#1c40f2]">
-                {user.email}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/submit"
-                onClick={onClose}
-                className="cursor-pointer rounded-full bg-black px-3 py-1 mono text-sm font-medium text-white transition hover:bg-[#1c40f2]"
-              >
-                Go to submit page
-              </Link>
-
+          <div className="mt-4">
+            <div className="flex flex-wrap ">
+            
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="cursor-pointer rounded-full border border-black/20 px-3 py-1 text-sm font-medium text-black transition hover:border-black"
+                className="max-w-full capitalize geist max-h-7 mt-4 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
               >
                 Sign out
               </button>
@@ -235,7 +246,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
                 }
                 className="mt-1"
               />
-             
+
               <p className="geist  max-w-xs text-justify  overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
                 I confirm that I am at least 18 years old and agree to the{" "}
                 <Link href="/legal" className="underline">
@@ -248,8 +259,10 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
             <div className="grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
-                onClick={handleGoogleSignIn}
-                disabled={!isSupabaseConfigured || !isAdultConfirmed}
+                onClick={() => void handleSignIn("google")}
+                disabled={
+                  !isSupabaseConfigured || !isAdultConfirmed || isSigningIn
+                }
                 className="flex w-full mono tracking-tight cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1c40f2] px-4 py-2 text-sm font-medium uppercase text-white transition hover:bg-[#1636d4] disabled:cursor-not-allowed disabled:bg-[#c2ccff]"
               >
                 <FaGoogle aria-hidden="true" className="text-base" />
@@ -258,8 +271,10 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
 
               <button
                 type="button"
-                onClick={handleGithubSignIn}
-                disabled={!isSupabaseConfigured || !isAdultConfirmed}
+                onClick={() => void handleSignIn("github")}
+                disabled={
+                  !isSupabaseConfigured || !isAdultConfirmed || isSigningIn
+                }
                 className="flex w-full mono tracking-tight cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-medium uppercase text-white transition hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#aaa]"
               >
                 <FaGithub aria-hidden="true" className="text-base" />

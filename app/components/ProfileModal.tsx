@@ -671,7 +671,6 @@ const ProfileModal = ({
                   src={hoverMedia.url}
                   autoPlay
                   loop
-                  
                   playsInline
                   controls={false}
                   aria-label={`${name} profile video`}
@@ -694,24 +693,8 @@ const ProfileModal = ({
               <div className="flex gap-1">
                 <button
                   type="button"
-                  aria-label={
-                    isSaved
-                      ? `Remove ${name} from saved profiles`
-                      : `Save ${name} profile`
-                  }
-                  aria-pressed={isSaved}
-                  title={
-                    isSaved ? "Remove from saved profiles" : "Save profile"
-                  }
-                  onClick={() => onToggleSave(profileId)}
-                  className={`flex h-7 w-fit px-3 uppercase font-semibold mono text-xs tracking-tight items-center flex cursor-pointer items-center justify-center rounded-full border transition ${isSaved ? "border-black bg-black text-white" : "border-black/20 text-black hover:border-black"}`}
-                >
-                  {isSaved ? "Saved" : "Save"}
-                </button>
-                <button
-                  type="button"
                   onClick={() => void handleShare()}
-                  className="w-fit cursor-pointer text-xs mono text-white   font-semibold uppercase tracking-tight  bg-black p-1 rounded-full px-3 transition hover:bg-black/50 "
+                  className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
                 >
                   {shareLabel === "Share profile" ? "Share" : shareLabel}
                 </button>
@@ -722,9 +705,25 @@ const ProfileModal = ({
                     setInquiryStatus("idle");
                     setInquiryMessage("");
                   }}
-                  className="w-fit cursor-pointer rounded-full bg-[#1c40f2] p-1 px-3 mono text-xs font-semibold uppercase tracking-tight text-white transition hover:bg-[#1c40f2]/50"
+                  className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
                 >
                   Contact
+                </button>{" "}
+                <button
+                  type="button"
+                  aria-label={
+                    isSaved
+                      ? `Remove ${name} from saved profiles`
+                      : `Save ${name} profile`
+                  }
+                  aria-pressed={isSaved}
+                  title={
+                    isSaved ? "Remove from saved profiles" : "Save profile"
+                  }
+                  onClick={() => onToggleSave(profileId)}
+                  className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
+                >
+                  {isSaved ? "Saved" : "Save"}
                 </button>
               </div>
             </div>
@@ -906,9 +905,9 @@ const ProfileModal = ({
               <button
                 type="submit"
                 disabled={inquiryStatus === "sending"}
-                className="w-fit cursor-pointer rounded-full bg-black p-1 px-2 mono text-xs font-semibold uppercase tracking-tight text-white transition hover:bg-[#1c40f2]/50"
+                className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere] w-fit"
               >
-                {inquiryStatus === "sending" ? "Sending..." : "Send inquiry"}
+                {inquiryStatus === "sending" ? "Sending..." : "Send"}
               </button>
               {inquiryMessage ? (
                 <p

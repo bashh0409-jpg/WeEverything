@@ -921,6 +921,7 @@ const ProfilePage = () => {
   const [sponsoredUntil, setSponsoredUntil] = useState<string | null>(null);
   const [profileViews, setProfileViews] = useState(0);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isSponsorModalOpen, setIsSponsorModalOpen] = useState(false);
   const [promotionDays, setPromotionDays] = useState<PromotionDays>(30);
@@ -2285,6 +2286,33 @@ const ProfilePage = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    if (signingOut) return;
+
+    if (!supabase) {
+      setMessage("Supabase is not configured, so you could not be signed out.");
+      return;
+    }
+
+    setSigningOut(true);
+    setMessage("");
+
+    try {
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      router.push("/");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not sign out.");
+    } finally {
+      setSigningOut(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     if (!supabase || deletingAccount) return;
 
@@ -2335,7 +2363,10 @@ const ProfilePage = () => {
         <Navbar />
 
         <main className="flex geist min-h-screen  text-sm tracking-tight text-[#999] items-center justify-center px-6 py-20">
-          No user is signed in. Please sign in to view your profile.
+          <p className="geist  max-w-xs text-center  overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
+            No user is signed in. Please sign in to view your profile.
+          </p>
+          
         </main>
       </div>
     );
@@ -2521,7 +2552,7 @@ const ProfilePage = () => {
         <section className="mx-auto w-full max-w-6xl border- mt-10 border-black pt-5">
           <div className="flex flex-wrap items-center justify-between gap-5">
             <div>
-              <h1 className="mt-3 geist text-4xl font-medium tracking-tighter sm:text-6xl">
+              <h1 className="mt-3 geist text-2xl font-semibold tracking-tighter uppercase sm:text-4xl">
                 {profileName}
               </h1>
             </div>
@@ -2599,7 +2630,11 @@ const ProfilePage = () => {
           <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-20">
             <div>
               <div className="flex flex-col gap-7 sm:flex-row sm:items-center">
-                <div className="relative flex h-32 w-32 shrink-0 items-center justify-center overflow-hidden rounded-full bg-black/5 text-4xl font-semibold uppercase text-black">
+                <div
+                  className={`relative flex h-32 w-32 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 bg-black/5 text-4xl font-semibold uppercase text-black ${
+                    sponsored ? "border-[#1c40f2]/50 " : "border-none"
+                  }`}
+                >
                   <span
                     aria-hidden
                     className="relative animate-spin [animation-duration:10s] block w-8 h-8"
@@ -3049,6 +3084,14 @@ const ProfilePage = () => {
                   </span>
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={() => void handleSignOut()}
+                disabled={signingOut}
+                className="max-w-full capitalize geist max-h-7 mt-4 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
+              >
+                {signingOut ? "signing out..." : "sign out"}
+              </button>
 
               <div className="mt-8 border-t-2 border-black/5 pt-5">
                 <p className="text-sm capitalize font-medium tracking-tight text-[#999]">
