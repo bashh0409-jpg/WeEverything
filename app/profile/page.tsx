@@ -2499,10 +2499,10 @@ const ProfilePage = () => {
                 type="button"
                 onClick={() => void handlePublishToggle()}
                 disabled={publishing || saving}
-                className={`rounded-full  uppercase cursor-pointer px-3 py-1 text-xs font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 ${profile?.is_published ? "bg-black" : "bg-[#1c40f2]"}`}
+                className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
               >
                 {publishing
-                  ? "Working..."
+                  ? "Processing..."
                   : profile?.is_published
                     ? "Unpublish"
                     : "Publish"}
@@ -2518,14 +2518,14 @@ const ProfilePage = () => {
               <button
                 type="button"
                 onClick={handleUpdateClick}
-                className="rounded-full  uppercase  cursor-pointer border border-black px-3 py-1 text-xs  font-semibold transition hover:bg-black hover:text-white"
+                className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
               >
                 {isEditing ? "Close editor" : "Update"}
               </button>
               <button
                 type="button"
                 onClick={() => void handleShareProfile()}
-                className="rounded-full  uppercase  cursor-pointer border border-black px-3 py-1 text-xs  font-semibold transition hover:bg-black hover:text-white"
+                className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
               >
                 {shareLabel}
               </button>
@@ -2535,7 +2535,7 @@ const ProfilePage = () => {
                 aria-label="Open project inquiries"
                 title="Project inquiries"
                 onClick={() => setIsInquiryDrawerOpen(true)}
-                className="relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-black transition hover:bg-black hover:text-white"
+                className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] p-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -4233,23 +4233,22 @@ const ProfilePage = () => {
                 id="sponsor-profile-title"
                 className="mb-3 text-2xl font-semibold capitalize tracking-tight text-black"
               >
-                Promote your work.
+                Get discovered.
               </h2>
+
               <p
                 id="sponsor-profile-description"
                 className="text-sm font-medium text-justify leading-4 tracking-tight text-[#999]"
               >
-                Give your profile a visibility boost in the directory. Help
-                people discover your work, learn what you do, and find a way to
-                connect with you. Choose how long you would like your profile
-                promoted.
+                Boost your profile and get more visibility in the directory.
+                Choose how long you want your profile to be featured.
               </p>
 
               <div className="mt-3">
                 <p className="geist  text-xs font-medium capitalize tracking-tight text-black">
                   Choose a package:
                 </p>
-                <div className="mt-2 flex w-full justify-between gap-2">
+                <div className="mt-2 flex w-full justify-between gap-">
                   {PROMOTION_PACKAGES.map((promotion) => {
                     const isSelected = promotionDays === promotion.days;
 
@@ -4270,20 +4269,12 @@ const ProfilePage = () => {
                         } disabled:cursor-wait disabled:opacity-60`}
                       >
                         <span
-                          className={`geist flex items-center text-lg font-medium tracking-tight ${
+                          className={`geist flex items-center text-3xl font-medium tracking-tight ${
                             isSelected ? "text-black" : "text-[#999]"
                           }`}
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            height="20px"
-                            viewBox="0 -960 960 960"
-                            width="20px"
-                            fill="currentColor"
-                          >
-                            <path d="M441-120v-86q-53-12-91.5-46T293-348l74-30q15 48 44.5 73t77.5 25q41 0 69.5-18.5T587-356q0-35-22-55.5T463-458q-86-27-118-64.5T313-614q0-65 42-101t86-41v-84h80v84q50 8 82.5 36.5T651-650l-74 32q-12-32-34-48t-60-16q-44 0-67 19.5T393-614q0 33 30 52t104 40q69 20 104.5 63.5T667-358q0 71-42 108t-104 46v84h-80Z" />
-                          </svg>
-                          {(promotion.amount / 100).toFixed(0)}
+                          
+                          ${(promotion.amount / 100).toFixed(0)}
                         </span>
                         <span className="text-xs uppercas capitalize font-medium tracking-tight text-[#999]">
                           {promotion.days} days promo
