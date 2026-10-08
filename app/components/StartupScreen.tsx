@@ -80,7 +80,7 @@ const StartupScreen = () => {
       role="status"
       aria-label="Loading WeEverything"
       aria-live="polite"
-      className={`startup-screen ${isLeaving ? "startup-screen-leaving" : ""}`}
+      className={`startup-screen bg-white ${isLeaving ? "startup-screen-leaving" : ""}`}
     >
       <div className="startup-screen-footer tracking-tight geist">
         <span className="tracking-tighter  text-sm font-semibold">2026</span>

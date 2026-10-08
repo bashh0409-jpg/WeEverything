@@ -124,8 +124,8 @@ body::-webkit-scrollbar {
   grid-template-rows: minmax(0, 1fr) auto;
   box-sizing: border-box;
   padding: 32px;
-  background: #1c40f2;
-  color: #fff;
+ 
+  color: #000;
   clip-path: inset(0 0 0 0);
   animation: startup-screen-in 550ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -166,7 +166,6 @@ body::-webkit-scrollbar {
 
 .startup-screen-percentage {
   min-width: 4ch;
-  color: #fff;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
