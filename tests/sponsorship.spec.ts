@@ -4,6 +4,7 @@ import {
   getPromotionExpiry,
   isPromotionActive,
 } from "../lib/sponsorship";
+import { normalizePolarWebhookData } from "../lib/polar-webhook";
 
 test("a promotion remains active until its exact duration boundary", () => {
   const paidAt = "2026-10-01T12:00:00.000Z";
@@ -47,4 +48,14 @@ test("the promotion with the latest valid expiry is selected", () => {
   );
 
   expect(activePromotion).toMatchObject({ promotion_days: 30 });
+});
+
+test("Polar webhook snake_case identifiers are normalized for order matching", () => {
+  const orderData = normalizePolarWebhookData({
+    checkout_id: "3cdaecaa-f569-470f-b025-d6649bfdb160",
+    product_id: "545a95a6-1c0c-4765-930e-3816aab19876",
+  });
+
+  expect(orderData.checkoutId).toBe("3cdaecaa-f569-470f-b025-d6649bfdb160");
+  expect(orderData.productId).toBe("545a95a6-1c0c-4765-930e-3816aab19876");
 });

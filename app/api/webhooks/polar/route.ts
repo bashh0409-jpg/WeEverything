@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { validateEvent } from "@polar-sh/sdk/webhooks";
 import { createClient } from "@supabase/supabase-js";
 import { Webhook } from "standardwebhooks";
+import { normalizePolarWebhookData } from "@/lib/polar-webhook";
 
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -47,10 +48,7 @@ export async function POST(request: Request) {
       event = {
         ...verifiedEvent,
         timestamp,
-        data: {
-          ...data,
-          checkoutId: data.checkoutId ?? data.checkout_id ?? null,
-        },
+        data: normalizePolarWebhookData(data),
       } as ReturnType<typeof validateEvent>;
     }
   } catch {
