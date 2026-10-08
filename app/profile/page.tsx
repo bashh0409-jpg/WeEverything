@@ -4273,7 +4273,6 @@ const ProfilePage = () => {
                             isSelected ? "text-black" : "text-[#999]"
                           }`}
                         >
-                          
                           ${(promotion.amount / 100).toFixed(0)}
                         </span>
                         <span className="text-xs uppercas capitalize font-medium tracking-tight text-[#999]">
