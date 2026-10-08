@@ -905,7 +905,7 @@ const Page = () => {
       >
         <div className="max-w-sm">
           <p className="mon geist  max-w-xs text-center  overflow-hidden text-xl font-semibold tracking-tighter text-black mb-2 ">
-            Desktop experience only
+            Plot twist: we’re still building.
           </p>
 
           <p className="geist max-w-xs text-center overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
