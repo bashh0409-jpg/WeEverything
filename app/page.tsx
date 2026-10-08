@@ -11,6 +11,7 @@ import ProfileModal from "./components/ProfileModal";
 import Footer from "./components/Footer";
 import { getProfileHandle } from "@/lib/profile-handle";
 import { readProfileCache, writeProfileCache } from "@/lib/profile-cache";
+import { isMobilePhoneUserAgent } from "@/lib/device";
 import DirectorySearchModal from "./components/Directorysearchmodal";
 
 const roles = [
@@ -138,6 +139,15 @@ const Page = () => {
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [isMobilePhone, setIsMobilePhone] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setIsMobilePhone(isMobilePhoneUserAgent(window.navigator.userAgent));
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     const syncFiltersFromUrl = () => {
@@ -568,7 +578,7 @@ const Page = () => {
 
   return (
     <div>
-      <div className="hidden lg:block">
+      <div className={isMobilePhone === false ? "block" : "hidden"}>
         <Navbar onSearch={openSearch} />
 
         <main className="flex min-h-screen flex-col items-center justify-center px-6 py-2">
@@ -899,8 +909,17 @@ const Page = () => {
           />
         ) : null}
       </div>
+      {isMobilePhone === null ? (
+        <main
+          className="flex min-h-screen items-center justify-center px-6 text-center"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="text-sm text-[#666]">Loading WeEverything...</p>
+        </main>
+      ) : null}
       <main
-        className="flex min-h-screen items-center justify-center px-6 text-center lg:hidden"
+        className={`${isMobilePhone ? "flex" : "hidden"} min-h-screen items-center justify-center px-6 text-center`}
         aria-labelledby="desktop-only-title"
       >
         <div className="max-w-sm">
@@ -910,7 +929,7 @@ const Page = () => {
 
           <p className="geist max-w-xs text-center overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
             Mobile optimization is still on the way. For now, please open
-            WeEverything on a larger screen for the best experience.
+            WeEverything on a tablet or desktop for the best experience.
           </p>
         </div>
       </main>

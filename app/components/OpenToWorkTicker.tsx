@@ -1,7 +1,8 @@
 "use client";
 
 import { gsap } from "gsap";
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { isMobilePhoneUserAgent } from "@/lib/device";
 
 const tickerTexts = [
   "DEVELOPER",
@@ -19,6 +20,15 @@ const tickerItems = Array.from({ length: 16 }, (_, index) => (
 const OpenToWorkTicker = () => {
   const trackRef = useRef<HTMLDivElement>(null);
   const groupRef = useRef<HTMLDivElement>(null);
+  const [isMobilePhone, setIsMobilePhone] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setIsMobilePhone(isMobilePhoneUserAgent(window.navigator.userAgent));
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useLayoutEffect(() => {
     const track = trackRef.current;
@@ -53,7 +63,11 @@ const OpenToWorkTicker = () => {
   }, []);
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-2 z-30 hidden overflow-hidden whitespace-nowrap lg:block">
+    <div
+      className={`pointer-events-none fixed inset-x-0 bottom-2 z-30 overflow-hidden whitespace-nowrap ${
+        isMobilePhone === false ? "block" : "hidden"
+      }`}
+    >
       <div
         ref={trackRef}
         className="ticker-track mono text-sm inline-flex w-max items-center font-normal text-[#1c40f2]"
