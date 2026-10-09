@@ -915,7 +915,10 @@ const Page = () => {
           role="status"
           aria-live="polite"
         >
-          <p className="text-sm text-[#666]">Loading WeEverything...</p>
+          <p className="geist max-w-xs text-center overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
+            Loading WeEverything...
+          </p>
+          
         </main>
       ) : null}
       <main

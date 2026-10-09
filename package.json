@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "passkeys:admin": "node --env-file=.env.local scripts/manage-passkeys.mjs",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test:unit": "playwright test --config=playwright.unit.config.ts",

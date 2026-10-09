@@ -163,19 +163,30 @@ export async function GET(request: Request) {
           }
         }
 
-        if (!profileLookupError && !existingProfile && next === "/profile") {
-          response.headers.set(
-            "Location",
-            new URL("/profile?welcome=1", request.url).toString(),
-          );
+        const destination = new URL(next, request.url);
+        if (
+          !profileLookupError &&
+          !existingProfile &&
+          destination.pathname === "/profile"
+        ) {
+          destination.searchParams.set("welcome", "1");
         }
 
         if (accountRestored || accountRestoreError) {
-          const destination = new URL(next, request.url);
           destination.searchParams.set(
             accountRestored ? "restored" : "restore_error",
             "1",
           );
+        }
+
+        if (destination.pathname === "/profile") {
+          const passkeyGate = new URL("/auth/passkey", request.url);
+          passkeyGate.searchParams.set(
+            "next",
+            `${destination.pathname}${destination.search}${destination.hash}`,
+          );
+          response.headers.set("Location", passkeyGate.toString());
+        } else {
           response.headers.set("Location", destination.toString());
         }
 

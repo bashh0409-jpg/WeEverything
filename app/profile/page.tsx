@@ -3110,6 +3110,7 @@ const ProfilePage = () => {
                   {formatViewCount(profileViews)}
                 </p>
               </span>
+              <PasskeySettings />
 
               <div className="mt-8 border-t-2 border-black/5 pt-5">
                 <span className="flex flex-col gap-1">
@@ -3162,16 +3163,15 @@ const ProfilePage = () => {
                     {browserDetails || user.user_metadata.device || "Unknown"}
                   </span>
                 </p>
+                <button
+                  type="button"
+                  onClick={() => void handleSignOut()}
+                  disabled={signingOut}
+                  className="max-w-full capitalize geist max-h-7 mt-4 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
+                >
+                  {signingOut ? "signing out..." : "sign out"}
+                </button>
               </div>
-              <PasskeySettings />
-              <button
-                type="button"
-                onClick={() => void handleSignOut()}
-                disabled={signingOut}
-                className="max-w-full capitalize geist max-h-7 mt-4 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
-              >
-                {signingOut ? "signing out..." : "sign out"}
-              </button>
 
               <div className="mt-8 border-t-2 border-black/5 pt-5">
                 <p className="text-sm capitalize font-medium tracking-tight text-[#999]">

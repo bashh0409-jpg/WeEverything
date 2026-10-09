@@ -42,6 +42,19 @@ export function proxy(request: NextRequest) {
 
   requestHeaders.set("Content-Security-Policy", contentSecurityPolicy);
 
+  const authorizationCode = request.nextUrl.searchParams.get("code");
+  if (request.nextUrl.pathname === "/" && authorizationCode) {
+    const callbackUrl = new URL("/auth/callback", request.url);
+    callbackUrl.searchParams.set("code", authorizationCode);
+    callbackUrl.searchParams.set(
+      "next",
+      request.nextUrl.searchParams.get("next") ?? "/profile",
+    );
+    const response = NextResponse.redirect(callbackUrl);
+    response.headers.set("Content-Security-Policy", contentSecurityPolicy);
+    return response;
+  }
+
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", contentSecurityPolicy);
 
@@ -51,7 +64,8 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      source: "/((?!api|_next/static|_next/image|favicon.ico).*)",
+      source:
+        "/((?!api|_next/static|_next/image|favicon.ico).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

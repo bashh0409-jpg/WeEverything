@@ -47,7 +47,7 @@ const CookieConsent = () => {
           aria-label="Cookie consent"
           className="fixed inset-x-4 bottom-4 rounded-2xl z-[60] border border-black/15 bg-white p-2 shadow-[0_18px_60px_rgb(0_0_0/18%)] sm:inset-x-auto sm:bottom-6 sm:left-6 sm:max-w-sm"
         >
-          <p className=" max-w-xl text-sm geist tracking-tight font-medium leading-5 text-black">
+          <p className="text-sm mon leading-4 geist tracking-tight font-medium uppercas text-[#999]">
             We use necessary cookies to keep the site working. With your
             permission, we also use privacy-friendly analytics to improve it.
           </p>
@@ -56,21 +56,21 @@ const CookieConsent = () => {
               <button
                 type="button"
                 onClick={() => saveChoice("accepted")}
-                className="border border-black/20 px-2 py-1 mono uppercase tracking-tighter text-xs rounded-full font-medium text-black transition hover:bg-black hover:text-white"
+                className="w-fit  geist  capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
               >
                 Accept analytics
               </button>
               <button
                 type="button"
                 onClick={() => saveChoice("rejected")}
-                className="border border-black/20 px-2 py-1 mono uppercase tracking-tighter text-xs rounded-full font-medium text-black transition hover:bg-black hover:text-white"
+                className="w-fit  geist  capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
               >
                 Only necessary
               </button>
             </span>
             <Link
               href="/legal"
-              className="border border-black/20 px-2 bg-black py-1 mono uppercase tracking-tighter text-xs rounded-full font-medium text-white transition hover:bg-black/60 "
+              className="w-fit  geist  capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
             >
               Learn more
             </Link>

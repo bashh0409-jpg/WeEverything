@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["local.weeverything.xyz"],
   poweredByHeader: false,
   async headers() {
     return [

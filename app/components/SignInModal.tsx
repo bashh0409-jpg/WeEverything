@@ -10,7 +10,6 @@ import {
   isSupabaseConfigured,
   supabase,
 } from "@/lib/supabase/client";
-import { getPasskeyDomainError } from "@/lib/passkeys";
 
 type SignInModalProps = {
   onClose: () => void;
@@ -36,6 +35,17 @@ const getIsBannedFromLocation = () => {
   );
 };
 
+const getAuthErrorFromLocation = () => {
+  const errorCode = new URLSearchParams(window.location.search).get("error");
+  if (errorCode === "mfa_check_failed") {
+    return "We could not verify your two-factor settings. Please try signing in again.";
+  }
+  if (errorCode === "passkey_check_failed") {
+    return "Passkey verification failed. You were signed out; please sign in again.";
+  }
+  return "";
+};
+
 const SignInModal = ({ onClose }: SignInModalProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(() => Boolean(supabase));
@@ -45,6 +55,11 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
     subscribeToLocation,
     getIsBannedFromLocation,
     () => false,
+  );
+  const authError = useSyncExternalStore(
+    subscribeToLocation,
+    getAuthErrorFromLocation,
+    () => "",
   );
   const [message, setMessage] = useState(() =>
     supabase
@@ -153,65 +168,6 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
     }
   };
 
-  const handlePasskeySignIn = async () => {
-    if (!isAdultConfirmed || isSigningIn) return;
-    if (!supabase) {
-      setMessage("Passkey sign-in is not configured yet.");
-      return;
-    }
-    const domainError = getPasskeyDomainError(window.location.hostname);
-    if (domainError) {
-      setMessage(domainError);
-      return;
-    }
-    if (!window.isSecureContext || !window.PublicKeyCredential) {
-      setMessage("Passkeys require a supported browser on a secure connection.");
-      return;
-    }
-
-    setMessage("");
-    setIsSigningIn(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithPasskey();
-      if (error || !data.user) {
-        setMessage(
-          error?.message ?? "Could not sign in with that passkey. Please try again.",
-        );
-        return;
-      }
-
-      setUser(data.user);
-      posthog.capture("sign_in_completed", { method: "passkey" });
-
-      let destination = "/profile";
-      try {
-        const response = await fetch("/api/account/restore", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        });
-        if (!response.ok) {
-          destination = "/profile?restore_error=1";
-        } else {
-          const result = (await response.json()) as { restored?: boolean };
-          if (result.restored) destination = "/profile?restored=1";
-        }
-      } catch {
-        destination = "/profile?restore_error=1";
-      }
-
-      window.location.assign(destination);
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not sign in with your passkey.",
-      );
-    } finally {
-      setIsSigningIn(false);
-    }
-  };
-
   const handleSignOut = async () => {
     if (!supabase) {
       setMessage("Supabase is not configured, so you could not be signed out.");
@@ -282,6 +238,10 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
           <p className="text-sm my-2 rounded mon border border-red-200 bg-red-50 leading-4 px-3 py-2 geist tracking-tight font-medium uppercas text-[#999]">
             {message}
           </p>
+        ) : authError ? (
+          <p className="text-sm my-2 rounded mon border border-red-200 bg-red-50 leading-4 px-3 py-2 geist tracking-tight font-medium text-[#999]" role="alert">
+            {authError}
+          </p>
         ) : null}
 
         {isBanned ? null : loading ? (
@@ -300,9 +260,8 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
           </div>
         ) : (
           <div className="mt-4 space-y-4">
-            <p className="text-sm mon leading-4 geist tracking-tight font-medium uppercas text-[#999]">
-              Continue with Google or GitHub, or use a passkey if you have
-              already added one to your profile.
+            <p className="text-sm hidden mon leading-4 geist tracking-tight font-medium uppercas text-[#999]">
+              Continue with Google or GitHub.
             </p>
 
             <label className="flex  geist items-start gap-2 text-sm font-medium leading-5 tracking-tight">
@@ -347,16 +306,6 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
               >
                 <FaGithub aria-hidden="true" className="text-base" />
                 GitHub
-              </button>
-              <button
-                type="button"
-                onClick={() => void handlePasskeySignIn()}
-                disabled={
-                  !isSupabaseConfigured || !isAdultConfirmed || isSigningIn
-                }
-                className="flex w-full hidde geist tracking-tight cursor-pointer items-center justify-center gap-2 rounded-full border border-black/15 px-4 py-2 text-xs font-medium uppercase text-black transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2"
-              >
-                {isSigningIn ? "Waiting for passkey…" : "Use a passkey"}
               </button>
             </div>
 
