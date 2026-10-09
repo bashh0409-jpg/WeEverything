@@ -28,6 +28,7 @@ import {
 import type { User } from "@supabase/supabase-js";
 import Navbar from "../components/Navbar";
 import InputArea from "../components/InputArea";
+import PasskeySettings from "../components/PasskeySettings";
 import CustomProfileSectionContent from "../components/CustomProfileSectionContent";
 import ProfileAwardsList from "../components/ProfileAwardsList";
 import { supabase } from "@/lib/supabase/client";
@@ -3162,6 +3163,7 @@ const ProfilePage = () => {
                   </span>
                 </p>
               </div>
+              <PasskeySettings />
               <button
                 type="button"
                 onClick={() => void handleSignOut()}

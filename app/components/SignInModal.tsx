@@ -10,6 +10,7 @@ import {
   isSupabaseConfigured,
   supabase,
 } from "@/lib/supabase/client";
+import { getPasskeyDomainError } from "@/lib/passkeys";
 
 type SignInModalProps = {
   onClose: () => void;
@@ -59,6 +60,13 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
     }
 
     let isMounted = true;
+    const sessionLoadTimeout = window.setTimeout(() => {
+      if (!isMounted) return;
+      setMessage(
+        "Checking your sign-in status is taking longer than expected. You can still try signing in.",
+      );
+      setLoading(false);
+    }, 4_000);
 
     const loadSession = async () => {
       try {
@@ -83,6 +91,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
             : "Could not check your sign-in status.",
         );
       } finally {
+        window.clearTimeout(sessionLoadTimeout);
         if (isMounted) {
           setLoading(false);
         }
@@ -102,6 +111,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
 
     return () => {
       isMounted = false;
+      window.clearTimeout(sessionLoadTimeout);
       subscription.unsubscribe();
     };
   }, []);
@@ -137,6 +147,65 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
         error instanceof Error
           ? error.message
           : "Could not start sign-in. Please try again.",
+      );
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
+  const handlePasskeySignIn = async () => {
+    if (!isAdultConfirmed || isSigningIn) return;
+    if (!supabase) {
+      setMessage("Passkey sign-in is not configured yet.");
+      return;
+    }
+    const domainError = getPasskeyDomainError(window.location.hostname);
+    if (domainError) {
+      setMessage(domainError);
+      return;
+    }
+    if (!window.isSecureContext || !window.PublicKeyCredential) {
+      setMessage("Passkeys require a supported browser on a secure connection.");
+      return;
+    }
+
+    setMessage("");
+    setIsSigningIn(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPasskey();
+      if (error || !data.user) {
+        setMessage(
+          error?.message ?? "Could not sign in with that passkey. Please try again.",
+        );
+        return;
+      }
+
+      setUser(data.user);
+      posthog.capture("sign_in_completed", { method: "passkey" });
+
+      let destination = "/profile";
+      try {
+        const response = await fetch("/api/account/restore", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        if (!response.ok) {
+          destination = "/profile?restore_error=1";
+        } else {
+          const result = (await response.json()) as { restored?: boolean };
+          if (result.restored) destination = "/profile?restored=1";
+        }
+      } catch {
+        destination = "/profile?restore_error=1";
+      }
+
+      window.location.assign(destination);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not sign in with your passkey.",
       );
     } finally {
       setIsSigningIn(false);
@@ -210,7 +279,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
             </p>
           </div>
         ) : message ? (
-          <p className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="text-sm my-2 rounded mon border border-red-200 bg-red-50 leading-4 px-3 py-2 geist tracking-tight font-medium uppercas text-[#999]">
             {message}
           </p>
         ) : null}
@@ -220,7 +289,6 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
         ) : user ? (
           <div className="mt-4">
             <div className="flex flex-wrap ">
-            
               <button
                 type="button"
                 onClick={handleSignOut}
@@ -233,8 +301,8 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
         ) : (
           <div className="mt-4 space-y-4">
             <p className="text-sm mon leading-4 geist tracking-tight font-medium uppercas text-[#999]">
-              Continue with Google or GitHub to sign in, or create your profile
-              if this is your first visit.
+              Continue with Google or GitHub, or use a passkey if you have
+              already added one to your profile.
             </p>
 
             <label className="flex  geist items-start gap-2 text-sm font-medium leading-5 tracking-tight">
@@ -279,6 +347,16 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
               >
                 <FaGithub aria-hidden="true" className="text-base" />
                 GitHub
+              </button>
+              <button
+                type="button"
+                onClick={() => void handlePasskeySignIn()}
+                disabled={
+                  !isSupabaseConfigured || !isAdultConfirmed || isSigningIn
+                }
+                className="flex w-full hidde geist tracking-tight cursor-pointer items-center justify-center gap-2 rounded-full border border-black/15 px-4 py-2 text-xs font-medium uppercase text-black transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2"
+              >
+                {isSigningIn ? "Waiting for passkey…" : "Use a passkey"}
               </button>
             </div>
 
