@@ -103,14 +103,12 @@ const PasskeySettings = () => {
 
   return (
     <section className="mt-8 border-t-2 border-black/5 pt-5">
-      <h2 className="text-sm font-medium tracking-tight text-black">
-        Passkeys
-      </h2>
-      <p className="mt-1 text-xs leading-5 text-[#777]">
+      <p className="text-sm  font-medium tracking-tight text-black">Passkeys</p>
+      <p className="geist text-sm font-medium leading-4 mt-2 tracking-tight text-[#999]">
+        {" "}
         Sign in with Face ID, Touch ID, Windows Hello, or your device PIN
         instead of Google or GitHub.
       </p>
-
       {loading ? (
         <p className="mt-3 text-xs text-[#777]">Checking your passkeys…</p>
       ) : (
@@ -137,7 +135,7 @@ const PasskeySettings = () => {
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-xs font-medium text-[#777]">
+            <p className="geist text-sm font-medium leading-4 mt-2 tracking-tight text-[#999]">
               No passkey added yet.
             </p>
           )}
