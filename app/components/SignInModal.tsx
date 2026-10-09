@@ -41,7 +41,10 @@ const getAuthErrorFromLocation = () => {
     return "We could not verify your two-factor settings. Please try signing in again.";
   }
   if (errorCode === "passkey_check_failed") {
-    return "Passkey verification failed. You were signed out; please sign in again.";
+    const detail = new URLSearchParams(window.location.search).get("detail");
+    return detail
+      ? `Passkey verification failed: ${detail}. You were signed out; please sign in again.`
+      : "Passkey verification failed. You were signed out; please sign in again.";
   }
   return "";
 };

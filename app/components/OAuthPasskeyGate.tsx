@@ -107,7 +107,10 @@ const OAuthPasskeyGate = () => {
       return;
     }
 
-    router.replace("/signin?error=passkey_check_failed");
+    const signInUrl = new URL("/signin", window.location.origin);
+    signInUrl.searchParams.set("error", "passkey_check_failed");
+    signInUrl.searchParams.set("detail", reason.slice(0, 240));
+    router.replace(`${signInUrl.pathname}${signInUrl.search}`);
   };
 
   const verifyPasskey = async () => {

@@ -176,8 +176,8 @@ const PasskeySettings = () => {
   return (
     <section className="mt-8 border-t-2 border-black/5 pt-5">
       <p className="text-sm font-medium tracking-tight text-black">Passkeys</p>
-      <p className="geist mt-2 text-sm font-medium leading-4 tracking-tight text-[#999]">
-        Sign in with a device PIN or biometrics.
+      <p className="geist  mt-2 text-sm font-medium leading-4 tracking-tight text-[#999]">
+        Sign in securely with a passkey.
       </p>
       {totpFactorId ? (
         <div className="mt-4">
@@ -217,7 +217,7 @@ const PasskeySettings = () => {
       ) : (
         <>
           {passkeys.length ? (
-            <ul className="mt-3 space-y-2">
+            <ul className="my-4 space-y-">
               {passkeys.map((passkey, index) => (
                 <li
                   key={passkey.id}
@@ -238,7 +238,7 @@ const PasskeySettings = () => {
               ))}
             </ul>
           ) : (
-            <p className="geist mt-2 text-sm font-medium leading-4 tracking-tight text-[#999]">
+            <p className="geist mt-4  mb-4 text-xs font-semibold leading-4 tracking-tight text-[#999]">
               No passkey added yet.
             </p>
           )}
