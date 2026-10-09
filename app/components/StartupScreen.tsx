@@ -100,17 +100,19 @@ const StartupScreen = () => {
       className={`startup-screen bg-white ${isLeaving ? "startup-screen-leaving" : ""}`}
     >
       <div className="startup-screen-footer tracking-tight geist">
-        <span className="tracking-tighter  text-sm font-semibold">2026</span>
-        <span className="text-center tracking-tight  text-sm font-semibold">
+        <span className=" hidden md:block text-sm font-semibold md:block">
+          2026
+        </span>
+        <span className="startup-screen-center text-center text-sm font-semibold tracking-tight">
           <p>WeEverything</p>
 
-          <p className="mon geist  max-w-xs text-center  overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
+          <p className="mon geist max-w-xs overflow-hidden text-center text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
             A simple place for creative people to show who they are, what they
             do, connect with others, and the work they want the world to see.
           </p>
         </span>
         <span
-          className="startup-screen-percentage tracking-tighter  text-sm font-semibold"
+          className="startup-screen-percentage hidden text-sm font-semibold tracking-tighter md:block"
           role="progressbar"
           aria-label="Loading content"
           aria-valuemin={0}
@@ -119,10 +121,6 @@ const StartupScreen = () => {
         >
           {Math.round(progress)}
         </span>
-      </div>
-
-      <div className="startup-screen-progress" aria-hidden="true">
-        <span style={{ width: `${progress}%` }} />
       </div>
     </div>
   );

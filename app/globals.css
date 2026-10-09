@@ -153,10 +153,19 @@ body::-webkit-scrollbar {
 }
 
 .startup-screen-footer {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   min-height: 24px;
+}
+
+.startup-screen-center {
+  position: absolute;
+  left: 50%;
+  width: max-content;
+  max-width: calc(100% - 48px);
+  transform: translateX(-50%);
 }
 
 .startup-screen-year {
