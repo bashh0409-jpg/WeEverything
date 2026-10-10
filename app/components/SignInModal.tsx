@@ -74,7 +74,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
   useEffect(() => {
     const client = supabase;
 
-    if (!client) {
+    if (!client || isBanned) {
       return;
     }
 
@@ -133,7 +133,34 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
       window.clearTimeout(sessionLoadTimeout);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isBanned]);
+
+  useEffect(() => {
+    if (!isBanned || !supabase) return;
+    let isMounted = true;
+    void supabase.auth
+      .signOut({ scope: "local" })
+      .then(({ error }) => {
+        if (!isMounted) return;
+        if (error) throw error;
+
+        setUser(null);
+        setLoading(false);
+      })
+      .catch((error: unknown) => {
+        if (!isMounted) return;
+
+        setMessage(
+          error instanceof Error
+            ? `Could not clear this session: ${error.message}`
+            : "Could not clear this session. Please try signing out again.",
+        );
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isBanned]);
 
   const handleSignIn = async (
     provider: "google" | "github" | "discord",
@@ -235,20 +262,40 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
         {isBanned ? (
           <div
             role="alert"
-            className="mt-4 rounded geist font-medium tracking-tight text-sm text-red-400"
+            className="max-w-sm flex flex-col gap-2 justify-center items-center mx-auto leading-4 rounded geist font-medium tracking-tight text-sm text-red-400"
           >
             <p className="">
               If you believe this is a mistake, please contact the WeEverything
               team.
             </p>
+
+            <div className="flex gap-1 items-center">
+              <button
+                onClick={onClose}
+                className="w-fit flex gap-2 geist capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere] hover:bg-black/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                close
+              </button>
+              <a
+                href="mailto:info@weeverything.xyz?subject=WeEverything%20account%20support"
+                className="w-fit flex gap-2 geist capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere] hover:bg-black/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                Support
+              </a>
+              {message ? (
+                <p className="text-xs text-red-600" role="alert">
+                  {message}
+                </p>
+              ) : null}
+            </div>
           </div>
         ) : message ? (
-          <p className="text-sm my-2 rounded mon border border-red-200 bg-red-50 leading-4 px-3 py-2 geist tracking-tight font-medium uppercas text-[#999]">
+          <p className="text-xs my-2 rounded mon border border-red-200 bg-red-50 leading-4 px-3 py-2 geist tracking-tight font-medium uppercas text-[#999]">
             {message}
           </p>
         ) : authError ? (
           <p
-            className="text-sm my-2 rounded mon border border-red-200 bg-red-50 leading-4 px-3 py-2 geist tracking-tight font-medium text-[#999]"
+            className="text-xs my-2 rounded mon border border-red-200 bg-red-50 leading-4 px-3 py-2 geist tracking-tight font-medium text-[#999]"
             role="alert"
           >
             {authError}

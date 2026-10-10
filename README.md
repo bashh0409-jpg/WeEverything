@@ -21,6 +21,12 @@ Add the local Supabase, Upstash, and Turnstile settings to `.env.local` before
 testing sign-in, profile APIs, or inquiry submissions. Never commit `.env.local`
 or production credentials.
 
+To clear existing TOTP factors from every Supabase Auth user, first preview the
+count with `npm run totp:clear`, then run `npm run totp:clear -- --confirm` to
+delete them. This requires `NEXT_PUBLIC_SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY` in `.env.local`. Deleting verified factors can sign
+affected users out of their active sessions.
+
 ## Validation
 
 ```bash

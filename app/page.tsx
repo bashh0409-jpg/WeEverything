@@ -113,6 +113,37 @@ const normalizeRole = (role: string): RoleFilter => {
   return matchedRole ?? "Other";
 };
 
+const shuffleProfilesWithSponsoredFirst = (profileList: Profile[]) => {
+  const sponsoredProfiles = profileList.filter((profile) => profile.is_sponsored);
+  const regularProfiles = profileList.filter((profile) => !profile.is_sponsored);
+
+  if (regularProfiles.length <= 1) {
+    return [...sponsoredProfiles, ...regularProfiles];
+  }
+
+  const seedSource = regularProfiles.map((profile) => profile.id).join("|");
+  let hash = 2166136261;
+
+  for (let index = 0; index < seedSource.length; index += 1) {
+    hash ^= seedSource.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  let seededValue = hash >>> 0;
+  const shuffledProfiles = [...regularProfiles];
+
+  for (let index = shuffledProfiles.length - 1; index > 0; index -= 1) {
+    seededValue = (seededValue * 1664525 + 1013904223) >>> 0;
+    const swapIndex = seededValue % (index + 1);
+    [shuffledProfiles[index], shuffledProfiles[swapIndex]] = [
+      shuffledProfiles[swapIndex],
+      shuffledProfiles[index],
+    ];
+  }
+
+  return [...sponsoredProfiles, ...shuffledProfiles];
+};
+
 const Page = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
@@ -460,8 +491,8 @@ const Page = () => {
   );
   const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase();
 
-  const filteredProfiles = [...profiles]
-    .filter(
+  const filteredProfiles = shuffleProfilesWithSponsoredFirst(
+    [...profiles].filter(
       (profile) =>
         (roleFilter === "All" || normalizeRole(profile.role) === roleFilter) &&
         (!locationFilter ||
@@ -480,11 +511,8 @@ const Page = () => {
               value!.toLocaleLowerCase().includes(normalizedSearchQuery),
             )) &&
         (!showSavedProfiles || savedProfileIds.includes(profile.id)),
-    )
-    .sort(
-      (firstProfile, secondProfile) =>
-        Number(secondProfile.is_sponsored) - Number(firstProfile.is_sponsored),
-    );
+    ),
+  );
   const searchResults = filteredProfiles.slice(0, 12);
 
   const handleSuggestionChange = (
@@ -626,8 +654,8 @@ const Page = () => {
                   onClick={() => setShowSavedProfiles((current) => !current)}
                   className={
                     showSavedProfiles
-                      ? "cursor-pointer hidden text-black transition-all duration-500"
-                      : "cursor-pointer hidden transition-all duration-400 hover:text-black"
+                      ? "cursor-pointer text-black transition-all duration-500"
+                      : "cursor-pointer transition-all duration-400 hover:text-black"
                   }
                 >
                   Saved ({savedProfileIds.length})
@@ -707,17 +735,18 @@ const Page = () => {
                 </div>
               </div>
             ) : error ? (
-              <p className="text-sm mono w-full font-medium tracking-tight uppercase text-[#999]">
+              <p className="col-span-full w-full text-center text-sm geist font-medium tracking-tight uppercase text-[#999]">
                 {error}
               </p>
             ) : filteredProfiles.length === 0 ? (
-              <p className="text-sm mono  font-medium tracking-tight uppercase text-[#999]">
+              <p className="col-span-full w-full text-center text-sm geist font-medium tracking-tight  text-[#999]">
                 {searchQuery.trim() || locationFilter || roleFilter !== "All"
                   ? "No profiles match these filters."
                   : showSavedProfiles
                     ? "No saved profiles yet."
                     : "No published profiles yet."}
-              </p>
+                  </p>
+                  
             ) : (
               filteredProfiles.map((profile) => (
                 <PersonCard

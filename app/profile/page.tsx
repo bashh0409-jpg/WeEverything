@@ -28,6 +28,7 @@ import {
 import type { User } from "@supabase/supabase-js";
 import Navbar from "../components/Navbar";
 import InputArea from "../components/InputArea";
+import SignOutConfirmation from "../components/SignOutConfirmation";
 import PasskeySettings from "../components/PasskeySettings";
 import CustomProfileSectionContent from "../components/CustomProfileSectionContent";
 import ProfileAwardsList from "../components/ProfileAwardsList";
@@ -926,6 +927,7 @@ const ProfilePage = () => {
   const [profileViews, setProfileViews] = useState(0);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isSponsorModalOpen, setIsSponsorModalOpen] = useState(false);
   const [promotionDays, setPromotionDays] = useState<PromotionDays>(30);
@@ -3167,7 +3169,10 @@ const ProfilePage = () => {
                 </p>
                 <button
                   type="button"
-                  onClick={() => void handleSignOut()}
+                  onClick={() => {
+                    setMessage("");
+                    setIsSignOutModalOpen(true);
+                  }}
                   disabled={signingOut}
                   className="max-w-full capitalize geist max-h-7 mt-4 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
                 >
@@ -4514,6 +4519,17 @@ const ProfilePage = () => {
           </div>
         </div>
       ) : null}
+
+      <SignOutConfirmation
+        isOpen={isSignOutModalOpen}
+        isSigningOut={signingOut}
+        error={message}
+        onConfirm={handleSignOut}
+        onCancel={() => {
+          setMessage("");
+          setIsSignOutModalOpen(false);
+        }}
+      />
 
       {accountStatusNotice ? (
         <div

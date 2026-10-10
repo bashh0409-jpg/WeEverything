@@ -14,6 +14,7 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { getActivePromotion } from "@/lib/sponsorship";
 import SignInModal from "./SignInModal";
+import SignOutConfirmation from "./SignOutConfirmation";
 
 
 const links = [
@@ -622,47 +623,16 @@ const Navbar = forwardRef<
         <SignInModal onClose={() => setIsSignInOpen(false)} />
       ) : null}
 
-      {isLogoutConfirmOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-md">
-          <div className="relative w-full max-w-md rounded-2xl border border-black/10 bg-white p-4 shadow-2xl">
-            <p className="text-xs font-medium uppercase tr mono text-[#999]">
-              Confirm sign out
-            </p>
-
-            <h2 className="mt-3 geist text-3xl font-semibold tracking-tighter text-black">
-              Sure you want to sign out?
-            </h2>
-
-            {logoutError ? (
-              <p role="alert" className="mt-4 text-sm text-red-700">
-                {logoutError}
-              </p>
-            ) : null}
-
-            <div className="mt-6 mono flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => void handleSignOut()}
-                disabled={isLoggingOut}
-                className="max-w-full capitalize geist max-h-7  rounded-3xl bg-black px-2 py-1 text-sm font-medium leading-4 tracking-tight text-white [overflow-wrap:anywhere]"
-              >
-                {isLoggingOut ? "Signing out..." : "Sign out"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setLogoutError("");
-                  setIsLogoutConfirmOpen(false);
-                }}
-                className="max-w-full capitalize geist max-h-7  rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <SignOutConfirmation
+        isOpen={isLogoutConfirmOpen}
+        isSigningOut={isLoggingOut}
+        error={logoutError}
+        onConfirm={handleSignOut}
+        onCancel={() => {
+          setLogoutError("");
+          setIsLogoutConfirmOpen(false);
+        }}
+      />
     </>
   );
 });

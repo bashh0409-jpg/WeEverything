@@ -16,7 +16,7 @@ const Page = () => {
         </div>
         <div>
           <span className="text-[#999] font-medium tracking-tight ">
-            Last Update: Oct 8, 2026
+            Last Update: Oct 10, 2026
           </span>
 
           <div className="lg:grid-cols-2 grid-cols-1 grid mt-8 gap-4">
@@ -48,6 +48,13 @@ const Page = () => {
                   years old. Before signing in or creating an account, you must
                   confirm that you are at least 18. Do not use the service if
                   you are under 18.
+                </span>
+                <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
+                  We may restrict, suspend, or disable an account or profile if
+                  there is a credible safety, security, fraud, misconduct, or
+                  legal compliance issue. In those situations, we may limit
+                  access to your profile and related tools while retaining data
+                  necessary for security, investigations, or legal obligations.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
                   You keep ownership of content you submit. You grant us a
@@ -159,9 +166,11 @@ const Page = () => {
                   location, awards, media, and social links; event details you
                   submit; inquiry sender name, email, optional phone, project
                   type, company name, project brief, budget, and timeline; and
-                  sponsorship checkout and status information. Do not put
-                  sensitive personal information in a public profile or inquiry
-                  unless it is necessary and you are entitled to share it.
+                  sponsorship checkout, payment status, and account status
+                  information such as bans, suspensions, or deletion records.
+                  Do not put sensitive personal information in a public
+                  profile or inquiry unless it is necessary and you are
+                  entitled to share it.
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
                   Published profiles and event listings are public. Inquiry
