@@ -236,6 +236,22 @@ const ProfileModal = ({
   const widgetIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    void fetch("/api/profile-views", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profileId }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          console.error("Could not record profile view", response.status);
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("Could not record profile view", error);
+      });
+  }, [profileId]);
+
+  useEffect(() => {
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     if (!isContactOpen || !siteKey || !captchaRef.current) return;
 

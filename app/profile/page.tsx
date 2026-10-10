@@ -3109,6 +3109,9 @@ const ProfilePage = () => {
                 <p className="geist text-sm font-medium tracking-tight text-[#999]">
                   {formatViewCount(profileViews)}
                 </p>
+                <p className="geist text-xs tracking-tight text-[#999]">
+                  One view per visitor every 24 hours
+                </p>
               </span>
               <PasskeySettings />
 
