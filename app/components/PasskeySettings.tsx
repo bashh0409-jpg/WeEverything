@@ -7,6 +7,19 @@ import { getPasskeyDomainError } from "@/lib/passkeys";
 type Passkey = {
   id: string;
   friendly_name?: string;
+  last_used_at?: string;
+};
+
+const formatLastUsed = (lastUsedAt?: string) => {
+  if (!lastUsedAt) return "Never";
+
+  const date = new Date(lastUsedAt);
+  if (Number.isNaN(date.getTime())) return "Date unavailable";
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 };
 
 type PasskeyAction =
@@ -223,9 +236,15 @@ const PasskeySettings = () => {
                   key={passkey.id}
                   className="flex items-center justify-between gap-3 text-xs"
                 >
-                  <span className="geist mt-2 text-sm font-medium leading-4 tracking-tight text-green-500">
-                    {passkey.friendly_name || `Passkey ${index + 1}`}
+                  <span className="flex flex-col">
+                    <span className="geist mt-2 text-sm font-medium leading-4 tracking-tight text-green-500">
+                      {passkey.friendly_name || `Passkey ${index + 1}`}
+                    </span>
+                    <p className="geist capitalize text-sm font-medium tracking-tight text-[#999]">
+                      Last used: {formatLastUsed(passkey.last_used_at)}
+                    </p>
                   </span>
+
                   <button
                     type="button"
                     onClick={() => void runAction({ type: "remove", passkey })}
