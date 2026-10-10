@@ -194,8 +194,11 @@ const PasskeySettings = () => {
       </p>
       {totpFactorId ? (
         <div className="mt-4">
-          <label className="block text-xs font-medium text-[#555]">
-            Enter your six-digit authenticator code to manage passkeys
+          <label className="block">
+            <p className="geist   mt-2 text-sm font-medium leading-4 tracking-tight mb-2 text-black">
+              Enter the authenticator code
+            </p>
+
             <input
               inputMode="numeric"
               autoComplete="one-time-code"
@@ -206,16 +209,17 @@ const PasskeySettings = () => {
                 )
               }
               maxLength={6}
-              className="mt-2 w-full rounded border border-black/15 px-3 py-2 text-sm tracking-[0.2em] text-black"
+              placeholder="123 456"
+              className="mt-2 w-full rounded bg-black/5 px-3 py-1 outline-none transition focus:border-none text-sm tracking-[0.2em] font-medium text-black"
             />
           </label>
           <button
             type="button"
             onClick={() => void verifyTotpStepUp()}
             disabled={busy || verificationCode.length !== 6}
-            className="mt-2 rounded-full border border-black/15 px-3 py-1.5 text-xs font-medium text-black disabled:opacity-50"
+            className="max-w-full mb-4 capitalize geist max-h-7 mt-4 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
           >
-            {busy ? "Verifying…" : "Verify and continue"}
+            {busy ? "Verifying…" : "Verify"}
           </button>
         </div>
       ) : null}
@@ -251,7 +255,7 @@ const PasskeySettings = () => {
                     disabled={busy}
                     className="max-w-full capitalize geist max-h-7 mt-4 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
                   >
-                    Remove
+                    {busy ? "Please wait…" : "Remove"}
                   </button>
                 </li>
               ))}

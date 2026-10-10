@@ -3174,6 +3174,9 @@ const ProfilePage = () => {
               </div>
 
               <div className="mt-8 border-t-2 border-black/5 pt-5">
+                <p className="text-sm mt-4 capitalize font-medium tracking-tight text-black">
+                  using:
+                </p>{" "}
                 <p className="text-sm capitalize font-medium tracking-tight text-[#999]">
                   Delete account
                 </p>
