@@ -755,25 +755,15 @@ const ProfileModal = ({
         {isContactOpen ? (
           inquiryStatus === "sent" ? (
             <div className="profile-modal-view h-full mx-auto mt-10 flex w-full max-w-xl self-center flex-col items-center justify-center gap-5 pb-10 text-center">
-              <div>
-                <h2 className="mt-2 text-4xl font-semibold tracking-tighter">
+              <div className="flex flex-col items-center">
+                <p className="mon geist max-w-xs text-center overflow-hidden text-xl font-semibold tracking-tighter text-black mb-2">
                   You&apos;re all set.
-                </h2>
-                <p className="mt-3 max-w-md font-medium tracking-tight text-sm leading-relaxed mono uppercase text-[#999]">
+                </p>
+
+                <p className="geist max-w-xs text-center overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
                   {name} has received your details and can follow up by email.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsContactOpen(false);
-                  setInquiryStatus("idle");
-                  setInquiryMessage("");
-                }}
-                className="w-fit mono hidden cursor-pointer rounded-full bg-black p-1 px-2 mono text-xs font-semibold uppercase tracking-tight text-white transition hover:bg-[#1c40f2]/50"
-              >
-                Close
-              </button>
             </div>
           ) : (
             <form
@@ -803,10 +793,9 @@ const ProfileModal = ({
                   </svg>
                 </button>
               </div>
-
-              <span className="text-[#999] mono text-sm mb-2 font-medium tracking-tighter uppercase ">
+              <p className="geist  overflow-hidden text-sm font-semibold leading-3 tracking-tight text-[#999]">
                 Tell {name} what you need.
-              </span>
+              </p>
 
               <div className="flex gap-4">
                 <InputArea

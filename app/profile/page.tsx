@@ -3119,12 +3119,11 @@ const ProfilePage = () => {
                   <p className="text-sm  font-medium tracking-tight text-black">
                     Signed in as:
                   </p>
-                  
+
                   <p className="geist text-sm font-medium tracking-tight text-[#999]">
                     {user.email}
                   </p>
                 </span>
-                
 
                 <p className="text-sm mt-4 capitalize font-medium tracking-tight text-black">
                   using:
@@ -4808,12 +4807,12 @@ const ProfilePage = () => {
                 >
                   {deletingInquiryId ? "Deleting..." : "Yes, delete"}
                 </button>
-
+                
                 <button
                   type="button"
                   onClick={() => setInquiryPendingDeletion(null)}
                   disabled={Boolean(deletingInquiryId)}
-                  className="cursor-pointer rounded-full border border-black/20 px-3 py-1 text-sm font-semibold text-black transition hover:border-black"
+                  className="geist text-center  overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]"
                 >
                   Cancel
                 </button>
