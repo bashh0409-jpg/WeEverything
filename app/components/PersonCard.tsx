@@ -134,12 +134,12 @@ const PersonCard = ({
         </div>
         <div>
           <h1 className="text-sm mt-1 cursor-pointer font-semibold geist tracking-tighter transition-colors duration-300 hover:text-[#999]">
-            {name}
-          </h1>
-          <div className="relative mt-1">
+              {name}
+            </h1>
+          <div className="relative  ">
             <p
               ref={bioRef}
-              className="mon geist text-justify line-clamp-4 overflow-hidden text-[12px] font-semibold leading-3 tracking-tight text-[#999]"
+              className="mon geist  text-justify line-clamp-4 overflow-hidden text-[12px] font-semibold leading-3 tracking-tight text-[#999]"
             >
               {bio}
             </p>

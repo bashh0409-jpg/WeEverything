@@ -241,9 +241,16 @@ const ProfileModal = ({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ profileId }),
     })
-      .then((response) => {
+      .then(async (response) => {
         if (!response.ok) {
-          console.error("Could not record profile view", response.status);
+          const result = (await response.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          console.error(
+            "Could not record profile view",
+            response.status,
+            result?.error,
+          );
         }
       })
       .catch((error: unknown) => {

@@ -1,15 +1,3 @@
-create table if not exists public.profile_view_visitors (
-  profile_id uuid not null references public.profiles(id) on delete cascade,
-  visitor_hash text not null,
-  last_viewed_at timestamptz not null default now(),
-  primary key (profile_id, visitor_hash),
-  constraint profile_view_visitors_hash_check
-    check (visitor_hash ~ '^[0-9a-f]{64}$')
-);
-
-alter table public.profile_view_visitors enable row level security;
-revoke all on public.profile_view_visitors from public, anon, authenticated;
-
 create or replace function public.record_profile_view(
   target_profile_id uuid,
   visitor_hash text

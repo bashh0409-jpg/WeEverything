@@ -131,7 +131,9 @@ export async function POST(request: Request) {
     return makeResponse(
       false,
       502,
-      "Could not record this profile view.",
+      process.env.NODE_ENV === "production"
+        ? "Could not record this profile view."
+        : `Could not record this profile view: ${error.message} (${error.code ?? "unknown"})`,
     );
   }
 
