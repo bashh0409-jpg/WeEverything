@@ -2617,10 +2617,10 @@ const ProfilePage = () => {
 
               <button
                 type="button"
-                aria-label="Open project inquiries"
+                aria-label={`Open project inquiries${unreadInquiryCount ? `, ${unreadInquiryCount} unread` : ""}`}
                 title="Project inquiries"
                 onClick={() => setIsInquiryDrawerOpen(true)}
-                className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] p-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
+                className="relative inline-flex max-w-full geist max-h-7 items-center justify-center rounded-3xl border border-black/10 bg-black/[0.03] p-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
