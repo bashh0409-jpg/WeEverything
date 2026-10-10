@@ -37,6 +37,7 @@ export const metadata: Metadata = {
   description:
     "Discover developers, designers, photographers, illustrators, and other creative professionals for your next project.",
   applicationName: "WeEverything",
+  manifest: "/manifest.webmanifest?v=2",
   appleWebApp: {
     capable: true,
     title: "WeEverything",

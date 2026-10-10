@@ -2585,7 +2585,7 @@ const ProfilePage = () => {
                 className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
               >
                 {publishing
-                  ? "Processing..."
+                  ? "Please wait..."
                   : profile?.is_published
                     ? "Unpublish"
                     : "Publish"}
@@ -3109,7 +3109,6 @@ const ProfilePage = () => {
                 <p className="geist text-sm font-medium tracking-tight text-[#999]">
                   {formatViewCount(profileViews)}
                 </p>
-               
               </span>
               <PasskeySettings />
 
@@ -3118,10 +3117,12 @@ const ProfilePage = () => {
                   <p className="text-sm  font-medium tracking-tight text-black">
                     Signed in as:
                   </p>
+                  
                   <p className="geist text-sm font-medium tracking-tight text-[#999]">
                     {user.email}
                   </p>
                 </span>
+                
 
                 <p className="text-sm mt-4 capitalize font-medium tracking-tight text-black">
                   using:
@@ -3176,10 +3177,10 @@ const ProfilePage = () => {
 
               <div className="mt-8 border-t-2 border-black/5 pt-5">
                 <p className="text-sm mt-4 capitalize font-medium tracking-tight text-black">
-                  using:
-                </p>{" "}
-                <p className="text-sm capitalize font-medium tracking-tight text-[#999]">
                   Delete account
+                </p>{" "}
+                <p className="text-sm capitalize leading-4 my-2 font-medium tracking-tight text-[#999]">
+                  Your account and data will be permanently deleted in 30 days.
                 </p>
                 <button
                   type="button"
@@ -4475,40 +4476,40 @@ const ProfilePage = () => {
 
       {isDeleteModalOpen ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-md"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-white px-4 backdrop-blur-md"
           role="dialog"
           aria-modal="true"
           aria-labelledby="delete-account-title"
         >
-          <div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-5 shadow-2xl">
-            <h2
-              id="delete-account-title"
-              className="mt-3 text-3xl geist font-bold tracking-tighter text-black"
-            >
-              Permanently delete your account?
-            </h2>
-            <p className="mt-3 text-sm geist text-justify  font-medium tracking-tight leading-tight text-[#999]">
-              Your profile will be hidden immediately. Your account and data
-              will be permanently deleted in 30 days. Sign in with the same
-              email address before then to cancel deletion and restore your
-              account.
-            </p>
-            <div className="mt-6 flex flex-wrap  gap-1">
-              <button
-                type="button"
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="w-fit  geist capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
-              >
-                Keep account
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleDeleteAccount()}
-                disabled={deletingAccount}
-                className="w-fit  geist capitalize max-h-7 rounded-3xl bg-red-600 px-2 py-1 text-sm font-medium leading-4 tracking-tight text-white [overflow-wrap:anywhere]"
-              >
-                Delete account
-              </button>
+          <div className="w-full justify-center max-w-md rounded-2xl">
+            <div className="text-center items-center flex  flex-col gap-2 max-w-md">
+              <p className="mon geist  max-w-xs text-center  overflow-hidden text-xl font-semibold tracking-tighter text-black mb-2 ">
+                {" "}
+                Permanently delete your account?
+              </p>
+
+              <p className="geist max-w-xs overflow-hidden text-center text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
+                Your profile is hidden now and your account will be deleted in
+                30 days. Sign in again within that time to restore your account.
+              </p>
+
+              <div className="flex flex-wrap  gap-1">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="w-fit  geist capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteAccount()}
+                  disabled={deletingAccount}
+                  className="w-fit  geist capitalize max-h-7 rounded-3xl bg-red-600 px-2 py-1 text-sm font-medium leading-4 tracking-tight text-white [overflow-wrap:anywhere]"
+                >
+                  Proceed
+                </button>
+              </div>
             </div>
           </div>
         </div>

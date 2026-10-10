@@ -626,11 +626,11 @@ const Navbar = forwardRef<
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-md">
           <div className="relative w-full max-w-md rounded-2xl border border-black/10 bg-white p-4 shadow-2xl">
             <p className="text-xs font-medium uppercase tr mono text-[#999]">
-              Confirm logout
+              Confirm sign out
             </p>
 
             <h2 className="mt-3 geist text-3xl font-semibold tracking-tighter text-black">
-              Sure you want to log out?
+              Sure you want to sign out?
             </h2>
 
             {logoutError ? (
@@ -646,7 +646,7 @@ const Navbar = forwardRef<
                 disabled={isLoggingOut}
                 className="max-w-full capitalize geist max-h-7  rounded-3xl bg-black px-2 py-1 text-sm font-medium leading-4 tracking-tight text-white [overflow-wrap:anywhere]"
               >
-                {isLoggingOut ? "Signing out..." : "Yes, log out"}
+                {isLoggingOut ? "Signing out..." : "Sign out"}
               </button>
 
               <button

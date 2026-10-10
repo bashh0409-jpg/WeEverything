@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import posthog from "posthog-js";
 import type { User } from "@supabase/supabase-js";
-import { FaGithub, FaGoogle } from "react-icons/fa6";
+import { FaDiscord, FaGithub, FaGoogle } from "react-icons/fa6";
 import {
   getAuthRedirectUrl,
   isSupabaseConfigured,
@@ -52,8 +52,9 @@ const getAuthErrorFromLocation = () => {
 const SignInModal = ({ onClose }: SignInModalProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(() => Boolean(supabase));
-  const [isSigningIn, setIsSigningIn] = useState(false);
-  const [isAdultConfirmed, setIsAdultConfirmed] = useState(false);
+  const [signingInProvider, setSigningInProvider] = useState<
+    "google" | "github" | "discord" | null
+  >(null);
   const isBanned = useSyncExternalStore(
     subscribeToLocation,
     getIsBannedFromLocation,
@@ -134,9 +135,9 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
     };
   }, []);
 
-  const handleSignIn = async (provider: "google" | "github") => {
-    if (!isAdultConfirmed) return;
-
+  const handleSignIn = async (
+    provider: "google" | "github" | "discord",
+  ) => {
     if (!supabase) {
       setMessage(
         "Supabase is not configured yet. Add your public environment variables first.",
@@ -145,10 +146,13 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
     }
 
     setMessage("");
-    setIsSigningIn(true);
+    setSigningInProvider(provider);
 
     try {
       posthog.capture("sign_in_started", { provider });
+      await new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => resolve());
+      });
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -159,6 +163,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
 
       if (error) {
         setMessage(error.message);
+        setSigningInProvider(null);
       }
     } catch (error) {
       setMessage(
@@ -166,8 +171,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
           ? error.message
           : "Could not start sign-in. Please try again.",
       );
-    } finally {
-      setIsSigningIn(false);
+      setSigningInProvider(null);
     }
   };
 
@@ -196,13 +200,13 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-md">
-      <div className="relative w-full max-w-md rounded-2xl border border-black/10 bg-white p-4 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white px-4 backdrop-blur-md">
+      <div className="relative w-full max-w-md rounded-2xl text-center bg-white">
         <button
           type="button"
           aria-label="Close sign in modal"
           onClick={onClose}
-          className="absolute right-4 top-4 text-xl font-semibold text-[#666] transition hover:text-black"
+          className="absolute right-4 hidden top-4 text-xl font-semibold text-[#666] transition hover:text-black"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -215,17 +219,18 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
           </svg>
         </button>
 
-        <p className="text-xs font-medium uppercase t mono text-[#999]">
-          Welcome to WeEverything
-        </p>
+        <h2 className="mt-3 geist text-3xl font-semibold tracking-tighter text-black"></h2>
 
-        <h2 className="mt-3 geist text-3xl font-semibold tracking-tighter text-black">
+        <p className="mon geist  text-center  overflow-hidden text-xl font-semibold tracking-tighter text-black mb-2 ">
           {isBanned
             ? "Your account is banned"
             : user
               ? `You are signed in as ${user.email}`
               : "Sign in or create your profile"}
-        </h2>
+        </p>
+        <p className="text-sm hidden leading-4 max-w-xs my-2 mx-auto text-center geist tracking-tight font-semibold uppercas text-[#999]">
+          Sign in with your Google or GitHub
+        </p>
 
         {isBanned ? (
           <div
@@ -242,7 +247,10 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
             {message}
           </p>
         ) : authError ? (
-          <p className="text-sm my-2 rounded mon border border-red-200 bg-red-50 leading-4 px-3 py-2 geist tracking-tight font-medium text-[#999]" role="alert">
+          <p
+            className="text-sm my-2 rounded mon border border-red-200 bg-red-50 leading-4 px-3 py-2 geist tracking-tight font-medium text-[#999]"
+            role="alert"
+          >
             {authError}
           </p>
         ) : null}
@@ -262,55 +270,54 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
             </div>
           </div>
         ) : (
-          <div className="mt-4 space-y-4">
-            <p className="text-sm hidden mon leading-4 geist tracking-tight font-medium uppercas text-[#999]">
-              Continue with Google or GitHub.
-            </p>
-
-            <label className="flex  geist items-start gap-2 text-sm font-medium leading-5 tracking-tight">
-              <input
-                type="checkbox"
-                checked={isAdultConfirmed}
-                onChange={(event) =>
-                  setIsAdultConfirmed(event.currentTarget.checked)
-                }
-                className="mt-1"
-              />
-
-              <p className="geist  max-w-xs text-justify  overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
-                I confirm that I am at least 18 years old and agree to the{" "}
-                <Link href="/legal" className="underline">
-                  Terms and Privacy Policy
-                </Link>
-                .
-              </p>
-            </label>
-
-            <div className="grid gap-3 sm:grid-cols-2">
+          <div className="mt-4 space-y-4 text-center">
+            <div className="flex items-center justify-center w-full flex-wrap  gap-1">
               <button
                 type="button"
                 onClick={() => void handleSignIn("google")}
-                disabled={
-                  !isSupabaseConfigured || !isAdultConfirmed || isSigningIn
-                }
-                className="flex w-full geist tracking-tight cursor-pointer items-center justify-center gap-2 rounded-full bg-[#1c40f2] px-4 py-2 text-sm font-medium uppercase text-white transition hover:bg-[#1636d4] disabled:cursor-not-allowed disabled:bg-[#c2ccff]"
+                disabled={!isSupabaseConfigured || signingInProvider !== null}
+                aria-busy={signingInProvider === "google"}
+                className="w-fit  flex gap-2 geist capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
               >
                 <FaGoogle aria-hidden="true" className="text-base" />
-                Google
+                {signingInProvider === "google" ? "Signing in..." : "Google"}
               </button>
-
+              <button
+                type="button"
+                onClick={() => void handleSignIn("discord")}
+                disabled={!isSupabaseConfigured || signingInProvider !== null}
+                aria-busy={signingInProvider === "discord"}
+                className="w-fit  flex gap-2 geist capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
+              >
+                <FaDiscord aria-hidden="true" className="text-base" />
+                {signingInProvider === "discord" ? "Signing in..." : "Discord"}
+              </button>
               <button
                 type="button"
                 onClick={() => void handleSignIn("github")}
-                disabled={
-                  !isSupabaseConfigured || !isAdultConfirmed || isSigningIn
-                }
-                className="flex w-full geist tracking-tight cursor-pointer items-center justify-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-medium uppercase text-white transition hover:bg-[#333] disabled:cursor-not-allowed disabled:bg-[#aaa]"
+                disabled={!isSupabaseConfigured || signingInProvider !== null}
+                aria-busy={signingInProvider === "github"}
+                className="w-fit  flex gap-2 geist capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
               >
                 <FaGithub aria-hidden="true" className="text-base" />
-                GitHub
+                {signingInProvider === "github" ? "Signing in..." : "GitHub"}
               </button>
             </div>
+
+            <p className="geist mx-auto text-center max-w-xs text-center justify-center text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
+              By signing in, you agree to our{" "}
+              <Link href="/legal" className="underline underline-offset-2">
+                Terms and Privacy Policy
+              </Link>
+            </p>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="geist text-center  overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]"
+            >
+              Cancel
+            </button>
 
             {!isSupabaseConfigured ? (
               <p className="text-sm text-[#666]">
