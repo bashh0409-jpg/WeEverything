@@ -134,7 +134,7 @@ const BottomStrip = () => {
                 <div className="w-full flex flex-col">
                   <div className="flex w-full text-[#999] justify-between">
                     <span className="ml-2 tracking-tight font-medium uppercase text-xs geist ">
-                      {event?.company ?? "WeEverything"}
+                      {event?.company ?? ""}
                     </span>
 
                     <span className="ml-2 tracking-tight font-medium uppercase text-xs geist ">
@@ -155,8 +155,8 @@ const BottomStrip = () => {
                   {event?.description ?? ""}
                 </span>
 
-                <div className="mt-3 mix-blend-difference flex w-full mono uppercase tracking-tighter text-xs items-end text-sm justify-between gap-2 uppercas">
-                  <span className=" font-medium uppercase mono text-xs geist text-white">
+                <div className="mt-3 mix-blend-difference flex w-full mono uppercase tracking-tight text-xs items-end text-sm justify-between gap-2 uppercas">
+                  <span className=" font-medium uppercase  text-xs geist text-white">
                     {event?.city ?? "San Francisco, CA"}
                   </span>
                   <span className=" font-medium uppercase mono text-xs geist text-white">
