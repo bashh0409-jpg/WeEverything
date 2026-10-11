@@ -52,6 +52,7 @@ import {
 import {
   getSocialInputValue,
   getSocialUrl,
+  isSafeSocialUrl,
   isValidEmailAddress,
   isValidSocialHandle,
 } from "@/lib/social-links";
@@ -939,9 +940,6 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(() => Boolean(supabase));
   const [isEditing, setIsEditing] = useState(false);
   const [isEditorClosing, setIsEditorClosing] = useState(false);
-  const [editingSocialType, setEditingSocialType] = useState<SocialType | null>(
-    null,
-  );
   const [saving, setSaving] = useState(false);
   const [enhancingBio, setEnhancingBio] = useState(false);
   const [showBioStyleInstruction, setShowBioStyleInstruction] = useState(false);
@@ -1989,12 +1987,7 @@ const ProfilePage = () => {
 
     const socialPayload = socialOptions.flatMap(({ type }) => {
       const inputValue = socials[type].trim();
-      const existingLink = socialLinks.find((link) => link.type === type);
-      const url = inputValue
-        ? getSocialUrl(type, inputValue)
-        : editingSocialType !== type
-          ? (existingLink?.url ?? null)
-          : null;
+      const url = inputValue ? getSocialUrl(type, inputValue) : null;
       return url ? [{ profile_id: user.id, type, url }] : [];
     });
 
@@ -2024,7 +2017,6 @@ const ProfilePage = () => {
     setForm(toForm(user, data));
     setSocialLinks(savedSocials);
     setSocials(toSocialForm(savedSocials));
-    setEditingSocialType(null);
     closeProfileEditor();
     posthog.capture("profile_saved_changes", {
       is_published: data.is_published,
@@ -2254,17 +2246,15 @@ const ProfilePage = () => {
       current.filter((currentLink) => currentLink.id !== link.id),
     );
     setSocials((current) => ({ ...current, [link.type]: "" }));
-    if (editingSocialType === link.type) setEditingSocialType(null);
     setMessage(`${link.type} link removed.`);
   };
 
-  const openSocialEditor = (link: SocialLink) => {
+  const openSocialEditor = () => {
     if (!user) return;
 
     setMessage("");
     setForm(toForm(user, profile));
     setSocials(toSocialForm(socialLinks));
-    setEditingSocialType(link.type);
     openProfileEditor();
   };
 
@@ -2437,7 +2427,7 @@ const ProfilePage = () => {
       return rightRecency - leftRecency;
     });
   const visibleSocials = socialLinks.filter(
-    (link) => link.url && isSafeExternalUrl(link.url),
+    (link) => link.url && isSafeSocialUrl(link.type, link.url),
   );
   const mediaByPosition = new Map(media.map((item) => [item.position, item]));
   const deviceType = getDeviceTypeLabel();
@@ -2532,7 +2522,6 @@ const ProfilePage = () => {
     setIsLocationMenuOpen(false);
     setCustomRoleInput(getCustomRole(profile?.role ?? ""));
     setSocials(toSocialForm(socialLinks));
-    setEditingSocialType(null);
     setNewAward({ name: "", date: "" });
     setEditingAwardIndex(null);
     setNewExperience(emptyExperienceEntry());
@@ -2555,7 +2544,6 @@ const ProfilePage = () => {
     setIsLocationMenuOpen(false);
     setCustomRoleInput(getCustomRole(profile?.role ?? ""));
     setSocials(toSocialForm(socialLinks));
-    setEditingSocialType(null);
     setNewAward({ name: "", date: "" });
     setEditingAwardIndex(null);
     setNewExperience(emptyExperienceEntry());
@@ -2835,7 +2823,7 @@ const ProfilePage = () => {
                               type="button"
                               aria-label={`Edit ${option?.label ?? link.type} link`}
                               title="Edit link"
-                              onClick={() => openSocialEditor(link)}
+                              onClick={openSocialEditor}
                               className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-black bg-white text-black shadow-sm transition hover:bg-black hover:text-white"
                             >
                               <svg

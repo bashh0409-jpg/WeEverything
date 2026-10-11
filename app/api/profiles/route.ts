@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { isSafeExternalUrl } from "@/lib/safe-url";
+import { isSafeSocialUrl } from "@/lib/social-links";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { getActiveCustomProfileSections } from "@/lib/profile-sections";
 
@@ -183,7 +184,7 @@ export async function GET(request: Request) {
   });
 
   profileLinks.forEach((link) => {
-    if (!isSafeExternalUrl(link.url)) return;
+    if (!isSafeSocialUrl(link.type, link.url)) return;
     const links = linksByProfile.get(link.profile_id) ?? [];
     links.push({ id: link.id, type: link.type, url: link.url });
     linksByProfile.set(link.profile_id, links);

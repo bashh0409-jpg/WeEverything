@@ -1,3 +1,5 @@
+import { isSafeExternalUrl } from "./safe-url";
+
 export type SocialPlatform =
   | "portfolio"
   | "github"
@@ -51,6 +53,13 @@ export const isValidEmailAddress = (value: string) =>
 
 export const isValidSocialHandle = (value: string) =>
   handlePattern.test(value.trim().replace(/^@/, ""));
+
+export const isSafeSocialUrl = (platform: string, value: string) => {
+  if (platform !== "email") return isSafeExternalUrl(value);
+
+  const emailAddress = value.trim().replace(/^mailto:/i, "");
+  return !/[?#]/.test(emailAddress) && isValidEmailAddress(emailAddress);
+};
 
 export const getSocialUrl = (platform: SocialPlatform, value: string) => {
   const trimmedValue = value.trim();

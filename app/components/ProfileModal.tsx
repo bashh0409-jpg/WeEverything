@@ -26,7 +26,7 @@ import InputArea from "./InputArea";
 import CustomProfileSectionContent from "./CustomProfileSectionContent";
 import { getProfileHandle } from "@/lib/profile-handle";
 import { parseProfileAwards } from "@/lib/profile-awards";
-import { isSafeExternalUrl } from "@/lib/safe-url";
+import { isSafeSocialUrl } from "@/lib/social-links";
 import {
   getActiveCustomProfileSections,
   type CustomProfileSection,
@@ -478,7 +478,7 @@ const ProfileModal = ({
     ),
   };
   const visibleSocialLinks = socialLinks.filter((link) =>
-    isSafeExternalUrl(link.url),
+    isSafeSocialUrl(link.type, link.url),
   );
 
   useEffect(() => {
