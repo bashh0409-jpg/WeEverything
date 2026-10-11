@@ -310,7 +310,7 @@ const SignInModal = ({ onClose }: SignInModalProps) => {
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="max-w-full capitalize geist max-h-7 mt-4 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
+                className="max-w-full mx-auto capitalize geist max-h-7 mt-4 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
               >
                 Sign out
               </button>

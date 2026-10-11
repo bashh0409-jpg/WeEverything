@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-
-const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 type GateState =
   | "checking"
@@ -37,9 +35,6 @@ const OAuthPasskeyGate = () => {
   const [state, setState] = useState<GateState>("checking");
   const [message, setMessage] = useState("");
   const [oauthUserId, setOauthUserId] = useState<string | null>(null);
-  const [captchaToken, setCaptchaToken] = useState("");
-  const captchaRef = useRef<HTMLDivElement>(null);
-  const widgetIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -94,63 +89,6 @@ const OAuthPasskeyGate = () => {
     };
   }, [router]);
 
-  useEffect(() => {
-    if (state !== "required") return;
-    if (!TURNSTILE_SITE_KEY) return;
-
-    let isMounted = true;
-    const removeWidget = () => {
-      if (widgetIdRef.current && window.turnstile) {
-        try {
-          window.turnstile.remove(widgetIdRef.current);
-        } catch {
-          widgetIdRef.current = null;
-        }
-      }
-      widgetIdRef.current = null;
-    };
-    const renderCaptcha = () => {
-      if (!isMounted || !captchaRef.current) return;
-      if (!window.turnstile) {
-        setMessage("Could not load CAPTCHA. Please try again.");
-        setState("error");
-        return;
-      }
-
-      removeWidget();
-      widgetIdRef.current = window.turnstile.render(captchaRef.current, {
-        sitekey: TURNSTILE_SITE_KEY,
-        callback: (token) => setCaptchaToken(token),
-        "expired-callback": () => setCaptchaToken(""),
-        "error-callback": () => {
-          setCaptchaToken("");
-          setMessage("CAPTCHA verification failed. Please try again.");
-        },
-      });
-    };
-
-    if (window.turnstile) {
-      renderCaptcha();
-    } else {
-      const script = document.createElement("script");
-      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
-      script.async = true;
-      script.onload = renderCaptcha;
-      script.onerror = () => {
-        if (isMounted) {
-          setMessage("Could not load CAPTCHA. Please try again.");
-          setState("error");
-        }
-      };
-      document.head.appendChild(script);
-    }
-
-    return () => {
-      isMounted = false;
-      removeWidget();
-    };
-  }, [state]);
-
   const signOutAfterFailure = async (reason: string) => {
     if (!supabase) {
       setMessage(reason);
@@ -176,15 +114,12 @@ const OAuthPasskeyGate = () => {
   };
 
   const verifyPasskey = async () => {
-    if (!supabase || !oauthUserId || !captchaToken || state !== "required")
-      return;
+    if (!supabase || !oauthUserId || state !== "required") return;
 
     setState("verifying");
     setMessage("");
     try {
-      const { data, error } = await supabase.auth.signInWithPasskey({
-        options: { captchaToken },
-      });
+      const { data, error } = await supabase.auth.signInWithPasskey();
       if (error || !data.user || !data.session) {
         await signOutAfterFailure(
           error?.message ?? "Passkey verification failed.",
@@ -241,40 +176,17 @@ const OAuthPasskeyGate = () => {
                 : message || "Please try signing in again."}
         </p>
         {state === "required" || state === "verifying" ? (
-          <>
-            {TURNSTILE_SITE_KEY ? (
-              <div ref={captchaRef} className="mt-2" />
-            ) : (
-              <p className="text-sm text-red-600" role="alert">
-                Passkey verification CAPTCHA is not configured.
-              </p>
-            )}
-            {!captchaToken ? (
-              <p className="text-xs text-[#999]">
-                Complete the CAPTCHA before verifying your passkey.
-              </p>
-            ) : null}
-            {message ? (
-              <p className="text-sm text-red-600" role="alert">
-                {message}
-              </p>
-            ) : null}
-          </>
-        ) : null}
-        {(state === "required" || state === "verifying") &&
-        TURNSTILE_SITE_KEY ? (
           <button
             type="button"
             onClick={() => void verifyPasskey()}
-            disabled={state === "verifying" || !captchaToken}
+            disabled={state === "verifying"}
             className="w-fit mt-2 geist capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
           >
             {state === "verifying"
               ? "Waiting for passkey…"
               : "Use passkey"}
           </button>
-        ) : state === "error" ||
-          (state === "required" && !TURNSTILE_SITE_KEY) ? (
+        ) : state === "error" ? (
           <button
             type="button"
             onClick={retrySignOut}
