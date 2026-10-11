@@ -231,6 +231,11 @@ const ProfileModal = ({
   const isClosingRef = useRef(false);
   const onCloseRef = useRef(onClose);
   const closeTimerRef = useRef<number | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const contactButtonRef = useRef<HTMLButtonElement>(null);
+  const contactHeadingRef = useRef<HTMLHeadingElement>(null);
+  const wasContactOpenRef = useRef(false);
   const inquiryFormRef = useRef<HTMLFormElement>(null);
   const captchaRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
@@ -307,6 +312,21 @@ const ProfileModal = ({
     onCloseRef.current = onClose;
   }, [onClose]);
 
+  useEffect(() => {
+    if (wasContactOpenRef.current === isContactOpen) return;
+
+    wasContactOpenRef.current = isContactOpen;
+    if (isContactOpen) {
+      contactHeadingRef.current?.focus();
+    } else {
+      contactButtonRef.current?.focus();
+    }
+  }, [isContactOpen]);
+
+  useEffect(() => {
+    if (inquiryStatus === "sent") contactHeadingRef.current?.focus();
+  }, [inquiryStatus]);
+
   const closeModal = useCallback(() => {
     if (isClosingRef.current) return;
 
@@ -336,6 +356,8 @@ const ProfileModal = ({
     event: React.FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault();
+    if (inquiryStatus === "sending") return;
+
     if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken) {
       setInquiryStatus("error");
       setInquiryMessage("Please complete the CAPTCHA and try again.");
@@ -345,36 +367,49 @@ const ProfileModal = ({
     setInquiryMessage("");
 
     const formData = new FormData(event.currentTarget);
-    const response = await fetch("/api/inquiries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        profileId,
-        senderName: formData.get("senderName"),
-        senderEmail: formData.get("senderEmail"),
-        senderCountry: phoneCountry,
-        senderPhone: formData.get("senderPhone"),
-        captchaToken,
-        projectType: formData.get("projectType"),
-        companyName: formData.get("companyName"),
-        project: formData.get("project"),
-        budget: formData.get("budget"),
-        timeline: formData.get("timeline"),
-      }),
-    });
+    try {
+      const response = await fetch("/api/inquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileId,
+          senderName: formData.get("senderName"),
+          senderEmail: formData.get("senderEmail"),
+          senderCountry: phoneCountry,
+          senderPhone: formData.get("senderPhone"),
+          captchaToken,
+          projectType: formData.get("projectType"),
+          companyName: formData.get("companyName"),
+          project: formData.get("project"),
+          budget: formData.get("budget"),
+          timeline: formData.get("timeline"),
+        }),
+      });
+      const result = (await response.json().catch(() => null)) as {
+        error?: unknown;
+      } | null;
 
-    const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setInquiryStatus("error");
+        setInquiryMessage(
+          typeof result?.error === "string"
+            ? result.error
+            : "Could not send your inquiry. Please try again.",
+        );
+        return;
+      }
 
-    if (!response.ok) {
+      posthog.capture("profile_inquiry_sent");
+      setInquiryStatus("sent");
+      setInquiryMessage("Your inquiry has been sent.");
+      inquiryFormRef.current?.reset();
+    } catch (error) {
+      console.error("Could not submit profile inquiry", error);
       setInquiryStatus("error");
-      setInquiryMessage(result.error ?? "Could not send your inquiry.");
-      return;
+      setInquiryMessage(
+        "Could not send your inquiry. Check your connection and try again.",
+      );
     }
-
-    posthog.capture("profile_inquiry_sent");
-    setInquiryStatus("sent");
-    setInquiryMessage("Your inquiry has been sent.");
-    inquiryFormRef.current?.reset();
   };
 
   const socialLabels: Record<string, string> = {
@@ -449,12 +484,52 @@ const ProfileModal = ({
   useEffect(() => {
     const previousBodyOverflow = document.body.style.overflow;
     const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previouslyFocusedElement =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
 
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeModal();
+      if (event.key === "Escape") {
+        closeModal();
+        return;
+      }
+
+      if (event.key !== "Tab" || !dialogRef.current) return;
+
+      const focusableElements = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => element.getClientRects().length > 0);
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (!firstElement || !lastElement) {
+        event.preventDefault();
+        dialogRef.current.focus();
+        return;
+      }
+
+      if (
+        event.shiftKey &&
+        (document.activeElement === firstElement ||
+          !dialogRef.current.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === lastElement ||
+          !dialogRef.current.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        firstElement.focus();
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -463,6 +538,13 @@ const ProfileModal = ({
       document.body.style.overflow = previousBodyOverflow;
       document.documentElement.style.overflow = previousHtmlOverflow;
       window.removeEventListener("keydown", handleKeyDown);
+
+      if (
+        previouslyFocusedElement?.isConnected &&
+        previouslyFocusedElement !== document.body
+      ) {
+        previouslyFocusedElement.focus();
+      }
 
       if (closeTimerRef.current) {
         window.clearTimeout(closeTimerRef.current);
@@ -474,43 +556,52 @@ const ProfileModal = ({
     <>
       <button
         type="button"
-        aria-label="Close profile modal"
+        aria-hidden="true"
+        tabIndex={-1}
         onClick={closeModal}
         className={`profile-modal-backdrop fixed inset-0 z-40 cursor-default bg-black/50 backdrop-blur-sm ${
           isClosing ? "profile-modal-backdrop-exit" : ""
         }`}
       />
 
-      <button
-        type="button"
-        aria-label="Close profile modal"
-        onClick={closeModal}
-        className={`profile-modal-close w-8 p-1 bg-white h-8 flex items-center justify-center fixed right-1/2 bottom-[calc(90vh+8px)] z-50 translate-x-1/2 cursor-pointer rounded-full  text-white ${
-          isClosing ? "profile-modal-close-exit" : ""
-        }`}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          height="24px"
-          viewBox="0 -960 960 960"
-          width="24px"
-          fill="#000"
-        >
-          <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
-        </svg>
-      </button>
-
-      <section
+      <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="profile-modal-title"
-        data-lenis-prevent
-        onWheelCapture={(event) => event.stopPropagation()}
-        onTouchMoveCapture={(event) => event.stopPropagation()}
-        className={`profile-modal-sheet fixed bottom-0 left-0 right-0 z-50 flex h-[90vh] max-h-[90dvh] min-h-0 touch-pan-y flex-col overflow-y-scroll overscroll-contain rounded-t bg-white px-6 py-10 shadow-2xl geist sm:px-10 ${
-          isClosing ? "profile-modal-sheet-exit" : ""
-        }`}
+        aria-labelledby={
+          isContactOpen ? "profile-contact-title" : "profile-modal-title"
+        }
+        tabIndex={-1}
+        className="pointer-events-none fixed inset-0 z-50"
       >
+        <button
+          ref={closeButtonRef}
+          type="button"
+          aria-label="Close profile modal"
+          onClick={closeModal}
+          className={`profile-modal-close pointer-events-auto w-8 p-1 bg-white h-8 flex items-center justify-center fixed right-1/2 bottom-[calc(90vh+8px)] z-50 translate-x-1/2 cursor-pointer rounded-full text-white ${
+            isClosing ? "profile-modal-close-exit" : ""
+          }`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            height="24px"
+            viewBox="0 -960 960 960"
+            width="24px"
+            fill="#000"
+          >
+            <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
+          </svg>
+        </button>
+
+        <section
+          data-lenis-prevent
+          onWheelCapture={(event) => event.stopPropagation()}
+          onTouchMoveCapture={(event) => event.stopPropagation()}
+          className={`profile-modal-sheet pointer-events-auto fixed bottom-0 left-0 right-0 z-50 flex h-[90vh] max-h-[90dvh] min-h-0 touch-pan-y flex-col overflow-y-scroll overscroll-contain rounded-t bg-white px-6 py-10 shadow-2xl geist sm:px-10 ${
+            isClosing ? "profile-modal-sheet-exit" : ""
+          }`}
+        >
         <div
           className={`${isContactOpen ? "hidden" : "profile-modal-view profile-modal-view-profile mx-auto mt-10 flex w-full max-w-xl flex-col gap-6 pb-10"}`}
         >
@@ -605,7 +696,7 @@ const ProfileModal = ({
                     >
                       <div className="flex flex-col ">
                         <span className="text-sm font-medium leading-tight capitalize tracking-tight text-black">
-                          {experienceEntry.company}
+                          {formatExperienceTitle(experienceEntry)}
                         </span>
                         {dateRange ? (
                           <span className=" text-xs  font-semibold uppercase tracking-tight text-[#999]">
@@ -715,6 +806,7 @@ const ProfileModal = ({
             <div className=" flex items-center justify-between w-full">
               <div className="flex gap-1">
                 <button
+                  ref={contactButtonRef}
                   type="button"
                   onClick={() => void handleShare()}
                   className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
@@ -756,9 +848,14 @@ const ProfileModal = ({
           inquiryStatus === "sent" ? (
             <div className="profile-modal-view h-full mx-auto mt-10 flex w-full max-w-xl self-center flex-col items-center justify-center gap-5 pb-10 text-center">
               <div className="flex flex-col items-center">
-                <p className="mon geist max-w-xs text-center overflow-hidden text-xl font-semibold tracking-tighter text-black mb-2">
+                <h2
+                  ref={contactHeadingRef}
+                  id="profile-contact-title"
+                  tabIndex={-1}
+                  className="mon geist max-w-xs text-center overflow-hidden text-xl font-semibold tracking-tighter text-black mb-2"
+                >
                   You&apos;re all set.
-                </p>
+                </h2>
 
                 <p className="geist max-w-xs text-center overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
                   {name} has received your details and can follow up by email.
@@ -773,7 +870,12 @@ const ProfileModal = ({
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="mt-2 text-4xl font-semibold tracking-tighter">
+                  <h2
+                    ref={contactHeadingRef}
+                    id="profile-contact-title"
+                    tabIndex={-1}
+                    className="mt-2 text-4xl font-semibold tracking-tighter"
+                  >
                     {name}
                   </h2>
                 </div>
@@ -923,6 +1025,8 @@ const ProfileModal = ({
               </button>
               {inquiryMessage ? (
                 <p
+                  role={inquiryStatus === "error" ? "alert" : "status"}
+                  aria-live="polite"
                   className={`text-sm font-medium tracking-tight ${inquiryStatus === "error" ? "text-red-600" : "text-[#1c40f2]"}`}
                 >
                   {inquiryMessage}
@@ -932,6 +1036,7 @@ const ProfileModal = ({
           )
         ) : null}
       </section>
+      </div>
     </>
   );
 };

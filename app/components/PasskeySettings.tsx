@@ -33,6 +33,7 @@ const PasskeySettings = () => {
   const [requiresStepUp, setRequiresStepUp] = useState(false);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadPasskeys = useCallback(async () => {
@@ -95,6 +96,7 @@ const PasskeySettings = () => {
     if (!supabase || !totpFactorId || verificationCode.length !== 6 || busy)
       return;
     setBusy(true);
+    setBusyAction("verify");
     setMessage("");
     try {
       const { error } = await supabase.auth.mfa.challengeAndVerify({
@@ -113,6 +115,7 @@ const PasskeySettings = () => {
       );
     } finally {
       setBusy(false);
+      setBusyAction(null);
     }
   };
 
@@ -168,6 +171,7 @@ const PasskeySettings = () => {
     }
 
     setBusy(true);
+    setBusyAction(action.type === "add" ? "add" : action.passkey.id);
     setMessage("");
     try {
       if (action.type === "add") {
@@ -183,6 +187,7 @@ const PasskeySettings = () => {
       );
     } finally {
       setBusy(false);
+      setBusyAction(null);
     }
   };
 
@@ -219,7 +224,7 @@ const PasskeySettings = () => {
             disabled={busy || verificationCode.length !== 6}
             className="max-w-full mb-4 capitalize geist max-h-7 mt-4 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
           >
-            {busy ? "Verifying…" : "Verify"}
+            {busyAction === "verify" ? "Verifying…" : "Verify"}
           </button>
         </div>
       ) : null}
@@ -255,7 +260,7 @@ const PasskeySettings = () => {
                     disabled={busy}
                     className="max-w-full capitalize geist max-h-7 mt-4 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
                   >
-                    {busy ? "Please wait…" : "Remove"}
+                    {busyAction === passkey.id ? "Please wait…" : "Remove"}
                   </button>
                 </li>
               ))}
@@ -271,7 +276,7 @@ const PasskeySettings = () => {
             disabled={busy}
             className="max-w-full capitalize geist max-h-7 mt-4 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
           >
-            {busy ? "Please wait…" : "Add key"}
+            {busyAction === "add" ? "Please wait…" : "Add key"}
           </button>
         </>
       )}
