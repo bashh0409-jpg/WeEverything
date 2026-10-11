@@ -2780,52 +2780,7 @@ const ProfilePage = () => {
                           >
                             {getSocialIcon(link.type)}
                           </a>
-                          <span className="pointer-events-none absolute -right-1 -top-1 flex translate-y-1 gap-0.5 opacity-0 transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
-                            <button
-                              type="button"
-                              aria-label={`Edit ${option?.label ?? link.type} link`}
-                              title="Edit link"
-                              onClick={() => openSocialEditor(link)}
-                              className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-black bg-white text-black shadow-sm transition hover:bg-black hover:text-white"
-                            >
-                              <svg
-                                viewBox="0 0 24 24"
-                                width="11"
-                                height="11"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                aria-hidden="true"
-                              >
-                                <path d="M12 20h9" />
-                                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                              </svg>
-                            </button>
-                            <button
-                              type="button"
-                              aria-label={`Remove ${option?.label ?? link.type} link`}
-                              title="Remove link"
-                              onClick={() => void handleSocialRemove(link)}
-                              className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-red-600 bg-white text-red-600 shadow-sm transition hover:bg-red-600 hover:text-white"
-                            >
-                              <svg
-                                viewBox="0 0 24 24"
-                                width="11"
-                                height="11"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                aria-hidden="true"
-                              >
-                                <path d="M3 6h18" />
-                                <path d="M8 6V4h8v2" />
-                                <path d="m19 6-1 14H6L5 6" />
-                              </svg>
-                            </button>
-                          </span>
+                        
                         </div>
                       );
                     })}
@@ -4328,7 +4283,7 @@ const ProfilePage = () => {
                     ) : null}
                   </section>
                   <section className="mt-10 pt-5">
-                    <p className="mono text-xs font-medium uppercase tracking-tight text-[#999]">
+                    <p className="geist text-xs font-medium uppercase tracking-tight text-[#999]">
                       Let&apos;s Connect
                     </p>
                     <p className="mt-2 tracking-tight mono hidden text-sm text-[#666]">
@@ -4337,22 +4292,15 @@ const ProfilePage = () => {
                     </p>
                     <div className="mt-5 grid gap-x-6 gap-y-5 grid-cols-2 md:grid-cols-3">
                       {socialOptions.map(({ type, label }) => {
-                        const hasSavedLink = socialLinks.some(
-                          (link) => link.type === type,
-                        );
-
-                        return !hasSavedLink ||
-                          editingSocialType === type ||
-                          type === "booking" ? (
+                        return (
                           <label
                             key={type}
-                            className="flex flex-col gap-2 text-sm mono font-medium uppercase"
+                            className="flex flex-col gap-2 text-sm  font-medium "
                           >
                             <span className="flex items-center gap-2 text-[#999]">
                               <span className="flex items-center justify-center  text-black">
                                 {getSocialIcon(type)}
                               </span>
-                              <span className="sr-only">{label}</span>
                             </span>
                             <InputArea
                               leadingIcon={getSocialInputIcon(type)}
@@ -4383,7 +4331,7 @@ const ProfilePage = () => {
                               }
                             />
                           </label>
-                        ) : null;
+                        );
                       })}
                     </div>
                   </section>
