@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useEffect } from "react";
 import { useRef } from "react";
+import Image from "next/image";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import posthog from "posthog-js";
 import Navbar from "./components/Navbar";
@@ -613,7 +614,9 @@ const Page = () => {
           <section className="mt-60 geist leading-8 text-4xl font-bold tracking-tighter capitalize text-[#000] flex max-w-xl flex-col items-center justify-center text-center uppercas ">
             Find the best developers, photographers, illustrators, stylists and
             designers for your project.
+            
           </section>
+          
 
           <section className="w-full">
             <div className="mt-20 flex w-full max-w-lg items-center justify-between gap-4">
@@ -955,6 +958,14 @@ const Page = () => {
         aria-labelledby="desktop-only-title"
       >
         <div className="max-w-sm">
+          <div className="relative mx-auto mb-5 h-8 w-full ">
+            <Image
+              src="/logo.svg"
+              alt="WeEverything"
+              fill
+              className="object-contain"
+            />
+          </div>
           <p className="mon geist  max-w-xs text-center  overflow-hidden text-xl font-semibold tracking-tighter text-black mb-2 ">
             Plot twist: we’re still building.
           </p>
