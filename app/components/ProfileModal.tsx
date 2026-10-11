@@ -750,7 +750,7 @@ const ProfileModal = ({
               </span>
 
               <div
-                className="group relative aspect-[4/5] w-70 overflow-hidden bg-black/5"
+                className="group relative aspect-[4/5]  w-70 overflow-hidden bg-black/5"
                 role="group"
                 onMouseEnter={() => setIsGalleryHovered(true)}
                 onMouseLeave={() => setIsGalleryHovered(false)}

@@ -3035,7 +3035,7 @@ const ProfilePage = () => {
                   <p className="text-sm font-medium tracking-tight text-[#999]">
                     Gallery
                   </p>
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <div className=" grid gap-3 sm:grid-cols-2">
                     {media.map((item) => {
                       const mediaUrl = mediaUrls[item.storage_path] ?? "";
 
@@ -4076,7 +4076,7 @@ const ProfilePage = () => {
                       gallery <span>*</span>
                     </p>
 
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div className=" mt-5 grid gap-3 sm:grid-cols-2">
                       {[0, 1].map((position) => {
                         const item = mediaByPosition.get(position);
                         const isUploading = uploadingSlot === position;
