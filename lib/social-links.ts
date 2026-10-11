@@ -36,7 +36,7 @@ const platformConfig: Record<
   tiktok: { hosts: ["tiktok.com", "www.tiktok.com"], prefix: "/@" },
   x: {
     hosts: ["x.com", "www.x.com", "twitter.com", "www.twitter.com"],
-    prefix: "",
+    prefix: "/",
   },
   threads: {
     hosts: ["threads.net", "www.threads.net"],
