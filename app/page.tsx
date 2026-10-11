@@ -958,12 +958,12 @@ const Page = () => {
         aria-labelledby="desktop-only-title"
       >
         <div className="max-w-sm">
-          <div className="relative mx-auto mb-3 h-8 w-full ">
+          <div className="relative hidden mx-auto mb-3 h-8 w-full ">
             <Image
               src="/logo.svg"
               alt="WeEverything"
               fill
-              className="object-contain"
+              className=" object-contain"
             />
           </div>
           <p className="mon geist  max-w-xs text-center  overflow-hidden text-xl font-semibold tracking-tighter text-black mb-2 ">
