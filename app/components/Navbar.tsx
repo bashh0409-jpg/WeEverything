@@ -347,9 +347,12 @@ const Navbar = forwardRef<
           href="/"
           className="text-white lowercas geist font-medium tracking-tight"
         >
-          <p className="geist uppercase leading-8 text-xl font-bold tracking-tighter capitalize flex max-w-xl flex-col items-center justify-center text-center uppercas ">
+          <span className="geist gap-1 uppercase leading-8 text-xl font-bold tracking-tighter capitalize flex max-w-xl items-center justify-center text-center uppercas ">
             weeverything
-          </p>
+            
+          <p className="geist lowercase  max-w-xs text-center  overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">beta</p>
+            
+          </span>
         </Link>
 
         <div className="absolute left-1/2 top-4 hidden -translate-x-1/2 flex-col gap-2 md:flex">
