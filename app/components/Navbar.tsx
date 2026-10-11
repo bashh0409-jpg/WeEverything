@@ -352,8 +352,8 @@ const Navbar = forwardRef<
           </p>
         </Link>
 
-        <div className="hidden flex-col gap-2  md:flex">
-          <div className="flex items-center gap-2">
+        <div className="absolute left-1/2 top-4 hidden -translate-x-1/2 flex-col gap-2 md:flex">
+          <div className="flex justify-center items-center gap-2">
             {links.map((link) => (
               <Link
                 key={link.href}

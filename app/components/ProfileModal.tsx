@@ -602,440 +602,447 @@ const ProfileModal = ({
             isClosing ? "profile-modal-sheet-exit" : ""
           }`}
         >
-        <div
-          className={`${isContactOpen ? "hidden" : "profile-modal-view profile-modal-view-profile mx-auto mt-10 flex w-full max-w-xl flex-col gap-6 pb-10"}`}
-        >
-          <div className="flex flex-col gap-2">
-            <h1
-              id="profile-modal-title"
-              className="mb-1  text-3xl font-semibold leading-tight tracking-tighter sm:text-4xl md:text-6xl md:leading-12"
-            >
-              {name}
-            </h1>
-
-            <span className=" flex flex-col gap-1 text-sm font-medium capitalize tracking-tight">
-              <span className="flex flex-wrap gap-1">
-                {(profileRoles.length ? profileRoles : ["Developer"]).map(
-                  (profileRole, index, rolesToDisplay) => (
-                    <span key={profileRole} className="w-fit rounded-full">
-                      {profileRole}
-                      {index < rolesToDisplay.length - 1 ? "," : ""}
-                    </span>
-                  ),
-                )}
-              </span>
-            </span>
-            <span className=" -mt-2 flex flex-col gap-1 text-xs mono font-medium capitalize tracking-tight text-[#999]">
-              <span className="w-fit rounded-full uppercase text-[#999] ">
-                {location || "Unknown location"}
-              </span>
-            </span>
-            <span className=" flex mt-10 gap-2">
-              {visibleSocialLinks.length ? (
-                <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-                  <span className="text-sm font-medium tracking-tight text-[#999]">
-                    Let&apos;s Connect
-                  </span>
-
-                  <div className="flex flex-wrap gap-2">
-                    {visibleSocialLinks.map((link) => (
-                      <a
-                        key={link.id}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={socialLabels[link.type] ?? link.type}
-                        title={socialLabels[link.type] ?? link.type}
-                        className="flex h-7 w-5 items-center justify-center rounded-full text-base transition"
-                      >
-                        {socialIcons[link.type] ?? (
-                          <span className="text-xl font-semibold uppercase">
-                            {link.type.slice(0, 2)}
-                          </span>
-                        )}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </span>
-          </div>
-
-          <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-            <span className="text-sm font-medium tracking-tight text-[#999]">
-              About Me
-            </span>
-
-            <span className="whitespace-pre-line text-justify text-sm font-medium leading-4 tracking-tight">
-              {formattedBio}
-            </span>
-          </div>
-          {experienceEntries.length ? (
-            <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-              <span className="text-sm font-medium tracking-tight text-[#999]">
-                Work Experiences
-              </span>
-
-              <div className="flex flex-col gap-6">
-                {experienceEntries.map((experienceEntry, index) => {
-                  const hasDetail =
-                    experienceEntry.role ||
-                    experienceEntry.company ||
-                    experienceEntry.startDate ||
-                    experienceEntry.endDate ||
-                    experienceEntry.description;
-
-                  if (!hasDetail) return null;
-
-                  const dateRange = formatExperienceDateRange(experienceEntry);
-
-                  return (
-                    <div
-                      key={`${experienceEntry.company}-${experienceEntry.role}-${index}`}
-                      className=" flex flex-col gap-1"
-                    >
-                      <div className="flex flex-col ">
-                        <span className="text-sm font-medium leading-tight capitalize tracking-tight text-black">
-                          {formatExperienceTitle(experienceEntry)}
-                        </span>
-                        {dateRange ? (
-                          <span className=" text-xs  font-semibold uppercase tracking-tight text-[#999]">
-                            {dateRange}{" "}
-                          </span>
-                        ) : (
-                          <span className=" text-sm font-semibold tracking-tight text-black/45">
-                            —
-                          </span>
-                        )}
-
-                        {experienceEntry.description ? (
-                          <p className="mt-4 geist font-medium text-justify whitespace-pre-line text-sm leading-4 tracking-tight  text-[#000]">
-                            {experienceEntry.description}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
-
-          {hasAwards ? (
-            <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-              <span className="text-sm font-medium tracking-tight text-[#999]">
-                Honours
-              </span>
-              <ProfileAwardsList value={awards ?? ""} />
-            </div>
-          ) : null}
-          {getActiveCustomProfileSections(customSections).map(
-            (section, index) => (
-              <div
-                key={`${section.title}-${index}`}
-                className="grid gap-3  border-black/10 pt-5 sm:grid-cols-[140px_minmax(0,1fr)]"
+          <div
+            className={`${isContactOpen ? "hidden" : "profile-modal-view profile-modal-view-profile mx-auto mt-10 flex w-full max-w-xl flex-col gap-6 pb-10"}`}
+          >
+            <div className="flex flex-col gap-2">
+              <h1
+                id="profile-modal-title"
+                className="mb-1  text-3xl font-semibold leading-tight tracking-tighter sm:text-4xl md:text-6xl md:leading-12"
               >
-                <span className="text-sm capitalize font-medium tracking-tight text-[#999]">
-                  {section.title}
+                {name}
+              </h1>
+
+              <span className=" flex flex-col gap-1 text-sm font-medium capitalize tracking-tight">
+                <span className="flex flex-wrap gap-1">
+                  {(profileRoles.length ? profileRoles : ["Developer"]).map(
+                    (profileRole, index, rolesToDisplay) => (
+                      <span key={profileRole} className="w-fit rounded-full">
+                        {profileRole}
+                        {index < rolesToDisplay.length - 1 ? "," : ""}
+                      </span>
+                    ),
+                  )}
                 </span>
-                <CustomProfileSectionContent content={section.content} />
-              </div>
-            ),
-          )}
+              </span>
+              <span className=" -mt-2 flex flex-col gap-1 text-xs mono font-medium capitalize tracking-tight text-[#999]">
+                <span className="w-fit rounded-full uppercase text-[#999] ">
+                  {location || "Unknown location"}
+                </span>
+              </span>
+              <span className=" flex mt-10 gap-2">
+                {visibleSocialLinks.length ? (
+                  <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                    <span className="text-sm font-medium tracking-tight text-[#999]">
+                      Let&apos;s Connect
+                    </span>
 
-          <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-            <span className="text-sm font-medium tracking-tight text-[#999]">
-              Gallery
-            </span>
+                    <div className="flex flex-wrap gap-2">
+                      {visibleSocialLinks.map((link) => (
+                        <a
+                          key={link.id}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={socialLabels[link.type] ?? link.type}
+                          title={socialLabels[link.type] ?? link.type}
+                          className="flex h-7 w-5 items-center justify-center rounded-full text-base transition"
+                        >
+                          {socialIcons[link.type] ?? (
+                            <span className="text-xl font-semibold uppercase">
+                              {link.type.slice(0, 2)}
+                            </span>
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </span>
+            </div>
 
-            <div
-              className="group relative aspect-[4/5] w-70 overflow-hidden bg-black/5"
-              role="group"
-              onMouseEnter={() => setIsGalleryHovered(true)}
-              onMouseLeave={() => setIsGalleryHovered(false)}
-              onFocus={() => setIsGalleryHovered(true)}
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) {
-                  setIsGalleryHovered(false);
-                }
-              }}
-              tabIndex={hoverMedia ? 0 : undefined}
-              aria-label={`${name} profile image${hoverMedia ? ". Hover or focus to view alternate media." : ""}`}
-            >
-              {image ? (
-                <CachedImage
-                  src={image}
-                  alt={`${name} profile`}
-                  className={`absolute cursor-pointer inset-0 h-full w-full object-cover transition-opacity duration-300 ${
-                    isGalleryHovered && hoverMedia ? "opacity-0" : "opacity-100"
-                  }`}
-                />
-              ) : null}
-              {hoverMedia?.type === "image" ? (
-                <CachedImage
-                  src={hoverMedia.url}
-                  alt={`${name} alternate profile image`}
-                  className={`absolute cursor-pointer inset-0 h-full w-full object-cover transition-opacity duration-300 ${
-                    isGalleryHovered ? "opacity-100" : "opacity-0"
-                  }`}
-                />
-              ) : null}
-              {isGalleryHovered && hoverMedia?.type === "video" ? (
-                <video
-                  src={hoverMedia.url}
-                  autoPlay
-                  loop
-                  playsInline
-                  controls={false}
-                  aria-label={`${name} profile video`}
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-              ) : null}
-              {!image && !isGalleryHovered ? (
-                <div className="flex h-full w-full items-center justify-center text-sm font-medium text-[#999]">
-                  No profile image.
+            <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+              <span className="text-sm font-medium tracking-tight text-[#999]">
+                About Me
+              </span>
+
+              <span className="whitespace-pre-line text-justify text-sm font-medium leading-4 tracking-tight">
+                {formattedBio}
+              </span>
+            </div>
+            {experienceEntries.length ? (
+              <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                <span className="text-sm font-medium tracking-tight text-[#999]">
+                  Work Experiences
+                </span>
+
+                <div className="flex flex-col gap-6">
+                  {experienceEntries.map((experienceEntry, index) => {
+                    const hasDetail =
+                      experienceEntry.role ||
+                      experienceEntry.company ||
+                      experienceEntry.startDate ||
+                      experienceEntry.endDate ||
+                      experienceEntry.description;
+
+                    if (!hasDetail) return null;
+
+                    const dateRange =
+                      formatExperienceDateRange(experienceEntry);
+
+                    return (
+                      <div
+                        key={`${experienceEntry.company}-${experienceEntry.role}-${index}`}
+                        className=" flex flex-col gap-1"
+                      >
+                        <div className="flex flex-col ">
+                          <span className="text-sm font-medium leading-tight capitalize tracking-tight text-black">
+                            {formatExperienceTitle(experienceEntry)}
+                          </span>
+                          {dateRange ? (
+                            <span className=" text-xs  font-semibold uppercase tracking-tight text-[#999]">
+                              {dateRange}{" "}
+                            </span>
+                          ) : (
+                            <span className=" text-sm font-semibold tracking-tight text-black/45">
+                              —
+                            </span>
+                          )}
+
+                          {experienceEntry.description ? (
+                            <p className="mt-4 geist font-medium text-justify whitespace-pre-line text-sm leading-4 tracking-tight  text-[#000]">
+                              {experienceEntry.description}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : null}
-            </div>
-          </div>
+              </div>
+            ) : null}
 
-          <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-            <span className="text-sm font-medium tracking-tight text-[#999]">
-              Quick Actions
-            </span>
-            <div className=" flex items-center justify-between w-full">
-              <div className="flex gap-1">
-                <button
-                  ref={contactButtonRef}
-                  type="button"
-                  onClick={() => void handleShare()}
-                  className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
+            {hasAwards ? (
+              <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                <span className="text-sm font-medium tracking-tight text-[#999]">
+                  Honours
+                </span>
+                <ProfileAwardsList value={awards ?? ""} />
+              </div>
+            ) : null}
+            {getActiveCustomProfileSections(customSections).map(
+              (section, index) => (
+                <div
+                  key={`${section.title}-${index}`}
+                  className="grid gap-3  border-black/10 pt-5 sm:grid-cols-[140px_minmax(0,1fr)]"
                 >
-                  {shareLabel === "Share profile" ? "Share" : shareLabel}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsContactOpen(true);
-                    setInquiryStatus("idle");
-                    setInquiryMessage("");
-                  }}
-                  className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
-                >
-                  Contact
-                </button>{" "}
-                <button
-                  type="button"
-                  aria-label={
-                    isSaved
-                      ? `Remove ${name} from saved profiles`
-                      : `Save ${name} profile`
+                  <span className="text-sm capitalize font-medium tracking-tight text-[#999]">
+                    {section.title}
+                  </span>
+                  <CustomProfileSectionContent content={section.content} />
+                </div>
+              ),
+            )}
+
+            <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+              <span className="text-sm font-medium tracking-tight text-[#999]">
+                Gallery
+              </span>
+
+              <div
+                className="group relative aspect-[4/5] w-70 overflow-hidden bg-black/5"
+                role="group"
+                onMouseEnter={() => setIsGalleryHovered(true)}
+                onMouseLeave={() => setIsGalleryHovered(false)}
+                onFocus={() => setIsGalleryHovered(true)}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setIsGalleryHovered(false);
                   }
-                  aria-pressed={isSaved}
-                  title={
-                    isSaved ? "Remove from saved profiles" : "Save profile"
-                  }
-                  onClick={() => onToggleSave(profileId)}
-                  className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
-                >
-                  {isSaved ? "Saved" : "Save"}
-                </button>
+                }}
+                tabIndex={hoverMedia ? 0 : undefined}
+                aria-label={`${name} profile image${hoverMedia ? ". Hover or focus to view alternate media." : ""}`}
+              >
+                {image ? (
+                  <CachedImage
+                    src={image}
+                    alt={`${name} profile`}
+                    className={`absolute cursor-pointer inset-0 h-full w-full object-cover transition-opacity duration-300 ${
+                      isGalleryHovered && hoverMedia
+                        ? "opacity-0"
+                        : "opacity-100"
+                    }`}
+                  />
+                ) : null}
+                {hoverMedia?.type === "image" ? (
+                  <CachedImage
+                    src={hoverMedia.url}
+                    alt={`${name} alternate profile image`}
+                    className={`absolute cursor-pointer inset-0 h-full w-full object-cover transition-opacity duration-300 ${
+                      isGalleryHovered ? "opacity-100" : "opacity-0"
+                    }`}
+                  />
+                ) : null}
+                {isGalleryHovered && hoverMedia?.type === "video" ? (
+                  <video
+                    src={hoverMedia.url}
+                    autoPlay
+                    loop
+                    playsInline
+                    controls={false}
+                    aria-label={`${name} profile video`}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : null}
+                {!image && !isGalleryHovered ? (
+                  <div className="flex h-full w-full items-center justify-center text-sm font-medium text-[#999]">
+                    No profile image.
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className=" grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+              <span className="text-sm font-medium tracking-tight text-[#999]">
+                Quick Actions
+              </span>
+              <div className=" flex items-center justify-between w-full">
+                <div className="flex gap-1">
+                  <button
+                    ref={contactButtonRef}
+                    type="button"
+                    onClick={() => void handleShare()}
+                    className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
+                  >
+                    {shareLabel === "Share profile" ? "Share" : shareLabel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsContactOpen(true);
+                      setInquiryStatus("idle");
+                      setInquiryMessage("");
+                    }}
+                    className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
+                  >
+                    Contact
+                  </button>{" "}
+                  <button
+                    type="button"
+                    aria-label={
+                      isSaved
+                        ? `Remove ${name} from saved profiles`
+                        : `Save ${name} profile`
+                    }
+                    aria-pressed={isSaved}
+                    title={
+                      isSaved ? "Remove from saved profiles" : "Save profile"
+                    }
+                    onClick={() => onToggleSave(profileId)}
+                    className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
+                  >
+                    {isSaved ? "Saved" : "Save"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        {isContactOpen ? (
-          inquiryStatus === "sent" ? (
-            <div className="profile-modal-view h-full mx-auto mt-10 flex w-full max-w-xl self-center flex-col items-center justify-center gap-5 pb-10 text-center">
-              <div className="flex flex-col items-center">
-                <h2
-                  ref={contactHeadingRef}
-                  id="profile-contact-title"
-                  tabIndex={-1}
-                  className="mon geist max-w-xs text-center overflow-hidden text-xl font-semibold tracking-tighter text-black mb-2"
-                >
-                  You&apos;re all set.
-                </h2>
-
-                <p className="geist max-w-xs text-center overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
-                  {name} has received your details and can follow up by email.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <form
-              ref={inquiryFormRef}
-              onSubmit={handleInquirySubmit}
-              className="profile-modal-view profile-modal-view-form mx-auto mt-10 flex w-full max-w-xl flex-col gap-5 pb-10"
-            >
-              <div className="flex items-start justify-between">
-                <div>
+          {isContactOpen ? (
+            inquiryStatus === "sent" ? (
+              <div className="profile-modal-view h-full mx-auto mt-10 flex w-full max-w-xl self-center flex-col items-center justify-center gap-5 pb-10 text-center">
+                <div className="flex flex-col items-center">
                   <h2
                     ref={contactHeadingRef}
                     id="profile-contact-title"
                     tabIndex={-1}
-                    className="mt-2 text-4xl font-semibold tracking-tighter"
+                    className="mon geist max-w-xs text-center overflow-hidden text-xl font-semibold tracking-tighter text-black mb-2"
                   >
-                    {name}
+                    You&apos;re all set.
                   </h2>
+
+                  <p className="geist max-w-xs text-center overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
+                    {name} has received your details and can follow up by email.
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsContactOpen(false)}
-                  className="text-sm font-semibold text-[#666] transition hover:text-black"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    height="24px"
-                    viewBox="0 -960 960 960"
-                    width="24px"
-                    fill="#999"
-                  >
-                    <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
-                  </svg>
-                </button>
               </div>
-              <p className="geist  overflow-hidden text-sm font-semibold leading-3 tracking-tight text-[#999]">
-                Tell {name} what you need.
-              </p>
-
-              <div className="flex gap-4">
-                <InputArea
-                  name="senderName"
-                  required
-                  placeholder="Full name"
-                  className="text-sm outline-none focus:border-black"
-                />
-                <InputArea
-                  name="senderEmail"
-                  required
-                  type="email"
-                  placeholder="Email address"
-                  className="text-sm outline-none focus:border-black"
-                />
-              </div>
-              <div className="relative flex items-center">
-                <button
-                  type="button"
-                  aria-label="Choose country calling code"
-                  aria-expanded={isCountryPickerOpen}
-                  onClick={() => setIsCountryPickerOpen((current) => !current)}
-                  className="mr-1 flex items-center gap-1 rounded bg-black px-2 py-2 text-sm font-semibold text-white"
-                >
-                  +{getCountryCallingCode(phoneCountry)}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 -960 960 960"
-                    width="16"
-                    height="16"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path d="M480-344 240-584l56-56 184 184 184-184 56 56-240 240Z" />
-                  </svg>
-                </button>
-                {isCountryPickerOpen ? (
-                  <div className="absolute scrollbar-hide left-0 z-20 mb-2 max-h-64 w-64 overflow-y-auto rounded border border-black/10 bg-white p-1 shadow-2xl">
-                    {getCountries().map((country) => (
-                      <button
-                        key={country}
-                        type="button"
-                        onClick={() => {
-                          setPhoneCountry(country);
-                          setIsCountryPickerOpen(false);
-                        }}
-                        className={`flex w-full cursor-pointer items-center justify-between rounded px-3 py-2 text-left text-xs transition hover:bg-black hover:text-white ${
-                          country === phoneCountry ? "bg-black/10" : ""
-                        }`}
-                      >
-                        <span>{country}</span>
-                        <span>+{getCountryCallingCode(country)}</span>
-                      </button>
-                    ))}
+            ) : (
+              <form
+                ref={inquiryFormRef}
+                onSubmit={handleInquirySubmit}
+                className="profile-modal-view profile-modal-view-form mx-auto mt-10 flex w-full max-w-xl flex-col gap-5 pb-10"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2
+                      ref={contactHeadingRef}
+                      id="profile-contact-title"
+                      tabIndex={-1}
+                      className="mt-2 text-4xl font-semibold tracking-tighter"
+                    >
+                      {name}
+                    </h2>
                   </div>
-                ) : null}
-                <InputArea
-                  name="senderPhone"
-                  type="tel"
-                  placeholder="Phone number"
-                  className="border-0 text-sm outline-none focus:border-black"
-                />
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsContactOpen(false)}
+                    className="text-sm font-semibold text-[#666] transition hover:text-black"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      height="24px"
+                      viewBox="0 -960 960 960"
+                      width="24px"
+                      fill="#999"
+                    >
+                      <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
+                    </svg>
+                  </button>
+                </div>
+                <p className="geist  overflow-hidden text-sm font-semibold leading-3 tracking-tight text-[#999]">
+                  Tell {name} what you need.
+                </p>
 
-              <div className="grid gap-2 sm:grid-cols-2">
-                <InputArea
-                  name="projectType"
-                  maxLength={120}
-                  placeholder="Project type (optional)"
-                  className="text-sm outline-none focus:border-black"
-                />
-                <InputArea
-                  name="companyName"
-                  maxLength={200}
-                  placeholder="Company name (optional)"
-                  className="text-sm outline-none focus:border-black"
-                />
-              </div>
-              <InputArea
-                as="textarea"
-                name="project"
-                required
-                minLength={1}
-                rows={5}
-                placeholder="What are you looking to make?"
-                className=" p-3 text-sm outline-none focus:border-black/0"
-              />
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="flex bg-black/5 w-full items-center  pl-2 w-fit h-fit rounded">
-                  <span className="  text-sm font-semibold ">$</span>
+                <div className="flex gap-4">
                   <InputArea
-                    name="budget"
-                    placeholder="Budget (optional)"
-                    className="border-none bg-transparent"
+                    name="senderName"
+                    required
+                    placeholder="Full name"
+                    className="text-sm outline-none focus:border-black"
+                  />
+                  <InputArea
+                    name="senderEmail"
+                    required
+                    type="email"
+                    placeholder="Email address"
+                    className="text-sm outline-none focus:border-black"
                   />
                 </div>
-                <div className="bg-black/5 pr-1 rounded">
-                  <select
-                    name="timeline"
-                    defaultValue=""
-                    className="w-full p-2 rounded text-sm font-medium tracking-tight text-black outline-none focus:border-black"
+                <div className="relative flex items-center">
+                  <button
+                    type="button"
+                    aria-label="Choose country calling code"
+                    aria-expanded={isCountryPickerOpen}
+                    onClick={() =>
+                      setIsCountryPickerOpen((current) => !current)
+                    }
+                    className="mr-1 flex items-center gap-1 rounded bg-black px-2 py-2 text-sm font-semibold text-white"
                   >
-                    <option value="" disabled>
-                      Choose timeline
-                    </option>
-                    <option value="ASAP">ASAP</option>
-                    <option value="2 weeks">2 weeks</option>
-                    <option value="1 month">1 month</option>
-                    <option value="By a specific date">
-                      By a specific date
-                    </option>
-                    <option value="Flexible">Flexible</option>
-                  </select>
+                    +{getCountryCallingCode(phoneCountry)}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 -960 960 960"
+                      width="16"
+                      height="16"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path d="M480-344 240-584l56-56 184 184 184-184 56 56-240 240Z" />
+                    </svg>
+                  </button>
+                  {isCountryPickerOpen ? (
+                    <div className="absolute scrollbar-hide left-0 z-20 mb-2 max-h-64 w-64 overflow-y-auto rounded border border-black/10 bg-white p-1 shadow-2xl">
+                      {getCountries().map((country) => (
+                        <button
+                          key={country}
+                          type="button"
+                          onClick={() => {
+                            setPhoneCountry(country);
+                            setIsCountryPickerOpen(false);
+                          }}
+                          className={`flex w-full cursor-pointer items-center justify-between rounded px-3 py-2 text-left text-xs transition hover:bg-black hover:text-white ${
+                            country === phoneCountry ? "bg-black/10" : ""
+                          }`}
+                        >
+                          <span>{country}</span>
+                          <span>+{getCountryCallingCode(country)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  <InputArea
+                    name="senderPhone"
+                    type="tel"
+                    placeholder="Phone number (optional)"
+                    className="border-0 text-sm outline-none focus:border-black"
+                  />
                 </div>
-              </div>
-              {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
-                <div ref={captchaRef} />
-              ) : null}
-              <button
-                type="submit"
-                disabled={inquiryStatus === "sending"}
-                className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere] w-fit"
-              >
-                {inquiryStatus === "sending" ? "Sending..." : "Send"}
-              </button>
-              {inquiryMessage ? (
-                <p
-                  role={inquiryStatus === "error" ? "alert" : "status"}
-                  aria-live="polite"
-                  className={`text-sm font-medium tracking-tight ${inquiryStatus === "error" ? "text-red-600" : "text-[#1c40f2]"}`}
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <InputArea
+                    name="projectType"
+                    maxLength={120}
+                    required
+                    placeholder="Project type"
+                    className="text-sm outline-none focus:border-black"
+                  />
+                  <InputArea
+                    name="companyName"
+                    maxLength={200}
+                    placeholder="Company name (optional)"
+                    className="text-sm outline-none focus:border-black"
+                  />
+                </div>
+                <InputArea
+                  as="textarea"
+                  name="project"
+                  required
+                  minLength={1}
+                  rows={5}
+                  placeholder="What are you looking to make?"
+                  className=" p-3 text-sm outline-none focus:border-black/0"
+                />
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="flex bg-black/5 w-full items-center  pl-2 w-fit h-fit rounded">
+                    <span className="  text-sm font-semibold ">$</span>
+                    <InputArea
+                      name="budget"
+                      placeholder="Budget (optional)"
+                      className="border-none bg-transparent"
+                    />
+                  </div>
+                  <div className="bg-black/5 pr-1 rounded">
+                    <select
+                      name="timeline"
+                      defaultValue=""
+                      className="w-full p-2 rounded text-sm font-medium tracking-tight text-black outline-none focus:border-black"
+                    >
+                      <option value="" disabled>
+                        Choose timeline
+                      </option>
+                      <option value="Not sure">Not sure</option>
+                      <option value="ASAP">ASAP</option>
+                      <option value="2 weeks">2 weeks</option>
+                      <option value="1 month">1 month</option>
+                      <option value="By a specific date">
+                        By a specific date
+                      </option>
+                      <option value="Flexible">Flexible</option>
+                    </select>
+                  </div>
+                </div>
+                {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
+                  <div ref={captchaRef} />
+                ) : null}
+                <button
+                  type="submit"
+                  disabled={inquiryStatus === "sending"}
+                  className="max-w-full geist max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere] w-fit"
                 >
-                  {inquiryMessage}
-                </p>
-              ) : null}
-            </form>
-          )
-        ) : null}
-      </section>
+                  {inquiryStatus === "sending" ? "Sending..." : "Send"}
+                </button>
+                {inquiryMessage ? (
+                  <p
+                    role={inquiryStatus === "error" ? "alert" : "status"}
+                    aria-live="polite"
+                    className={`text-sm font-medium tracking-tight ${inquiryStatus === "error" ? "text-red-600" : "text-[#1c40f2]"}`}
+                  >
+                    {inquiryMessage}
+                  </p>
+                ) : null}
+              </form>
+            )
+          ) : null}
+        </section>
       </div>
     </>
   );

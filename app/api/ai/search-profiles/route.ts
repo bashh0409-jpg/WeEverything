@@ -7,7 +7,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 
 const MAX_QUERY_LENGTH = 200;
 const MAX_CANDIDATES = 100;
-const AI_MODEL = process.env.AI_MODEL ?? "Qwen/Qwen3-8B";
+const AI_MODEL = process.env.AI_MODEL ?? "qwen/qwen3.7-plus";
 
 type SearchCandidate = {
   id: string;

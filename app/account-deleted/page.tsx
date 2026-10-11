@@ -21,7 +21,7 @@ const AccountDeletedPage = () => {
           </p>
 
           <p className="geist  max-w-xs text-center  overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
-            Your profile is hidden and your account is scheduled for permanent
+            Your profile  hidden and your account is scheduled for permanent
             deletion in 30 days. Sign in with the same email address before then
             to cancel deletion and restore your account.
           </p>

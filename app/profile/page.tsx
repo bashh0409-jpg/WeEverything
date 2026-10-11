@@ -3183,7 +3183,7 @@ const ProfilePage = () => {
                 <p className="text-sm mt-4 capitalize font-medium tracking-tight text-black">
                   Delete account
                 </p>{" "}
-                <p className="text-sm capitalize leading-4 my-2 font-medium tracking-tight text-[#999]">
+                <p className="text-sm  leading-4 my-2 font-medium tracking-tight text-[#999]">
                   Your account and data will be permanently deleted in 30 days.
                 </p>
                 <button
@@ -4492,12 +4492,12 @@ const ProfilePage = () => {
                 Permanently delete your account?
               </p>
 
-              <p className="geist max-w-xs overflow-hidden text-center text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
-                Your profile is hidden now and your account will be deleted in
+              <p className="geist max-w-xs overflow-hidden text-center text-[13px] font-semibold leading-3 tracking-tight  text-[#999]">
+                Your profile will be hidden and your account will be deleted in
                 30 days. Sign in again within that time to restore your account.
               </p>
 
-              <div className="flex flex-wrap  gap-1">
+              <div className="flex  flex-wrap  gap-1">
                 <button
                   type="button"
                   onClick={() => setIsDeleteModalOpen(false)}
@@ -4674,7 +4674,7 @@ const ProfilePage = () => {
                     {inquiry.sender_phone ? (
                       <a
                         href={`tel:${inquiry.sender_phone}`}
-                        className="text-[#999] mb-2 mono uppercase text-sm font-medium tracking-tighter hover:text-black"
+                        className="text-[#999] mb-2 geist uppercase text-sm font-medium tracking-tighter hover:text-black"
                       >
                         {inquiry.sender_phone}
                       </a>
@@ -4686,9 +4686,9 @@ const ProfilePage = () => {
                       {inquiry.sender_email}
                     </a>
                     {inquiry.project_type || inquiry.company_name ? (
-                      <div className="mt-2 flex geist tracking-tight flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-[#666]">
+                      <div className="mt-2 flex geist  tracking-tight flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-[#666]">
                         {inquiry.project_type ? (
-                          <span>Project type: {inquiry.project_type}</span>
+                          <span >Project type: {inquiry.project_type}</span>
                         ) : null}
                         {inquiry.company_name ? (
                           <span>Company: {inquiry.company_name}</span>
@@ -4807,7 +4807,7 @@ const ProfilePage = () => {
                 >
                   {deletingInquiryId ? "Deleting..." : "Yes, delete"}
                 </button>
-                
+
                 <button
                   type="button"
                   onClick={() => setInquiryPendingDeletion(null)}

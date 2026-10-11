@@ -210,7 +210,7 @@ const Page = () => {
                 </span>
                 <span className="indent-8 font-medium text-sm leading-4 tracking-tight ">
                   If you use bio enhancement, the bio you submit is sent through
-                  OpenRouter using the currently configured Qwen/Qwen3-8B model.
+                  OpenRouter using the currently configured AI model.
                   Intelligent search sends your query and public candidate
                   profile details (name, role, bio, and location) through
                   OpenRouter for ranking. OpenRouter may route inputs to an

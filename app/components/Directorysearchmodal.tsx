@@ -233,7 +233,7 @@ export default function DirectorySearchModal<
       role="dialog"
       aria-modal="true"
       aria-labelledby="directory-search-title"
-      className="fixed inset-0 geist z-50 min-h-dvh overflow-y-auto bg-[#999] px-6"
+      className="fixed inset-0 geist z-50 h-dvh overflow-hidden bg-[#999] px-6"
     >
       <h2 id="directory-search-title" className="sr-only">
         Search profiles
@@ -259,7 +259,7 @@ export default function DirectorySearchModal<
 
       <div
         ref={contentRef}
-        className="mx-auto min-h-dvh w-full max-w-xl pt-[30vh] pb-12"
+        className="mx-auto flex h-full min-h-0 w-full max-w-xl flex-col pt-[20vh] pb-12"
       >
         {/* The input stays visually dominant while results remain close enough to scan quickly. */}
         <div className="flex w-full items-center border-b-2 border-white/60 focus-within:border-white/70">
@@ -321,8 +321,9 @@ export default function DirectorySearchModal<
           </div>
         ) : null}
 
-        {(needle || recentlyViewedProfiles.length > 0) && (
-          <div className="mt-8">
+        <div className="mt-8 min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {(needle || recentlyViewedProfiles.length > 0) && (
+            <div>
             {needle && (
               <p
                 aria-live="polite"
@@ -356,7 +357,7 @@ export default function DirectorySearchModal<
               </div>
             )}
             {displayedProfiles.length > 0 ? (
-              <div className="">
+              <div className=" px-2 ">
                 {displayedProfiles.map((profile) => (
                   <button
                     key={profile.id}
@@ -395,6 +396,7 @@ export default function DirectorySearchModal<
             ) : null}
           </div>
         )}
+        </div>
       </div>
     </section>
   );

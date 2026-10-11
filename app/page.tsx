@@ -658,7 +658,7 @@ const Page = () => {
                       : "cursor-pointer transition-all duration-400 hover:text-black"
                   }
                 >
-                  Saved ({savedProfileIds.length})
+                  Saved 
                 </button>
                 {roles.slice(1, 6).map((role) => (
                   <button

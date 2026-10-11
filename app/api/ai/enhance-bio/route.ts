@@ -10,7 +10,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 const MAX_BIO_LENGTH = 2_000;
 const MAX_STYLE_INSTRUCTION_LENGTH = 300;
 const MIN_BIO_WORDS = 20;
-const AI_MODEL = process.env.AI_MODEL ?? "Qwen/Qwen3-8B";
+const AI_MODEL = process.env.AI_MODEL ?? "qwen/qwen3.7-plus";
 
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
