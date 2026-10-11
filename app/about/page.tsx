@@ -1,6 +1,10 @@
-"use client";
-
+import packageJson from "../../package.json";
 import Navbar from "../components/Navbar";
+
+const deploymentId = process.env.VERCEL_DEPLOYMENT_ID;
+const displayedVersion = deploymentId
+  ? `${packageJson.version} (${deploymentId.slice(-8)})`
+  : packageJson.version;
 
 const Page = () => {
   return (
@@ -13,6 +17,9 @@ const Page = () => {
           <h1 className="text-5xl mt-10 mb-4 tracking-tighter text- font-semibold">
             About WeEverything
           </h1>
+          <p className="text-sm text-justify font-medium tracking-tight text-[#999]">
+            Version: {displayedVersion}
+          </p>
         </div>
         <div>
           <div className="mt-8 space-y-6">
@@ -58,7 +65,12 @@ const Page = () => {
                   Legal
                 </h2>
                 <p className="indent-8 mb-20 font-medium text-sm leading-4 tracking-tight">
-                  See our <a href="/legal" className="underline text-blue-500">legal page</a> for more information about our terms of service, privacy policy, and other legal matters.
+                  See our{" "}
+                  <a href="/legal" className="underline text-blue-500">
+                    legal page
+                  </a>{" "}
+                  for more information about our terms of service, privacy
+                  policy, and other legal matters.
                 </p>
               </div>
             </div>
