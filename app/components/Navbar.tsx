@@ -20,6 +20,7 @@ import SignOutConfirmation from "./SignOutConfirmation";
 const links = [
   { href: "/", label: "Home," },
   { href: "/about", label: "About," },
+  { href: "/how-to", label: "How to," },
   //{ href: "/events", label: "Events," },
   { href: "/legal", label: "Legal," },
 ];
@@ -349,13 +350,13 @@ const Navbar = forwardRef<
         >
           <span className="geist gap-1 uppercase leading-8 text-xl font-bold tracking-tighter capitalize flex max-w-xl items-center justify-center text-center uppercas ">
             weeverything
-            
-          <p className="geist lowercase  max-w-xs text-center  overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">beta</p>
-            
+            <p className="geist -ml-3 -mt-5 lowercase  max-w-xs text-center  overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
+              beta
+            </p>
           </span>
         </Link>
 
-        <div className="absolute left-1/2 top-4 hidden -translate-x-1/2 flex-col gap-2 md:flex">
+        <div className="absolute left-1/2 top-4 hidden -translate-x-1/2 flex-col gap-2 sm:flex">
           <div className="flex justify-center items-center gap-2">
             {links.map((link) => (
               <Link
