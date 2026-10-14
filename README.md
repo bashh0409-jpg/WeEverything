@@ -45,6 +45,12 @@ The Playwright suite starts a production build automatically. Set
 
 ### Vercel
 
+- BotID protects AI, inquiry, event-submission, and sponsorship-checkout POST
+  routes. The app includes the required Next.js rewrites and client/server
+  checks; deploy to Vercel and enable BotID in the project Firewall settings.
+  Verify protected routes from a normal browser on a Preview Deployment before
+  promoting to Production. Deep Analysis can be enabled there for stronger
+  detection.
 - Set `NEXT_PUBLIC_SITE_URL` to the canonical HTTPS origin for the production
   deployment.
 - Set the required Supabase, Upstash, and Cloudflare Turnstile variables from

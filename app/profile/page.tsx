@@ -2768,7 +2768,6 @@ const ProfilePage = () => {
                           >
                             {getSocialIcon(link.type)}
                           </a>
-                        
                         </div>
                       );
                     })}
@@ -4624,7 +4623,7 @@ const ProfilePage = () => {
                     {inquiry.project_type || inquiry.company_name ? (
                       <div className="mt-2 flex geist  tracking-tight flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-[#666]">
                         {inquiry.project_type ? (
-                          <span >Project type: {inquiry.project_type}</span>
+                          <span>Project type: {inquiry.project_type}</span>
                         ) : null}
                         {inquiry.company_name ? (
                           <span>Company: {inquiry.company_name}</span>
@@ -4705,21 +4704,23 @@ const ProfilePage = () => {
 
       {isWelcomeOverlayOpen ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-white p-4 backdrop-blur-md">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 text-center ">
-            <h2 className="mono text-xl uppercase tracking-tight">
+
+          <div className="text-center items-center flex  flex-col gap-2 max-w-md">
+            <p className="mon geist  max-w-xs text-center  overflow-hidden text-xl font-semibold tracking-tighter text-black mb-2 ">
               Welcome to WeEverything!
-            </h2>
-            <p className="mt-3 font-mono text-sm uppercase tracking-tight text-black/60">
+            </p>
+
+            <p className="geist  max-w-xs text-center  overflow-hidden text-[13px] font-semibold leading-3 tracking-tight text-[#999]">
               Thank you for signing up. Your account is ready. Start building
               your profile and share what you make with the community.
             </p>
-            <button
-              type="button"
-              onClick={() => setIsWelcomeOverlayOpen(false)}
-              className="mt-6 rounded-full bg-black px-2 cursor-pointer py-1 mono text-xs font-medium uppercase tracking-tight text-white transition hover:bg-[#1c40f2]"
+
+            <a
+              href="/profile"
+              className="w-fit  geist capitalize max-h-7 rounded-3xl border border-black/10 bg-black/[0.03] px-2 py-1 text-sm font-medium leading-4 tracking-tight text-[#333] [overflow-wrap:anywhere]"
             >
-              CLOSE
-            </button>
+              close
+            </a>
           </div>
         </div>
       ) : null}

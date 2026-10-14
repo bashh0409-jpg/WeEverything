@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { rejectBotRequest } from "@/lib/botid";
 import { createServerClient } from "@supabase/ssr";
 import {
   captureAiGeneration,
@@ -13,6 +14,9 @@ const MIN_BIO_WORDS = 20;
 const AI_MODEL = process.env.AI_MODEL ?? "qwen/qwen3.7-plus";
 
 export async function POST(request: Request) {
+  const botResponse = await rejectBotRequest();
+  if (botResponse) return botResponse;
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const aiApiKey = process.env.AI_API_KEY;

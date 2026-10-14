@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { Polar } from "@polar-sh/sdk";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
+import { rejectBotRequest } from "@/lib/botid";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import {
   getActivePromotion,
@@ -33,6 +34,9 @@ const isSameOriginRequest = (request: Request) => {
 };
 
 export async function POST(request: Request) {
+  const botResponse = await rejectBotRequest();
+  if (botResponse) return botResponse;
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

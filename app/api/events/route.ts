@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { emitPostHogLog, flushPostHogLogs } from "@/instrumentation";
 import { isSafeExternalUrl } from "@/lib/safe-url";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { rejectBotRequest } from "@/lib/botid";
 
 const MAX_TITLE_LENGTH = 200;
 const MAX_COMPANY_LENGTH = 200;
@@ -26,6 +27,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const botResponse = await rejectBotRequest();
+  if (botResponse) return botResponse;
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

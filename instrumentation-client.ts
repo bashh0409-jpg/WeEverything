@@ -1,4 +1,15 @@
 import posthog from "posthog-js";
+import { initBotId } from "botid/client/core";
+
+initBotId({
+  protect: [
+    { path: "/api/ai/search-profiles", method: "POST" },
+    { path: "/api/ai/enhance-bio", method: "POST" },
+    { path: "/api/events", method: "POST" },
+    { path: "/api/inquiries", method: "POST" },
+    { path: "/api/sponsor", method: "POST" },
+  ],
+});
 
 const projectToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
 const host = process.env.NEXT_PUBLIC_POSTHOG_HOST;

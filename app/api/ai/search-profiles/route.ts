@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rejectBotRequest } from "@/lib/botid";
 import {
   captureAiGeneration,
   createAiTraceId,
@@ -34,6 +35,9 @@ const parseIds = (content: string): string[] => {
 };
 
 export async function POST(request: Request) {
+  const botResponse = await rejectBotRequest();
+  if (botResponse) return botResponse;
+
   const aiApiKey = process.env.AI_API_KEY;
   const aiBaseUrl = process.env.AI_BASE_URL;
 
