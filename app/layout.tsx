@@ -38,10 +38,10 @@ export const metadata: Metadata = {
     "Discover developers, designers, photographers, illustrators, and other creative professionals for your next project.",
   applicationName: "WeEverything",
   icons: {
-    icon: "/Frame%2018.png",
-    apple: "/Frame%2018.png",
+    icon: "/Frame%2018.png?v=5",
+    apple: "/Frame%2018.png?v=5",
   },
-  manifest: "/manifest.webmanifest?v=4",
+  manifest: "/manifest.webmanifest?v=5",
   appleWebApp: {
     capable: true,
     title: "WeEverything",
